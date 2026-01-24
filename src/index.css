@@ -1,0 +1,177 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #2d2d2d;
+  border-bottom: 2px solid #e02424;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e02424;
+}
+
+.my-id {
+  background: #3d3d3d;
+  padding: 5px 15px;
+  border-radius: 4px;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 300px;
+  background-color: #252525;
+  padding: 20px;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+}
+
+.sidebar section {
+  margin-bottom: 30px;
+}
+
+.sidebar h3 {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.connect-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connect-box input {
+  padding: 10px;
+  background: #333;
+  border: 1px solid #444;
+  color: white;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #e02424;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #c81e1e;
+}
+
+.sources-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.source-item {
+  background: #333;
+  padding: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.source-item:hover {
+  border-color: #e02424;
+}
+
+.source-item img {
+  width: 100%;
+  border-radius: 2px;
+}
+
+.source-item span {
+  font-size: 0.7rem;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+  position: relative;
+}
+
+.status-bar {
+  padding: 5px 15px;
+  background: #e02424;
+  color: white;
+  font-size: 0.8rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+.status-bar.connected {
+  background: #059669;
+}
+
+.video-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.log-window {
+  height: 150px;
+  background: #000;
+  border-top: 2px solid #333;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  overflow-y: auto;
+  color: #0f0;
+}
+
+.log-window h4 {
+  margin: 0 0 5px 0;
+  color: #888;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.log-entry {
+  margin-bottom: 2px;
+  border-left: 2px solid #0f0;
+  padding-left: 5px;
+}

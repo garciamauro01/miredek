@@ -1,0 +1,14 @@
+FROM node:18-slim
+
+# Instala a CLI do PeerJS globalmente
+RUN npm install -g peer
+
+# Define o diretório de trabalho
+WORKDIR /app
+
+# Porta padrão do PeerJS Server
+EXPOSE 9000
+
+# Executa o servidor PeerJS
+# --allow_discovery permite que os peers se encontrem (opcional, mas útil para o clone)
+ENTRYPOINT ["peerjs", "--port", "9000", "--path", "/", "--allow_discovery"]

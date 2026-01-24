@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Servidor de Sinalização (WebRTC)
+  peerjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.peer
+    container_name: miredesk-peer-server
+    restart: always
+    ports:
+      - "9000:9000"
+    environment:
+      - PORT=9000
+
+  # Versão Web do MiréDesk (Landing Page / Web Client)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: miredesk-web
+    restart: always
+    ports:
+      - "5175:80"
+    depends_on:
+      - peerjs
+  # Opcional: Adicione um container para o Banco de Dados se for persistir contatos futuramente
+  # db:
+  #   image: postgres:alpine
+  #   volumes:
+  #     - ./data:/var/lib/postgresql/data

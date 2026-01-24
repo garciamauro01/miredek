@@ -1,0 +1,75 @@
+:root {
+  /* Brand Colors */
+  --ad-red: #ef3024;
+  --ad-red-hover: #d22015;
+  --ad-dark-bg: #2d2d2d;
+  --ad-panel-bg: #ffffff;
+  --ad-sidebar-bg: #f9f9f9;
+  
+  /* Text Colors */
+  --ad-text-primary: #333333;
+  --ad-text-secondary: #666666;
+  --ad-text-light: #ffffff;
+
+  /* Borders & Shadows */
+  --ad-border: #e0e0e0;
+  --ad-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  
+  /* Layout */
+  --header-height: 50px;
+}
+
+body {
+  background-color: var(--ad-sidebar-bg);
+  color: var(--ad-text-primary);
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Utility Classes */
+.ad-card {
+  background: var(--ad-panel-bg);
+  border: 1px solid var(--ad-border);
+  box-shadow: var(--ad-shadow);
+  border-radius: 4px;
+  padding: var(--spacing-md);
+}
+
+.ad-btn-primary {
+  background-color: var(--ad-red);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.ad-btn-primary:hover {
+  background-color: var(--ad-red-hover);
+}
+
+.ad-input {
+  border: 1px solid var(--ad-border);
+  padding: 8px;
+  border-radius: 2px;
+  font-size: 14px;
+  outline: none;
+}
+
+.ad-input:focus {
+  border-color: var(--ad-red);
+}

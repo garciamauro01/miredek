@@ -1,0 +1,17 @@
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    getSources: () => ipcRenderer.invoke('get-sources'),
+    executeInput: (data: any) => ipcRenderer.invoke('execute-input', data),
+    getAutostartStatus: () => ipcRenderer.invoke('get-autostart-status'),
+    setAutostart: (value: boolean) => ipcRenderer.invoke('set-autostart', value),
+    showWindow: () => ipcRenderer.invoke('show-window'),
+    writeClipboard: (text: string) => ipcRenderer.invoke('write-clipboard', text),
+    readClipboard: () => ipcRenderer.invoke('read-clipboard'),
+    readFileChunk: (path: string, start: number, size: number) => ipcRenderer.invoke('read-file-chunk', path, start, size),
+    saveFileChunk: (transferId: string, chunk: Uint8Array) => ipcRenderer.invoke('save-file-chunk', transferId, chunk),
+    finalizeFile: (transferId: string, fileName: string, x?: number, y?: number) => ipcRenderer.invoke('finalize-file', transferId, fileName, x, y),
+    getFileInfo: (path: string) => ipcRenderer.invoke('get-file-info', path),
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    writeLog: (text: string) => ipcRenderer.invoke('write-log', text),
+});
