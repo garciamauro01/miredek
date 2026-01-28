@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# MiréDesk - Remote Desktop Clone
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Clone open-source do AnyDesk construído com Electron, React, TypeScript e WebRTC.
 
-Currently, two official plugins are available:
+## 🚀 Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Controle Remoto de Alta Performance:** Baixa latência via Peer-to-Peer (WebRTC).
+- **App Desktop:** Cliente nativo para Windows (com controle de mouse/teclado via `robotjs`).
+- **Transferência de Arquivos:** Arraste e solte arquivos.
+- **Chat:** Comunicação em tempo real.
+- **Segurança:** Autenticação por senha e ID único.
 
-## React Compiler
+## 🛠️ Arquitetura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React + Vite + TypeScript.
+- **Desktop Wrapper:** Electron (integração nativa).
+- **Backend (Sinalização):** PeerJS Server (Node.js).
+- **Protocolo:** WebRTC (P2P direto App-App).
 
-## Expanding the ESLint configuration
+## 📦 Como Rodar (Desenvolvimento)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Instalar dependências:**
+   ```bash
+   npm install
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Iniciar em modo Dev:**
+   ```bash
+   npm run dev
+   # Abre duas janelas: Peer Server + App Electron
+   ```
+   *Ou use o script auxiliar:* `.\reiniciar-servicos.bat`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Gerar Executável (Build):**
+   ```bash
+   .\gerar-exe.bat
+   # Gera instalador/portátil na pasta dist-package/
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## ☁️ Deploy (Servidor)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Para produção, consulte [DEPLOY.md](./DEPLOY.md).
+O foco principal é o deploy do **PeerJS Server** via Docker para permitir conexões via internet.

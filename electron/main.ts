@@ -53,14 +53,30 @@ if (!gotTheLock) {
       width: 1000,
       height: 800,
       center: true,
-      show: true,
-      alwaysOnTop: false, // Permite que outras janelas se sobreponham normalmente
+      show: false, // Não mostrar até estar pronta
+      backgroundColor: '#ffffff', // Cor de fundo inicial para evitar flash branco
+      frame: false, // Janela sem bordas (frameless)
+      titleBarStyle: 'hidden', // Oculta barra de título nativa mas mantém comportamento de snap
+      minimizable: true,
+      maximizable: true,
+      closable: true,
+      alwaysOnTop: false,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, 'preload.js'),
       },
     });
+
+    // Remove o menu padrão (File, Edit, etc)
+    mainWindow.setMenu(null);
+
+    // Debug events
+    mainWindow.on('minimize', () => console.log('[Main] Janela minimizada'));
+    mainWindow.on('maximize', () => console.log('[Main] Janela maximizada'));
+    mainWindow.on('restore', () => console.log('[Main] Janela restaurada'));
+    mainWindow.on('show', () => console.log('[Main] Janela mostrada'));
+    mainWindow.on('hide', () => console.log('[Main] Janela ocultada'));
 
     console.log('Caminho do Preload:', join(__dirname, 'preload.js'));
 
@@ -83,6 +99,23 @@ if (!gotTheLock) {
       } else {
         console.log('[Main] Encerrando aplicativo permanentemente');
       }
+    });
+
+    // --- IPC Handlers para Controles da Janela ---
+    ipcMain.handle('window-minimize', () => {
+      mainWindow?.minimize();
+    });
+
+    ipcMain.handle('window-maximize', () => {
+      if (mainWindow?.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow?.maximize();
+      }
+    });
+
+    ipcMain.handle('window-close', () => {
+      mainWindow?.close();
     });
 
     mainWindow.on('ready-to-show', () => {
@@ -185,7 +218,7 @@ if (!gotTheLock) {
         };
       });
     } catch (error) {
-      console.error('Erro fatal ao capturar fontes:', error);
+      logToFile(`[Main] Erro fatal ao capturar fontes: ${error}`);
       return [];
     }
   });
@@ -199,7 +232,7 @@ if (!gotTheLock) {
     // Ajusta delay do mouse para 0 para ser mais fluido
     robot.setMouseDelay(0);
   } catch (e) {
-    console.error('ERRO: Falha ao carregar robotjs. Controle remoto não funcionará.', e);
+    logToFile(`[Main] ERRO: Falha ao carregar robotjs. Controle remoto não funcionará. ${e}`);
   }
 
   ipcMain.handle('execute-input', async (event, data) => {
@@ -213,17 +246,20 @@ if (!gotTheLock) {
 
       switch (type) {
         case 'mousemove':
-          // Converte coordenadas normalizadas (0-1) para pixels globais
           const x = bounds.x + (data.x * bounds.width);
           const y = bounds.y + (data.y * bounds.height);
+          // Reduz log de movimento para não spammar
+          // if (Math.random() > 0.95) console.log(`[Input] Move: ${x|0}, ${y|0}`);
           robot.moveMouse(x, y);
           break;
 
         case 'mousedown':
+          console.log(`[Input] Click DOWN em: ${data.x.toFixed(2)}, ${data.y.toFixed(2)} (Tela: ${bounds.x},${bounds.y})`);
           robot.mouseToggle('down', data.button);
           break;
 
         case 'mouseup':
+          console.log(`[Input] Click UP em: ${data.x.toFixed(2)}, ${data.y.toFixed(2)}`);
           robot.mouseToggle('up', data.button);
           break;
 
@@ -271,9 +307,9 @@ if (!gotTheLock) {
   });
 
   ipcMain.handle('set-autostart', (event, value: boolean) => {
-    console.log('[Main] Configurando auto-início para:', value);
+    logToFile(`[Main] Configurando auto-início para: ${value}`);
     const exePath = app.getPath('exe');
-    console.log('[Main] Caminho do executável para auto-início:', exePath);
+    logToFile(`[Main] Caminho do executável para auto-início: ${exePath}`);
 
     app.setLoginItemSettings({
       openAtLogin: value,
@@ -282,7 +318,7 @@ if (!gotTheLock) {
     });
 
     const settings = app.getLoginItemSettings();
-    console.log('[Main] Status final do auto-início:', settings.openAtLogin);
+    logToFile(`[Main] Status final do auto-início: ${settings.openAtLogin}`);
     return settings.openAtLogin;
   });
 
@@ -306,14 +342,20 @@ if (!gotTheLock) {
 
   // --- LOGGING ---
   const LOG_FILE = join(app.getPath('userData'), 'mire_desk_logs.txt');
-  ipcMain.handle('write-log', (event, text: string) => {
-    const timestamp = new Date().toISOString();
-    const logEntry = `[${timestamp}] ${text}\n`;
+
+  function logToFile(text: string) {
+    const timestamp = new Date().toLocaleString();
+    const entry = `[${timestamp}] ${text}\n`;
     try {
-      fs.appendFileSync(LOG_FILE, logEntry);
+      console.log(text); // Mantém no console também
+      fs.appendFileSync(LOG_FILE, entry);
     } catch (err) {
-      console.error('Erro ao escrever no arquivo de log:', err);
+      console.error('Erro ao escrever log:', err);
     }
+  }
+
+  ipcMain.handle('write-log', (event, text: string) => {
+    logToFile(text);
   });
 
   // --- FILE TRANSFER ---
@@ -349,15 +391,24 @@ if (!gotTheLock) {
       let targetDir = join(app.getPath('downloads'), 'MiréDesk');
 
       // Se houver coordenadas, tentamos encontrar a pasta do Explorer sob o mouse
-      if (x !== undefined && y !== undefined) {
-        try {
-          const { screen } = require('electron');
-          const primaryDisplay = screen.getPrimaryDisplay();
-          // Converte normalizado (0-1) para pixels reais
-          const px = Math.floor(x * primaryDisplay.bounds.width);
-          const py = Math.floor(y * primaryDisplay.bounds.height);
+      // ==================================================================================
+      // ⚠️ CRITICAL - DO NOT CHANGE THIS BEHAVIOR ⚠️
+      // O usuário requer que o arquivo seja salvo EXATAMENTE onde foi solto (Desktop, Pasta, etc).
+      // Esta lógica usa PowerShell para detectar a janela sob o mouse.
+      // Se falhar, usa o Desktop/Downloads como fallback, mas a TENTATIVA é obrigatória.
+      // NÃO REMOVA OU SIMPLIFIQUE ESTA LÓGICA DE DETECÇÃO.
+      // ==================================================================================
+      try {
+        const { screen } = require('electron');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        // Converte normalizado (0-1) para pixels reais
+        const px = Math.floor(x * primaryDisplay.bounds.width);
+        const py = Math.floor(y * primaryDisplay.bounds.height);
 
-          const psScript = `
+        logToFile(`[Main] Detectando drop. Norm: (${x.toFixed(2)}, ${y.toFixed(2)}) -> Px: (${px}, ${py})`);
+
+        const psScript = `
+          $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           Add-Type -TypeDefinition @'
           using System;
           using System.Runtime.InteropServices;
@@ -383,17 +434,29 @@ if (!gotTheLock) {
                   }
               } catch {}
           }
-          if ($foundPath) { $foundPath } else { [Environment]::GetFolderPath('Desktop') }
+          
+          if ($foundPath) { 
+              Write-Output $foundPath 
+          } else { 
+              # Se não achou janela, tenta verificar se está no Desktop (área livre)
+              # Assumimos Desktop se não caiu em nenhuma outra janela
+              Write-Output [Environment]::GetFolderPath('Desktop') 
+          }
         `;
 
-          const { execSync } = require('child_process');
-          const detectedPath = execSync(`powershell -Command "${psScript.replace(/"/g, '\"')}"`).toString().trim();
-          if (detectedPath && fs.existsSync(detectedPath)) {
-            targetDir = detectedPath;
-          }
-        } catch (e) {
-          console.error('Falha ao detectar contexto de drop:', e);
+        const { execSync } = require('child_process');
+        // Adiciona timeout para não travar
+        const detectedPath = execSync(`powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"')}"`, { timeout: 10000, encoding: 'utf-8' }).toString().trim();
+
+        logToFile(`[Main] Caminho final detectado: ${detectedPath}`);
+
+        if (detectedPath && fs.existsSync(detectedPath)) {
+          targetDir = detectedPath;
+        } else {
+          logToFile(`[Main] Caminho detectado falhou ("${detectedPath}"). Usando fallback seguro: Downloads/MiréDesk`);
         }
+      } catch (e) {
+        console.error('Falha ao detectar contexto de drop (usando fallback):', e);
       }
 
       if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
@@ -423,5 +486,45 @@ if (!gotTheLock) {
       size: stats.size,
       path: filePath
     };
+  });
+
+  // --- AUTO UPDATE: DOWNLOAD AND INSTALL ---
+  ipcMain.handle('download-and-install-update', async (event, url: string) => {
+    const axios = require('axios');
+    const fs = require('fs');
+    const path = require('path');
+    const { shell } = require('electron');
+    const tempDir = app.getPath('temp');
+    const targetPath = path.join(tempDir, 'MireDesk-Update.exe');
+
+    logToFile(`[Update] Iniciando download via Axios de: ${url}`);
+
+    try {
+      const response = await axios({
+        method: 'GET',
+        url: url,
+        responseType: 'stream'
+      });
+
+      const writer = fs.createWriteStream(targetPath);
+      response.data.pipe(writer);
+
+      return new Promise((resolve, reject) => {
+        writer.on('finish', async () => {
+          logToFile('[Update] Download concluído com sucesso.');
+          try {
+            await shell.openPath(targetPath);
+            app.quit();
+            resolve(true);
+          } catch (e) {
+            reject(e);
+          }
+        });
+        writer.on('error', reject);
+      });
+    } catch (error) {
+      logToFile(`[Update] Erro fatal no download: ${error}`);
+      throw error;
+    }
   });
 }

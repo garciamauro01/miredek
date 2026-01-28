@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Settings, MessageSquare, Keyboard } from 'lucide-react';
+// Imports removidos (agora na TitleBar)
 
 interface SessionViewProps {
     connected: boolean;
@@ -16,22 +16,17 @@ interface SessionViewProps {
         handleKeyUp: (e: React.KeyboardEvent) => void;
     };
     remoteId: string;
-    sources?: any[];
-    currentSourceId?: string;
-    onSourceChange?: (id: string) => void;
     isOnlyModal?: boolean;
     onFileDrop?: (path: string, x?: number, y?: number) => void;
     transferProgress?: { name: string; progress: number; status: string } | null;
     viewMode?: 'fit' | 'original' | 'stretch';
-    onViewModeChange?: (mode: 'fit' | 'original' | 'stretch') => void;
 }
 
 export function SessionView({
     connected, remoteVideoRef, remoteStream, incomingCall,
     onAnswer, onReject, onHookMethods, remoteId,
-    sources = [], currentSourceId, onSourceChange,
     isOnlyModal = false, onFileDrop, transferProgress,
-    viewMode = 'fit', onViewModeChange
+    viewMode = 'fit'
 }: SessionViewProps) {
 
     useEffect(() => {
@@ -104,95 +99,7 @@ export function SessionView({
         <>
             <div style={{ position: 'fixed', top: '40px', left: 0, width: '100vw', height: 'calc(100vh - 40px)', background: '#000', display: 'flex', flexDirection: 'column' }}>
 
-                {/* AnyDesk-like Toolbar - Agora dentro do SessionView mas abaixo das abas */}
-                <div style={{
-                    height: '35px', background: '#2d2d2d', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0 10px', fontSize: '12px',
-                    borderBottom: '1px solid #444'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#444', padding: '2px 8px', borderRadius: '4px' }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: connected ? '#4CAF50' : '#FF9800' }}></span>
-                            <span>{remoteId || 'Desconhecido'}</span>
-                        </div>
-
-                        <div className="toolbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {/* Botões de Monitores */}
-                            {sources && sources.length > 1 && (
-                                <div style={{
-                                    display: 'flex', gap: '4px', background: '#444',
-                                    padding: '2px 5px', borderRadius: '4px', marginRight: '10px',
-                                    border: '1px solid #555'
-                                }}>
-                                    {sources.map((source, index) => (
-                                        <button
-                                            key={source.id}
-                                            onClick={() => onSourceChange?.(source.id)}
-                                            style={{
-                                                width: '24px', height: '20px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: '10px', fontWeight: 'bold', border: 'none',
-                                                borderRadius: '2px', cursor: 'pointer',
-                                                background: currentSourceId === source.id ? '#e03226' : '#555',
-                                                color: '#fff'
-                                            }}
-                                            title={source.name}
-                                        >
-                                            M{index + 1}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            <button title="Chat" style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}><MessageSquare size={16} /></button>
-                            <button title="Teclado" style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}><Keyboard size={16} /></button>
-
-                            {/* Seletor de Modo de Exibição */}
-                            <div style={{ display: 'flex', gap: '2px', background: '#444', padding: '2px', borderRadius: '4px', border: '1px solid #555' }}>
-                                <button
-                                    onClick={() => onViewModeChange?.('fit')}
-                                    style={{
-                                        padding: '2px 6px', fontSize: '10px', border: 'none', borderRadius: '2px', cursor: 'pointer',
-                                        background: viewMode === 'fit' ? '#e03226' : 'none', color: '#fff'
-                                    }} title="Ajustar à Tela">Ajustar</button>
-                                <button
-                                    onClick={() => onViewModeChange?.('original')}
-                                    style={{
-                                        padding: '2px 6px', fontSize: '10px', border: 'none', borderRadius: '2px', cursor: 'pointer',
-                                        background: viewMode === 'original' ? '#e03226' : 'none', color: '#fff'
-                                    }} title="Tamanho Original (1:1)">1:1</button>
-                                <button
-                                    onClick={() => onViewModeChange?.('stretch')}
-                                    style={{
-                                        padding: '2px 6px', fontSize: '10px', border: 'none', borderRadius: '2px', cursor: 'pointer',
-                                        background: viewMode === 'stretch' ? '#e03226' : 'none', color: '#fff'
-                                    }} title="Estender">Estender</button>
-                            </div>
-
-                            <button title="Configurações" style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}><Settings size={16} /></button>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                            title="Encerrar Sessão"
-                            onClick={() => window.location.reload()}
-                            style={{
-                                background: 'rgba(211, 47, 47, 0.1)',
-                                border: '1px solid #d32f2f',
-                                color: '#ff5252',
-                                padding: '3px 10px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            ENCERRAR
-                        </button>
-                    </div>
-                </div>
+                {/* Toolbar removida - movida para CustomTitleBar */}
 
                 {/* Main Area */}
                 <div style={{ flex: 1, position: 'relative', overflow: viewMode === 'original' ? 'auto' : 'hidden', display: 'flex', alignItems: viewMode === 'original' ? 'flex-start' : 'center', justifyContent: viewMode === 'original' ? 'flex-start' : 'center' }}>
@@ -208,11 +115,17 @@ export function SessionView({
                             height: viewMode === 'original' ? 'auto' : '100%',
                             objectFit: viewMode === 'fit' ? 'contain' : (viewMode === 'stretch' ? 'fill' : 'none'),
                             background: '#111',
-                            cursor: 'crosshair'
+                            cursor: 'default'
                         }}
                         onMouseMove={onHookMethods.handleMouseMove}
-                        onMouseDown={onHookMethods.handleMouseDown}
-                        onMouseUp={onHookMethods.handleMouseUp}
+                        onMouseDown={(e) => {
+                            console.log('[SessionView] MouseDown captured at', e.clientX, e.clientY);
+                            onHookMethods.handleMouseDown(e);
+                        }}
+                        onMouseUp={(e) => {
+                            console.log('[SessionView] MouseUp captured at', e.clientX, e.clientY);
+                            onHookMethods.handleMouseUp(e);
+                        }}
                         tabIndex={0}
                         onKeyDown={onHookMethods.handleKeyDown}
                         onKeyUp={onHookMethods.handleKeyUp}
@@ -228,35 +141,40 @@ export function SessionView({
                                 // Calculamos a posição relativa no momento do drop
                                 const rect = remoteVideoRef.current?.getBoundingClientRect();
                                 if (rect) {
-                                    const video = remoteVideoRef.current!;
                                     const videoX = e.clientX - rect.left;
                                     const videoY = e.clientY - rect.top;
+                                    const video = remoteVideoRef.current!;
+
+                                    const cw = video.clientWidth;
+                                    const ch = video.clientHeight;
+                                    const vw = video.videoWidth;
+                                    const vh = video.videoHeight;
 
                                     let finalX = 0;
                                     let finalY = 0;
 
                                     if (viewMode === 'stretch') {
-                                        finalX = videoX / video.clientWidth;
-                                        finalY = videoY / video.clientHeight;
+                                        finalX = videoX / cw;
+                                        finalY = videoY / ch;
                                     } else if (viewMode === 'original') {
-                                        finalX = videoX / video.videoWidth;
-                                        finalY = videoY / video.videoHeight;
+                                        finalX = videoX / cw;
+                                        finalY = videoY / ch;
                                     } else {
                                         // Modo Fit (contain)
-                                        const videoRatio = video.videoWidth / video.videoHeight;
-                                        const elementRatio = video.clientWidth / video.clientHeight;
+                                        const videoRatio = vw / vh;
+                                        const elementRatio = cw / ch;
 
                                         let actualWidth, actualHeight, offsetX, offsetY;
                                         if (elementRatio > videoRatio) {
-                                            actualHeight = video.clientHeight;
+                                            actualHeight = ch;
                                             actualWidth = actualHeight * videoRatio;
-                                            offsetX = (video.clientWidth - actualWidth) / 2;
+                                            offsetX = (cw - actualWidth) / 2;
                                             offsetY = 0;
                                         } else {
-                                            actualWidth = video.clientWidth;
+                                            actualWidth = cw;
                                             actualHeight = actualWidth / videoRatio;
                                             offsetX = 0;
-                                            offsetY = (video.clientHeight - actualHeight) / 2;
+                                            offsetY = (ch - actualHeight) / 2;
                                         }
 
                                         finalX = (videoX - offsetX) / actualWidth;

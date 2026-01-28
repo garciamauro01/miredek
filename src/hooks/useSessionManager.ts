@@ -114,6 +114,13 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         peer.on('open', () => {
             onLog(sessionId, `Peer criado: ${uniquePeerId}`);
             const call = peer.call(remoteId, localStream);
+
+            if (!call) {
+                console.error('[SessionManager] Falha ao criar chamada');
+                onSessionClose?.(sessionId, 'Erro ao iniciar chamada de vídeo.');
+                return;
+            }
+
             callsMap.current.set(sessionId, call);
 
             call.on('stream', (remoteStream: MediaStream) => {

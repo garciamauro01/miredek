@@ -3,10 +3,12 @@ import Peer from 'peerjs'
 import './App.css'
 import { Dashboard } from './components/Dashboard'
 import { SessionView } from './components/SessionView'
-import { TabBar } from './components/TabBar'
+import { CustomTitleBar } from './components/CustomTitleBar'
 import type { Session } from './types/Session'
 import { createSession } from './types/Session'
 import { useSessionManager } from './hooks/useSessionManager'
+import { useUpdateCheck } from './hooks/useUpdateCheck'
+import { UpdateNotification } from './components/UpdateNotification'
 import type { Contact } from './types/Contact'
 
 declare global {
@@ -25,6 +27,10 @@ declare global {
       getFileInfo: (path: string) => Promise<{ name: string; size: number; path: string }>;
       getAppVersion: () => Promise<string>;
       writeLog: (text: string) => Promise<void>;
+      minimizeWindow: () => Promise<void>;
+      maximizeWindow: () => Promise<void>;
+      closeWindow: () => Promise<void>;
+      downloadAndInstallUpdate: (url: string) => Promise<boolean>;
     }
   }
 }
@@ -61,6 +67,12 @@ function App() {
   const [serverIp, setServerIp] = useState<string>(() => {
     return localStorage.getItem('miré_desk_server_ip') || window.location.hostname || 'localhost';
   })
+  const { updateAvailable } = useUpdateCheck(serverIp);
+  const [showUpdate, setShowUpdate] = useState(true);
+
+  useEffect(() => {
+    if (updateAvailable) setShowUpdate(true);
+  }, [updateAvailable]);
 
   // Multi-session state
   const [sessions, setSessions] = useState<Session[]>([])
@@ -401,14 +413,23 @@ function App() {
 
   // --- Lógica de Captura ---
   const selectSource = async (sourceId: string) => {
+    console.log('[Host] Selecionando fonte:', sourceId);
     try {
       let stream: MediaStream
       if (sourceId === 'browser' || !window.electronAPI) {
+        console.log('[Host] Usando getDisplayMedia (Navegador)');
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+          throw new Error('getDisplayMedia não está disponível. Certifique-se de estar usando HTTPS ou localhost.');
+        }
+
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: false
         })
       } else {
+        console.log('[Host] Usando getUserMedia (Electron) para Source ID:', sourceId);
+        // Electron exige constraints específicas
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
@@ -416,14 +437,15 @@ function App() {
               chromeMediaSource: 'desktop',
               chromeMediaSourceId: sourceId,
               minWidth: 1280,
-              maxWidth: 1920,
+              maxWidth: 3840, // Aumentado para suportar 4K
               minHeight: 720,
-              maxHeight: 1080
+              maxHeight: 2160
             }
           }
         } as any)
       }
 
+      console.log('[Host] Stream capturado com sucesso:', stream.id);
       localStreamRef.current = stream
       setCurrentSourceId(sourceId)
       sessionManager.updateLocalStream(stream)
@@ -456,31 +478,38 @@ function App() {
     let finalX = 0;
     let finalY = 0;
 
+    const cw = video.clientWidth;
+    const ch = video.clientHeight;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
     if (viewMode === 'stretch') {
-      finalX = x / video.clientWidth;
-      finalY = y / video.clientHeight;
+      finalX = x / cw;
+      finalY = y / ch;
     } else if (viewMode === 'original') {
-      finalX = x / video.videoWidth;
-      finalY = y / video.videoHeight;
+      // No modo original, o vídeo tem seu tamanho natural (width:auto, height:auto)
+      // No SessionView ele está alinhado ao topo-esquerda (flex-start)
+      finalX = x / cw;
+      finalY = y / ch;
     } else {
-      // Modo Fit (contain)
-      const videoRatio = video.videoWidth / video.videoHeight;
-      const elementRatio = video.clientWidth / video.clientHeight;
+      // Modo Fit (contain) - O CSS centraliza o vídeo dentro do elemento de 100%x100%
+      const videoRatio = vw / vh;
+      const elementRatio = cw / ch;
 
       let actualWidth, actualHeight, offsetX, offsetY;
 
       if (elementRatio > videoRatio) {
-        // Pilar (barras laterais)
-        actualHeight = video.clientHeight;
+        // Pillarbox (barras laterais)
+        actualHeight = ch;
         actualWidth = actualHeight * videoRatio;
-        offsetX = (video.clientWidth - actualWidth) / 2;
+        offsetX = (cw - actualWidth) / 2;
         offsetY = 0;
       } else {
         // Letterbox (barras superior/inferior)
-        actualWidth = video.clientWidth;
+        actualWidth = cw;
         actualHeight = actualWidth / videoRatio;
         offsetX = 0;
-        offsetY = (video.clientHeight - actualHeight) / 2;
+        offsetY = (ch - actualHeight) / 2;
       }
 
       finalX = (x - offsetX) / actualWidth;
@@ -653,9 +682,6 @@ function App() {
         const session = prev.find(s => s.id === sessionId);
         if (!session) return prev;
 
-        // Notifica o usuário
-        alert(`Conexão com ${session.remoteId} foi encerrada.\nRazão: ${reason}`);
-
         // Limpa referências de vídeo
         videoRefsMap.current.delete(sessionId);
 
@@ -698,32 +724,55 @@ function App() {
     console.log('[App] Inicializando Peer com config:', JSON.stringify(peerConfig, null, 2));
     addLog(`Conectando a: ${serverIp === 'cloud' ? 'Cloud' : `${peerConfig.host}:${peerConfig.port}`}`);
 
-    const mainPeer = new Peer(fixedId, peerConfig)
-    mainPeerRef.current = mainPeer
+    const peer = new Peer(fixedId, peerConfig)
+    mainPeerRef.current = peer
     setPeerStatus('connecting')
 
-    mainPeer.on('open', (id) => {
+    peer.on('open', (id) => {
       setMyId(id);
       setPeerStatus('online');
+      addLog(`Servidor Online. Meu ID: ${id}`);
     })
 
-    mainPeer.on('error', (err) => {
-      console.error('[Host] Peer error:', err);
+    peer.on('disconnected', () => {
+      console.log('[Host] Peer desconectado do servidor. Tentando reconectar...');
+      setPeerStatus('connecting');
+      addLog('Conexão perdida. Tentando reconectar...');
+      peer.reconnect();
+    });
+
+    peer.on('close', () => {
+      console.log('[Host] Conexão Peer encerrada prematuramente.');
       setPeerStatus('offline');
+    });
+
+    peer.on('error', (err) => {
+      console.error('[Host] Peer error:', err);
+
+      // Se não conseguiu conectar inicialmente ou servidor caiu feio
+      if (err.type === 'network' || err.type === 'server-error') {
+        setPeerStatus('offline');
+        addLog(`Erro de rede: ${err.type}. Tentando novamente em 5s...`);
+        setTimeout(() => {
+          if (peer.destroyed) return;
+          console.log('[Host] Tentando reconexão após erro...');
+          peer.reconnect();
+        }, 5000);
+      }
+
       if (err.type === 'unavailable-id') {
         localStorage.removeItem('anydesk_clone_id');
         setTimeout(() => window.location.reload(), 1000);
       }
     })
 
-    mainPeer.on('connection', (conn) => {
+    peer.on('connection', (conn) => {
       setSessions(prev => {
         const session = prev.find(s => s.remoteId === conn.peer);
         if (session) {
           setupDataListeners(session.id, conn, true);
           return prev.map(s => s.id === session.id ? { ...s, dataConnection: conn, isIncoming: true } : s);
         } else {
-          // Acesso não supervisionado: cria sessão automaticamente para nova conexão de dados
           const newId = `session-${Date.now()}`;
           const newSession = createSession(newId, conn.peer, true);
           newSession.dataConnection = conn;
@@ -734,21 +783,22 @@ function App() {
       });
     });
 
-    mainPeer.on('call', (call) => {
+    peer.on('call', (call) => {
+      console.log('[Host] Chamada Recebida de:', call.peer);
       setSessions(prev => {
         const existingSession = prev.find(s => s.remoteId === call.peer && !s.incomingCall);
         if (existingSession) {
-          // Se já existe uma sessão de dados desse peer, anexa a chamada a ela
           return prev.map(s => s.id === existingSession.id ? { ...s, incomingCall: call } : s);
         }
-        // Caso contrário, cria nova sessão
         const newSessionId = `session-${Date.now()}`
         const newSession = createSession(newSessionId, call.peer, true)
         newSession.incomingCall = call
         if (!videoRefsMap.current.has(newSessionId)) {
           videoRefsMap.current.set(newSessionId, { remote: createRef<HTMLVideoElement>() })
         }
-        if (window.electronAPI) window.electronAPI.showWindow();
+        if (window.electronAPI) {
+          window.electronAPI.showWindow();
+        }
         return [...prev, newSession];
       });
     });
@@ -763,7 +813,7 @@ function App() {
       });
     }
 
-    return () => mainPeer.destroy()
+    return () => peer.destroy()
   }, [serverIp])
 
   const handleConnect = async () => {
@@ -793,29 +843,81 @@ function App() {
       });
 
       setContacts(prev => {
-        if (!prev.find(c => c.id === tempRemoteId)) {
-          const newContacts = [...prev, { id: tempRemoteId, isFavorite: false }];
-          localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
-          return newContacts;
+        const existingContact = prev.find(c => c.id === tempRemoteId);
+        let newContacts;
+
+        if (existingContact) {
+          // Atualiza contato existente com a senha (se fornecida)
+          newContacts = prev.map(c =>
+            c.id === tempRemoteId
+              ? { ...c, password: tempPassword || c.password }
+              : c
+          );
+        } else {
+          // Cria novo contato com senha
+          newContacts = [...prev, {
+            id: tempRemoteId,
+            isFavorite: false,
+            password: tempPassword || undefined
+          }];
         }
-        return prev;
+
+        localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
+        return newContacts;
       });
 
       sessionManager.connectToRemote(sessionId, tempRemoteId, localStreamRef.current!);
       setActiveSessionId(sessionId);
     }
+
+    // Limpa os campos após iniciar a conexão
+    setTempPassword('');
+    setTempRemoteId('');
   }
 
   const handleAnswerCall = async (sessionId: string) => {
+    console.log('[Host] handleAnswerCall iniciado para sessão:', sessionId);
     const session = sessions.find(s => s.id === sessionId)
-    if (!session || !session.incomingCall) return;
+    if (!session || !session.incomingCall) {
+      console.warn('[Host] Sessão ou chamada não encontrada.');
+      return;
+    }
+
     if (!localStreamRef.current) {
-      if (!window.electronAPI) await selectSource('browser');
-      else { alert('Selecione uma tela!'); return; }
+      console.log('[Host] Stream local não pronto. Tentando selecionar fonte padrão...');
+      if (!window.electronAPI) {
+        await selectSource('browser'); // Fallback web
+      } else {
+        // Se não há fontes carregadas ainda, carrega primeiro
+        if (sourcesRef.current.length === 0) {
+          console.log('[Host] Carregando fontes de tela...');
+          const availableSources = await window.electronAPI.getSources();
+          setSources(availableSources);
+          sourcesRef.current = availableSources;
+        }
+
+        // Tenta pegar a fonte padrão ou a primeira disponível
+        const sourceToUse = sourcesRef.current.find(s => s.isPrimary) || sourcesRef.current[0];
+        if (sourceToUse) {
+          console.log('[Host] Selecionando fonte automaticamente:', sourceToUse.id);
+          await selectSource(sourceToUse.id);
+        } else {
+          console.error('[Host] Nenhuma fonte de tela encontrada para compartilhar.');
+          alert('Erro: Nenhuma tela detectada para compartilhar.');
+          return;
+        }
+      }
     }
-    if (localStreamRef.current) {
-      sessionManager.answerCall(sessionId, session.incomingCall, localStreamRef.current)
-    }
+
+    // Pequeno delay para garantir que o state do stream atualizou
+    setTimeout(() => {
+      console.log('[Host] Respondendo chamada com stream:', !!localStreamRef.current);
+      if (localStreamRef.current) {
+        sessionManager.answerCall(sessionId, session.incomingCall, localStreamRef.current)
+      } else {
+        console.error('[Host] Falha fatal: Stream ainda nulo após seleção.');
+      }
+    }, 500);
   }
 
   const handleRejectCall = (sessionId: string) => {
@@ -858,8 +960,9 @@ function App() {
   const activeVideoRefs = activeSessionId ? videoRefsMap.current.get(activeSessionId) : null
 
   return (
-    <>
-      <TabBar
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#000' }}>
+      <CustomTitleBar
+        title="Miré-Desk"
         tabs={[
           { id: 'dashboard', remoteId: 'Painel', connected: true, isDashboard: true },
           ...sessions.filter(s => !s.isIncoming).map(s => ({ id: s.id, remoteId: s.remoteId, connected: s.connected }))
@@ -868,109 +971,135 @@ function App() {
         onTabClick={(id) => setActiveSessionId(id)}
         onTabClose={closeSession}
         onNewTab={() => setActiveSessionId('dashboard')}
+        updateAvailable={updateAvailable}
+        onUpdateClick={() => {
+          if (updateAvailable?.downloadUrl) {
+            if (confirm(`Deseja baixar e instalar a versão ${updateAvailable.version} agora? O app será reiniciado.`)) {
+              window.electronAPI.downloadAndInstallUpdate(updateAvailable.downloadUrl);
+            }
+          }
+        }}
+        isSessionActive={!!activeSession && activeSession.connected}
+        sessionRemoteId={activeSession?.remoteId}
+        isSecure={true}
+        onChatToggle={() => console.log('Chat toggle')}
+        onActionsClick={() => console.log('Actions click')}
+        onDisplayClick={() => {
+          const modes: ('fit' | 'original' | 'stretch')[] = ['fit', 'original', 'stretch'];
+          const current = activeSession?.viewMode || 'fit';
+          const next = modes[(modes.indexOf(current) + 1) % modes.length];
+          if (activeSession) {
+            setSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, viewMode: next } : s));
+          }
+        }}
+        onPermissionsClick={() => console.log('Permissions click')}
       />
 
-      {activeSessionId === 'dashboard' ? (
-        <Dashboard
-          myId={myId} serverIp={serverIp}
-          setServerIp={(ip) => { setServerIp(ip); localStorage.setItem('miré_desk_server_ip', ip); }}
-          remoteId={tempRemoteId} setRemoteId={setTempRemoteId}
-          onConnect={handleConnect} onResetId={() => { if (confirm('Gerar novo ID?')) { localStorage.removeItem('anydesk_clone_id'); window.location.reload(); } }}
-          logs={logs} sessions={sessions} onCloseSession={closeSession}
-          unattendedPassword={unattendedPassword}
-          setUnattendedPassword={(pw) => { setUnattendedPassword(pw); localStorage.setItem('miré_desk_unattended_pw', pw); }}
-          tempPassword={tempPassword} setTempPassword={setTempPassword}
-          recentSessions={recentSessions} onSelectRecent={setTempRemoteId}
-          recentStatusMap={recentStatusMap}
-          peerStatus={peerStatus}
-          contacts={contacts}
-          onUpdateContact={(updated: Contact) => {
-            setContacts(prev => {
-              const newContacts = prev.map(c => c.id === updated.id ? updated : c);
-              if (!newContacts.find(c => c.id === updated.id)) {
-                newContacts.push(updated);
-              }
-              localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
-              return newContacts;
-            });
-          }}
-          onRemoveContact={(id: string) => {
-            if (confirm(`Remover ID ${id} da lista permanente?`)) {
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        {activeSessionId === 'dashboard' ? (
+          <Dashboard
+            myId={myId} serverIp={serverIp}
+            setServerIp={(ip) => { setServerIp(ip); localStorage.setItem('miré_desk_server_ip', ip); }}
+            remoteId={tempRemoteId} setRemoteId={setTempRemoteId}
+            onConnect={handleConnect} onResetId={() => { if (confirm('Gerar novo ID?')) { localStorage.removeItem('anydesk_clone_id'); window.location.reload(); } }}
+            logs={logs} sessions={sessions} onCloseSession={closeSession}
+            unattendedPassword={unattendedPassword}
+            setUnattendedPassword={(pw) => { setUnattendedPassword(pw); localStorage.setItem('miré_desk_unattended_pw', pw); }}
+            tempPassword={tempPassword} setTempPassword={setTempPassword}
+            recentSessions={recentSessions} onSelectRecent={setTempRemoteId}
+            recentStatusMap={recentStatusMap}
+            peerStatus={peerStatus}
+            contacts={contacts}
+            onUpdateContact={(updated: Contact) => {
               setContacts(prev => {
-                const newContacts = prev.filter(c => c.id !== id);
+                const newContacts = prev.map(c => c.id === updated.id ? updated : c);
+                if (!newContacts.find(c => c.id === updated.id)) {
+                  newContacts.push(updated);
+                }
                 localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
                 return newContacts;
               });
-              setRecentSessions(prev => {
-                const newRecent = prev.filter(rid => rid !== id);
-                localStorage.setItem('miré_desk_recent_sessions', JSON.stringify(newRecent));
-                return newRecent;
-              });
-            }
-          }}
-        />
-      ) : activeSession && activeVideoRefs ? (
-        <SessionView
-          key={activeSession.id} connected={activeSession.connected}
-          remoteVideoRef={activeVideoRefs.remote} remoteStream={activeSession.remoteStream || null}
-          incomingCall={activeSession.incomingCall} onAnswer={() => handleAnswerCall(activeSession.id)}
-          onReject={() => handleRejectCall(activeSession.id)} remoteId={activeSession.remoteId}
-          sources={activeSession.isIncoming ? sources : (activeSession.remoteSources || [])}
-          currentSourceId={activeSession.isIncoming ? currentSourceId : activeSession.activeSourceId}
-          onSourceChange={(sourceId) => {
-            if (activeSession.isIncoming) selectSource(sourceId);
-            else if (activeSession.dataConnection) activeSession.dataConnection.send({ type: 'SWITCH_MONITOR', sourceId });
-          }}
-          viewMode={activeSession.viewMode}
-          onViewModeChange={(mode) => {
-            setSessions(prev => prev.map(s => s.id === activeSession.id ? { ...s, viewMode: mode } : s));
-          }}
-          onFileDrop={(path, x, y) => sendFile(activeSession.id, path, x, y)}
-          transferProgress={Object.values(transfers).find(t => t.status === 'sending' || t.status === 'receiving') || null}
-          onHookMethods={{
-            handleMouseMove: (e: any) => {
-              if (activeSession.dataConnection?.open) {
-                const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
-                if (pos) activeSession.dataConnection.send({ type: 'mousemove', x: pos.x, y: pos.y });
+            }}
+            onRemoveContact={(id: string) => {
+              if (confirm(`Remover ID ${id} da lista permanente?`)) {
+                setContacts(prev => {
+                  const newContacts = prev.filter(c => c.id !== id);
+                  localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
+                  return newContacts;
+                });
+                setRecentSessions(prev => {
+                  const newRecent = prev.filter(rid => rid !== id);
+                  localStorage.setItem('miré_desk_recent_sessions', JSON.stringify(newRecent));
+                  return newRecent;
+                });
               }
-            },
-            handleMouseDown: (e: any) => {
-              if (activeSession.dataConnection?.open) {
-                const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
-                if (pos) {
-                  const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
-                  activeSession.dataConnection.send({ type: 'mousedown', button: b, x: pos.x, y: pos.y });
+            }}
+          />
+        ) : activeSession && activeVideoRefs ? (
+          <SessionView
+            key={activeSession.id} connected={activeSession.connected}
+            remoteVideoRef={activeVideoRefs.remote} remoteStream={activeSession.remoteStream || null}
+            incomingCall={activeSession.incomingCall} onAnswer={() => handleAnswerCall(activeSession.id)}
+            onReject={() => handleRejectCall(activeSession.id)} remoteId={activeSession.remoteId}
+            viewMode={activeSession.viewMode}
+            onFileDrop={(path, x, y) => sendFile(activeSession.id, path, x, y)}
+            transferProgress={Object.values(transfers).find(t => t.status === 'sending' || t.status === 'receiving') || null}
+            onHookMethods={{
+              handleMouseMove: (e: any) => {
+                if (activeSession.dataConnection?.open) {
+                  const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
+                  if (pos) activeSession.dataConnection.send({ type: 'mousemove', x: pos.x, y: pos.y });
                 }
-              }
-            },
-            handleMouseUp: (e: any) => {
-              if (activeSession.dataConnection?.open) {
-                const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
-                if (pos) {
-                  const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
-                  activeSession.dataConnection.send({ type: 'mouseup', button: b, x: pos.x, y: pos.y });
+              },
+              handleMouseDown: (e: any) => {
+                if (activeSession.dataConnection?.open) {
+                  const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
+                  if (pos) {
+                    const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+                    activeSession.dataConnection.send({ type: 'mousedown', button: b, x: pos.x, y: pos.y });
+                  }
                 }
-              }
-            },
-            handleKeyDown: (e: any) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keydown', key: e.key }); },
-            handleKeyUp: (e: any) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keyup', key: e.key }); }
-          }}
-        />
-      ) : null}
+              },
+              handleMouseUp: (e: any) => {
+                if (activeSession.dataConnection?.open) {
+                  const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
+                  if (pos) {
+                    const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+                    activeSession.dataConnection.send({ type: 'mouseup', button: b, x: pos.x, y: pos.y });
+                  }
+                }
+              },
+              handleKeyDown: (e: any) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keydown', key: e.key }); },
+              handleKeyUp: (e: any) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keyup', key: e.key }); }
+            }}
+          />
+        ) : null}
 
-      {sessions.find(s => s.incomingCall && !s.isAuthenticated) && (
-        <SessionView
-          key="incoming-modal" connected={false} remoteVideoRef={createRef<HTMLVideoElement>()}
-          remoteStream={null} incomingCall={sessions.find(s => s.incomingCall && !s.isAuthenticated)?.incomingCall}
-          onAnswer={() => handleAnswerCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id)}
-          onReject={() => handleRejectCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id)}
-          remoteId={sessions.find(s => s.incomingCall && !s.isAuthenticated)?.remoteId || ''}
-          sources={sources} currentSourceId={currentSourceId} onSourceChange={selectSource}
-          onHookMethods={{ handleMouseMove: () => { }, handleMouseDown: () => { }, handleMouseUp: () => { }, handleKeyDown: () => { }, handleKeyUp: () => { } }}
-          isOnlyModal={true}
-        />
-      )}
-    </>
+        {sessions.find(s => s.incomingCall && !s.isAuthenticated) && (
+          <SessionView
+            key="incoming-modal" connected={false} remoteVideoRef={createRef<HTMLVideoElement>()}
+            remoteStream={null} incomingCall={sessions.find(s => s.incomingCall && !s.isAuthenticated)?.incomingCall}
+            onAnswer={() => handleAnswerCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id)}
+            onReject={() => handleRejectCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id)}
+            remoteId={sessions.find(s => s.incomingCall && !s.isAuthenticated)?.remoteId || ''}
+            onHookMethods={{ handleMouseMove: () => { }, handleMouseDown: () => { }, handleMouseUp: () => { }, handleKeyDown: () => { }, handleKeyUp: () => { } }}
+            isOnlyModal={true}
+          />
+        )}
+        {showUpdate && updateAvailable && (
+          <UpdateNotification
+            info={updateAvailable}
+            onClose={() => setShowUpdate(false)}
+            onDownload={(url) => {
+              if (window.electronAPI) {
+                window.electronAPI.downloadAndInstallUpdate(url)
+                  .catch(err => alert('Erro ao atualizar: ' + err));
+              }
+            }}
+          />
+        )}
+      </div>
+    </div>
   )
 }
 

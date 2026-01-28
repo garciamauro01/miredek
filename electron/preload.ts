@@ -14,4 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFileInfo: (path: string) => ipcRenderer.invoke('get-file-info', path),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     writeLog: (text: string) => ipcRenderer.invoke('write-log', text),
+    minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+    maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+    closeWindow: () => ipcRenderer.invoke('window-close'),
+    downloadAndInstallUpdate: (url: string) => ipcRenderer.invoke('download-and-install-update', url),
 });

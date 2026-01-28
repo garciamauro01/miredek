@@ -42,7 +42,7 @@ export function Dashboard({
     onRemoveContact
 }: DashboardProps) {
 
-    const [activeTab, setActiveTab] = useState<'recent' | 'favorites' | 'address'>('recent');
+    const [activeTab, setActiveTab] = useState<'recent' | 'favorites' | 'address' | 'transfers'>('recent');
     const [searchTerm, setSearchTerm] = useState('');
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [showMenuId, setShowMenuId] = useState<string | null>(null);
@@ -99,17 +99,41 @@ export function Dashboard({
                                 </span>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <span style={{ fontSize: '28px', fontWeight: 400, color: '#333', letterSpacing: '1px' }}>
-                                {myId || '--- --- ---'}
-                            </span>
-                            <button onClick={() => navigator.clipboard.writeText(myId)} title="Copiar" style={{ background: 'none', border: 'none', marginLeft: '10px', color: '#888' }}>
-                                <Copy size={16} />
-                            </button>
-                            <button onClick={onResetId} title="Gerar Novo ID" style={{ background: 'none', border: 'none', marginLeft: '5px', color: '#888' }}>
-                                <RotateCw size={16} />
-                            </button>
-                        </div>
+                        {!window.electronAPI ? (
+                            // Navegador: Bloqueia uso como Host
+                            <div style={{
+                                background: '#fff3cd',
+                                border: '1px solid #ffc107',
+                                borderRadius: '6px',
+                                padding: '15px',
+                                marginTop: '10px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '20px' }}>⚠️</span>
+                                    <strong style={{ color: '#856404' }}>Modo Host Desabilitado</strong>
+                                </div>
+                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#856404', lineHeight: '1.5' }}>
+                                    Para <strong>receber conexões</strong> e permitir que outros controlem este computador,
+                                    você precisa instalar o <strong>Miré-Desk Desktop</strong>.
+                                </p>
+                                <p style={{ margin: '0', fontSize: '12px', color: '#856404' }}>
+                                    💡 <em>Você ainda pode usar o navegador para <strong>conectar-se a outros computadores</strong> normalmente.</em>
+                                </p>
+                            </div>
+                        ) : (
+                            // App Desktop: Funciona normalmente
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <span style={{ fontSize: '28px', fontWeight: 400, color: '#333', letterSpacing: '1px' }}>
+                                    {myId || '--- --- ---'}
+                                </span>
+                                <button onClick={() => navigator.clipboard.writeText(myId)} title="Copiar" style={{ background: 'none', border: 'none', marginLeft: '10px', color: '#888' }}>
+                                    <Copy size={16} />
+                                </button>
+                                <button onClick={onResetId} title="Gerar Novo ID" style={{ background: 'none', border: 'none', marginLeft: '5px', color: '#888' }}>
+                                    <RotateCw size={16} />
+                                </button>
+                            </div>
+                        )}
                         {logs.some(l => l.includes('unavailable-id')) && <span style={{ color: 'red', fontSize: '11px' }}>ID Indisponível (Em uso)</span>}
                     </div>
 
@@ -259,6 +283,11 @@ export function Dashboard({
                                 style={{ background: 'none', border: 'none', borderBottom: activeTab === 'address' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'address' ? 'var(--ad-red)' : '#666' }}>
                                 Lista de Endereços
                             </button>
+                            <button
+                                onClick={() => setActiveTab('transfers')}
+                                style={{ background: 'none', border: 'none', borderBottom: activeTab === 'transfers' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'transfers' ? 'var(--ad-red)' : '#666' }}>
+                                Transferências
+                            </button>
                         </div>
 
                         <div style={{ background: '#fff', border: '1px solid #ddd', padding: '15px', borderRadius: '4px', minHeight: '300px' }}>
@@ -293,6 +322,26 @@ export function Dashboard({
                                 alignItems: 'start'
                             }}>
                                 {(() => {
+                                    if (activeTab === 'transfers') {
+                                        return (
+                                            <div style={{ gridColumn: '1 / -1', padding: '20px', color: '#666' }}>
+                                                <h4 style={{ margin: '0 0 10px 0' }}>Histórico de Transferências</h4>
+                                                <div style={{ fontSize: '13px', background: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #eee' }}>
+                                                    {logs.filter(l => l.toLowerCase().includes('arquivo')).length > 0 ? (
+                                                        logs.filter(l => l.toLowerCase().includes('arquivo')).map((l, i) => (
+                                                            <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #f0f0f0' }}>{l}</div>
+                                                        ))
+                                                    ) : (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', opacity: 0.6 }}>
+                                                            <History size={32} style={{ marginBottom: '10px' }} />
+                                                            <span>Nenhuma transferência registrada recentemente.</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
                                     const list = activeTab === 'recent'
                                         ? recentSessions.map(id => contacts.find(c => c.id === id) || { id, isFavorite: false } as Contact)
                                         : activeTab === 'favorites'
@@ -316,17 +365,29 @@ export function Dashboard({
                                     return filtered.map((contact: Contact) => {
                                         const id = contact.id;
                                         return (
-                                            <div key={id} onClick={() => onSelectRecent?.(id)} style={{
-                                                background: '#fff',
-                                                borderRadius: '6px',
-                                                border: '1px solid #ddd',
-                                                overflow: 'hidden',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                position: 'relative',
-                                                transition: 'transform 0.2s, box-shadow 0.2s'
-                                            }} className="ad-session-card">
+                                            <div
+                                                key={id}
+                                                onClick={() => onSelectRecent?.(id)}
+                                                onDoubleClick={() => {
+                                                    // Duplo clique: conecta automaticamente com senha salva
+                                                    setRemoteId(id);
+                                                    if (contact.password) {
+                                                        setTempPassword?.(contact.password);
+                                                    }
+                                                    // Pequeno delay para garantir que os estados foram atualizados
+                                                    setTimeout(() => onConnect(), 50);
+                                                }}
+                                                style={{
+                                                    background: '#fff',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #ddd',
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    position: 'relative',
+                                                    transition: 'transform 0.2s, box-shadow 0.2s'
+                                                }} className="ad-session-card">
                                                 {/* Thumbnail Area */}
                                                 <div style={{ height: '100px', background: '#111', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                                     {contact.thumbnail ? (

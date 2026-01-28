@@ -5,4 +5,5 @@ export interface Contact {
     isFavorite: boolean;
     lastConnected?: number;
     thumbnail?: string;
+    password?: string; // Senha para acesso não supervisionado
 }
