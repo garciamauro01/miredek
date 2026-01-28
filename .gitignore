@@ -26,7 +26,6 @@ dist-ssr
 dist-electron
 dist-package
 *.exe
-*.bat
 
 # Agent
 .agent
