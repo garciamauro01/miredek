@@ -18,10 +18,14 @@ export default defineConfig({
         entry: 'electron/main.ts',
         vite: {
           build: {
+            lib: {
+              entry: 'electron/main.ts',
+              formats: ['cjs'],
+            },
             rollupOptions: {
+              external: ['electron', 'robotjs', 'path', 'fs', 'url', 'module'],
               output: {
-                format: 'es',
-                entryFileNames: '[name].js',
+                format: 'cjs',
               },
             },
           },
@@ -31,10 +35,14 @@ export default defineConfig({
         input: 'electron/preload.ts',
         vite: {
           build: {
+            lib: {
+              entry: 'electron/preload.ts',
+              formats: ['cjs'],
+            },
             rollupOptions: {
+              external: ['electron'],
               output: {
                 format: 'cjs',
-                entryFileNames: '[name].js',
               },
             },
           },

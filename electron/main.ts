@@ -439,14 +439,20 @@ if (!gotTheLock) {
               Write-Output $foundPath 
           } else { 
               # Se não achou janela, tenta verificar se está no Desktop (área livre)
-              # Assumimos Desktop se não caiu em nenhuma outra janela
-              Write-Output [Environment]::GetFolderPath('Desktop') 
+              Write-Output ([Environment]::GetFolderPath('Desktop'))
           }
         `;
 
         const { execSync } = require('child_process');
         // Adiciona timeout para não travar
-        const detectedPath = execSync(`powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"')}"`, { timeout: 10000, encoding: 'utf-8' }).toString().trim();
+        let detectedPath = "";
+        try {
+          detectedPath = execSync(`powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"')}"`, { timeout: 10000, encoding: 'utf-8' }).toString().trim();
+          logToFile(`[Main] PowerShell detectou: "${detectedPath}"`);
+        } catch (psError: any) {
+          logToFile(`[Main] Erro na execução do PowerShell: ${psError.message}`);
+          if (psError.stderr) logToFile(`[Main] PowerShell STDERR: ${psError.stderr}`);
+        }
 
         logToFile(`[Main] Caminho final detectado: ${detectedPath}`);
 

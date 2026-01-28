@@ -2,7 +2,6 @@
   "name": "mire-desk",
   "private": true,
   "version": "1.0.9",
-  "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --host",
@@ -18,14 +17,18 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "lucide-react": "^0.562.0",
+    "nan": "^2.25.0",
     "peerjs": "^1.5.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "robotjs": "^0.6.0",
     "socket.io": "^4.8.3"
   },
+  "overrides": {
+    "nan": "^2.25.0"
+  },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.2",
+    "@electron/rebuild": "^4.0.3",
     "@eslint/js": "^9.39.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -35,7 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^8.2.2",
-    "electron": "^30.0.1",
+    "electron": "^40.0.0",
     "electron-builder": "^24.13.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
