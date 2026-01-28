@@ -9,6 +9,29 @@ const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// --- LOGGING ---
+const LOG_FILE = join(app.getPath('userData'), 'mire_desk_logs.txt');
+
+function logToFile(text: string) {
+  const timestamp = new Date().toLocaleString();
+  const entry = `[${timestamp}] ${text}\n`;
+  try {
+    console.log(text); // Mantém no console também
+    fs.appendFileSync(LOG_FILE, entry);
+  } catch (err) {
+    console.error('Erro ao escrever log:', err);
+  }
+}
+
+// Log inicial obrigatório
+logToFile(`[Main] === INICIANDO APP (Packaged: ${app.isPackaged}) ===`);
+logToFile(`[Main] Executável: ${app.getPath('exe')}`);
+logToFile(`[Main] __dirname: ${__dirname}`);
+
+process.on('uncaughtException', (err) => {
+  logToFile(`[Main] CRASH (uncaughtException): ${err.message}\n${err.stack}`);
+});
+
 // --- BLOQUEIO DE ÚNICA INSTÂNCIA ---
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -65,6 +88,7 @@ if (!gotTheLock) {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, 'preload.js'),
+        devTools: true, // Habilitar em produção para depuração se necessário
       },
     });
 
@@ -80,15 +104,53 @@ if (!gotTheLock) {
 
     console.log('Caminho do Preload:', join(__dirname, 'preload.js'));
 
+    const appPath = app.getAppPath();
+    logToFile(`[Main] app.getAppPath(): ${appPath}`);
+
     if (process.env.VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     } else {
-      mainWindow.loadFile(join(__dirname, '../dist/index.html'));
+      // FORÇAR DEVTOOLS EM PRODUÇÃO PARA DEBUG
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+
+      // Tenta caminhos comuns em apps empacotados
+      const possiblePaths = [
+        join(__dirname, 'index.html'),           // Caso o vite-plugin-electron coloque na raiz do dist-electron
+        join(__dirname, '../dist/index.html'),   // Estrutura padrão
+        join(appPath, 'dist/index.html'),        // Estrutura alternativa
+        join(appPath, 'index.html'),             // Estrutura alternativa 2
+        path.join(process.resourcesPath, 'app/dist/index.html'), // asar unpacked ou asar structure
+        path.join(process.resourcesPath, 'app.asar/dist/index.html')
+      ];
+
+      let loaded = false;
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          logToFile(`[Main] Sucesso: Arquivo encontrado em ${p}. Carregando...`);
+          mainWindow.loadFile(p);
+          loaded = true;
+          break;
+        } else {
+          logToFile(`[Main] Info: Arquivo não encontrado em ${p}`);
+        }
+      }
+
+      if (!loaded) {
+        logToFile(`[Main] ERRO CRÍTICO: Nenhum index.html encontrado em nenhum dos caminhos testados.`);
+      }
     }
 
-    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-      console.error('Falha ao carregar frontend:', errorCode, errorDescription);
+    mainWindow.webContents.on('did-finish-load', () => {
+      logToFile('[Main] webContents: did-finish-load');
+    });
+
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      logToFile(`[Main] FALHA ao carregar URL: ${validatedURL} | Erro: ${errorCode} (${errorDescription})`);
+    });
+
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+      logToFile(`[Main] PROCESSO DE RENDERIZAÇÃO CAIU: ${details.reason} (${details.exitCode})`);
     });
 
     mainWindow.on('close', (event) => {
@@ -340,20 +402,6 @@ if (!gotTheLock) {
     return clipboard.readText();
   });
 
-  // --- LOGGING ---
-  const LOG_FILE = join(app.getPath('userData'), 'mire_desk_logs.txt');
-
-  function logToFile(text: string) {
-    const timestamp = new Date().toLocaleString();
-    const entry = `[${timestamp}] ${text}\n`;
-    try {
-      console.log(text); // Mantém no console também
-      fs.appendFileSync(LOG_FILE, entry);
-    } catch (err) {
-      console.error('Erro ao escrever log:', err);
-    }
-  }
-
   ipcMain.handle('write-log', (event, text: string) => {
     logToFile(text);
   });
@@ -501,9 +549,10 @@ if (!gotTheLock) {
     const path = require('path');
     const { shell } = require('electron');
     const tempDir = app.getPath('temp');
-    const targetPath = path.join(tempDir, 'MireDesk-Update.exe');
+    // Usa um timestamp para evitar o erro EBUSY se o arquivo anterior ainda estiver travado ou em uso
+    const targetPath = path.join(tempDir, `MireDesk-Update-${Date.now()}.exe`);
 
-    logToFile(`[Update] Iniciando download via Axios de: ${url}`);
+    logToFile(`[Update] Iniciando download via Axios de: ${url} para ${targetPath}`);
 
     try {
       const response = await axios({
@@ -512,12 +561,24 @@ if (!gotTheLock) {
         responseType: 'stream'
       });
 
+      const totalLength = response.headers['content-length'];
+      let downloadedLength = 0;
+
+      response.data.on('data', (chunk: any) => {
+        downloadedLength += chunk.length;
+        if (totalLength) {
+          const progress = Math.round((downloadedLength / totalLength) * 100);
+          event.sender.send('update-progress', progress);
+        }
+      });
+
       const writer = fs.createWriteStream(targetPath);
       response.data.pipe(writer);
 
       return new Promise((resolve, reject) => {
         writer.on('finish', async () => {
           logToFile('[Update] Download concluído com sucesso.');
+          event.sender.send('update-progress', 100);
           try {
             await shell.openPath(targetPath);
             app.quit();
@@ -532,5 +593,64 @@ if (!gotTheLock) {
       logToFile(`[Update] Erro fatal no download: ${error}`);
       throw error;
     }
+  });
+
+  // Novo: Move o mouse para uma posição específica
+  ipcMain.handle('move-mouse', (event, pos: { x: number | undefined, y: number | undefined }) => {
+    if (pos && pos.x !== undefined && pos.y !== undefined) {
+      const x = Math.round(pos.x);
+      const y = Math.round(pos.y);
+      try {
+        robot.moveMouse(x, y);
+      } catch (e) {
+        logToFile(`Erro robotjs moveMouse (${x},${y}): ${e}`);
+      }
+    }
+  });
+
+  // Novo: Verifica se o app está instalado (NSIS) ou rodando como Portátil
+  ipcMain.handle('is-app-installed', () => {
+    // Se estiver em modo dev, retorna false para mostrar o banner de instalação
+    if (!app.isPackaged) return false;
+
+    const exePath = app.getPath('exe').toLowerCase();
+    const localAppData = (process.env.LOCALAPPDATA || '').toLowerCase();
+    const programFiles = (process.env.PROGRAMFILES || 'c:\\program files').toLowerCase();
+    const programFilesX86 = (process.env['PROGRAMFILES(X86)'] || 'c:\\program files (x86)').toLowerCase();
+
+    // Verifica se o executável está em pastas típicas de instalação
+    const isInstalled =
+      (localAppData && exePath.includes(localAppData)) ||
+      exePath.includes('program files') ||
+      exePath.includes('arquivos de programas') || // Windows em Português
+      exePath.includes(programFiles) ||
+      exePath.includes(programFilesX86);
+
+    logToFile(`[Check] Detecção de Instalação:`);
+    logToFile(` - Executável: ${exePath}`);
+    logToFile(` - LocalAppData: ${localAppData}`);
+    logToFile(` - ProgramFiles: ${programFiles}`);
+    logToFile(` - Instalado: ${isInstalled}`);
+
+    return isInstalled;
+  });
+
+  // Novo: Obtém o endereço IP local da máquina
+  ipcMain.handle('get-local-ip', () => {
+    const { networkInterfaces } = require('os');
+    const nets = networkInterfaces();
+    let localIp = '127.0.0.1';
+
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        // Pula endereços internos (loopback) e não IPv4
+        if (net.family === 'IPv4' && !net.internal) {
+          localIp = net.address;
+          break;
+        }
+      }
+      if (localIp !== '127.0.0.1') break;
+    }
+    return localIp;
   });
 }

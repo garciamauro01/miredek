@@ -9,6 +9,7 @@ import { createSession } from './types/Session'
 import { useSessionManager } from './hooks/useSessionManager'
 import { useUpdateCheck } from './hooks/useUpdateCheck'
 import { UpdateNotification } from './components/UpdateNotification'
+import { ConnectionModal } from './components/ConnectionModal'
 import type { Contact } from './types/Contact'
 
 declare global {
@@ -31,6 +32,8 @@ declare global {
       maximizeWindow: () => Promise<void>;
       closeWindow: () => Promise<void>;
       downloadAndInstallUpdate: (url: string) => Promise<boolean>;
+      isAppInstalled: () => Promise<boolean>;
+      onUpdateProgress: (callback: (progress: number) => void) => () => void;
     }
   }
 }
@@ -69,14 +72,29 @@ function App() {
   })
   const { updateAvailable } = useUpdateCheck(serverIp);
   const [showUpdate, setShowUpdate] = useState(true);
+  const [updateProgress, setUpdateProgress] = useState(0);
 
   useEffect(() => {
-    if (updateAvailable) setShowUpdate(true);
+    if (updateAvailable) {
+      setShowUpdate(true);
+      setUpdateProgress(0); // Reseta progresso se uma nova info chegar
+    }
   }, [updateAvailable]);
+
+  useEffect(() => {
+    if (window.electronAPI?.onUpdateProgress) {
+      const removeListener = window.electronAPI.onUpdateProgress((progress) => {
+        console.log(`[Update] Progresso: ${progress}%`);
+        setUpdateProgress(progress);
+      });
+      return () => removeListener();
+    }
+  }, []);
 
   // Multi-session state
   const [sessions, setSessions] = useState<Session[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>('dashboard')
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null)
   const [sources, setSources] = useState<any[]>([])
   const [currentSourceId, setCurrentSourceId] = useState<string>('')
   const sourcesRef = useRef(sources);
@@ -630,6 +648,8 @@ function App() {
                   localStorage.setItem('miré_desk_recent_sessions', JSON.stringify(newRecent));
                   return newRecent;
                 });
+                setPendingSessionId(null);
+                setActiveSessionId(sessionId);
                 sessionManager.startVideoCall(sessionId, session.remoteId, localStreamRef.current);
               }
               return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false } : s);
@@ -672,6 +692,11 @@ function App() {
         const session = newSessions.find(s => s.id === sessionId);
         if (session && updates.dataConnection) {
           setupDataListeners(sessionId, updates.dataConnection, session.isIncoming);
+        }
+        // Se a sessão conectou e é de saída, remove o estado de pendente
+        if (updates.connected && session && !session.isIncoming) {
+          setPendingSessionId(null);
+          setActiveSessionId(sessionId);
         }
         return newSessions;
       })
@@ -829,46 +854,37 @@ function App() {
     videoRefsMap.current.set(sessionId, { remote: createRef<HTMLVideoElement>() })
 
     setSessions(prev => [...prev, newSession])
-    setActiveSessionId(sessionId)
 
-    if (tempPassword) {
-      sessionManager.connectDataOnly(sessionId, tempRemoteId);
-    } else {
-      // Se não tem senha, adiciona ao histórico e garante que existe nos contatos
-      setRecentSessions(old => {
-        const filtered = old.filter(id => id !== tempRemoteId);
-        const newRecent = [tempRemoteId, ...filtered].slice(0, 10);
-        localStorage.setItem('miré_desk_recent_sessions', JSON.stringify(newRecent));
-        return newRecent;
-      });
+    // Adiciona ao histórico e garante que existe nos contatos
+    setRecentSessions(old => {
+      const filtered = old.filter(id => id !== tempRemoteId);
+      const newRecent = [tempRemoteId, ...filtered].slice(0, 10);
+      localStorage.setItem('miré_desk_recent_sessions', JSON.stringify(newRecent));
+      return newRecent;
+    });
 
-      setContacts(prev => {
-        const existingContact = prev.find(c => c.id === tempRemoteId);
-        let newContacts;
+    setContacts(prev => {
+      const existingContact = prev.find(c => c.id === tempRemoteId);
+      let newContacts;
 
-        if (existingContact) {
-          // Atualiza contato existente com a senha (se fornecida)
-          newContacts = prev.map(c =>
-            c.id === tempRemoteId
-              ? { ...c, password: tempPassword || c.password }
-              : c
-          );
-        } else {
-          // Cria novo contato com senha
-          newContacts = [...prev, {
-            id: tempRemoteId,
-            isFavorite: false,
-            password: tempPassword || undefined
-          }];
-        }
+      if (existingContact) {
+        newContacts = prev.map(c =>
+          c.id === tempRemoteId ? { ...c, password: tempPassword || c.password } : c
+        );
+      } else {
+        newContacts = [...prev, {
+          id: tempRemoteId,
+          isFavorite: false,
+          password: tempPassword || undefined
+        }];
+      }
 
-        localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
-        return newContacts;
-      });
+      localStorage.setItem('miré_desk_contacts', JSON.stringify(newContacts));
+      return newContacts;
+    });
 
-      sessionManager.connectToRemote(sessionId, tempRemoteId, localStreamRef.current!);
-      setActiveSessionId(sessionId);
-    }
+    sessionManager.connectToRemote(sessionId, tempRemoteId, localStreamRef.current!);
+    setPendingSessionId(sessionId);
 
     // Limpa os campos após iniciar a conexão
     setTempPassword('');
@@ -909,15 +925,17 @@ function App() {
       }
     }
 
-    // Pequeno delay para garantir que o state do stream atualizou
+    // Delay mínimo para garantir que o state do stream atualizou
     setTimeout(() => {
       console.log('[Host] Respondendo chamada com stream:', !!localStreamRef.current);
       if (localStreamRef.current) {
         sessionManager.answerCall(sessionId, session.incomingCall, localStreamRef.current)
+        // Limpa o estado de chamada recebida para fechar o modal visual imediatamente
+        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, incomingCall: null } : s))
       } else {
         console.error('[Host] Falha fatal: Stream ainda nulo após seleção.');
       }
-    }, 500);
+    }, 100);
   }
 
   const handleRejectCall = (sessionId: string) => {
@@ -1039,7 +1057,7 @@ function App() {
           <SessionView
             key={activeSession.id} connected={activeSession.connected}
             remoteVideoRef={activeVideoRefs.remote} remoteStream={activeSession.remoteStream || null}
-            incomingCall={activeSession.incomingCall} onAnswer={() => handleAnswerCall(activeSession.id)}
+            incomingCall={null} onAnswer={() => handleAnswerCall(activeSession.id)}
             onReject={() => handleRejectCall(activeSession.id)} remoteId={activeSession.remoteId}
             viewMode={activeSession.viewMode}
             onFileDrop={(path, x, y) => sendFile(activeSession.id, path, x, y)}
@@ -1089,11 +1107,32 @@ function App() {
         {showUpdate && updateAvailable && (
           <UpdateNotification
             info={updateAvailable}
+            progress={updateProgress}
             onClose={() => setShowUpdate(false)}
             onDownload={(url) => {
-              if (window.electronAPI) {
+              if (window.electronAPI?.downloadAndInstallUpdate) {
                 window.electronAPI.downloadAndInstallUpdate(url)
-                  .catch(err => alert('Erro ao atualizar: ' + err));
+                  .catch(err => {
+                    console.error('Erro no download:', err);
+                    alert('Falha ao baixar atualização.');
+                    setUpdateProgress(0);
+                  });
+              }
+            }}
+          />
+        )}
+
+        {pendingSessionId && (
+          <ConnectionModal
+            remoteId={sessions.find(s => s.id === pendingSessionId)?.remoteId || ''}
+            onCancel={() => {
+              sessionManager.closeSession(pendingSessionId);
+              setPendingSessionId(null);
+            }}
+            onConnectWithPassword={(password) => {
+              const session = sessions.find(s => s.id === pendingSessionId);
+              if (session && session.dataConnection) {
+                session.dataConnection.send({ type: 'AUTH', password });
               }
             }}
           />

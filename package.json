@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.0.26",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --host",
@@ -74,9 +74,20 @@
     "win": {
       "icon": "public/icon.png",
       "target": [
-        "dir",
+        "nsis",
         "portable"
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Miré-Desk",
+      "uninstallDisplayName": "Miré-Desk (Desinstalar)",
+      "artifactName": "MireDesk-Setup-${version}.${ext}",
+      "installerHeaderIcon": "public/icon.png"
     },
     "npmRebuild": false
   }

@@ -1,8 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
-title Gerando Executavel Miré-Desk
+title Gerando Instalador Miré-Desk (NSIS)
 echo ========================================
-echo   Lançando Build do Miré-Desk (Portable)
+echo   Lançando Build do Miré-Desk (Instalador NSIS)
 echo ========================================
 
 echo.
@@ -27,7 +27,24 @@ echo Versao detectada: !VERSION!
 if not exist "server\public" mkdir "server\public"
 
 :: Copiar executavel para o servidor (Renomeando para nome fixo de download)
-copy "dist-package\Miré-Desk !VERSION!.exe" "server\public\MireDesk-Setup.exe" /Y
+:: Usamos caracteres curinga (*) para evitar problemas de encoding com o 'é' no nome do arquivo
+echo Tentando localizar o instalador em dist-package...
+
+set FOUND=0
+for %%f in ("dist-package\MireDesk-Setup !VERSION!.exe" "dist-package\MireDesk-Setup-!VERSION!.exe" "dist-package\Mir*-Desk Setup !VERSION!.exe" "dist-package\Mir*-Desk !VERSION!.exe" "dist-package\Mir*-Desk-Setup-!VERSION!.exe") do (
+    if exist "%%f" (
+        echo [OK] Encontrado: %%f
+        copy /Y "%%f" "server\public\MireDesk-Setup.exe"
+        set FOUND=1
+        goto :after_copy
+    )
+)
+:after_copy
+
+if !FOUND! equ 0 (
+    echo [ERRO] Nao foi possivel encontrar o instalador em dist-package.
+    echo Procure por um arquivo .exe na pasta dist-package e copie manualmente para server/public/MireDesk-Setup.exe
+)
 
 :: Gerar arquivo version.json automaticamente
 (
@@ -35,14 +52,14 @@ echo {
 echo     "version": "!VERSION!",
 echo     "critical": false,
 echo     "downloadUrl": "/MireDesk-Setup.exe",
-echo     "releaseNotes": "Versao !VERSION! gerada em %date% %time%"
+echo     "releaseNotes": "Versao !VERSION! (Instalador NSIS) gerada em %date% %time%"
 echo }
 ) > "server\version.json"
 
 echo.
 echo ========================================
 echo   Processo concluido!
-echo   1. Executavel em: dist-package
+echo   1. Instalador em: dist-package
 echo   2. Update preparado em: server/public
 echo   3. Manifesto de versao atualizado: server/version.json
 echo ========================================

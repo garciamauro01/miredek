@@ -18,4 +18,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
     closeWindow: () => ipcRenderer.invoke('window-close'),
     downloadAndInstallUpdate: (url: string) => ipcRenderer.invoke('download-and-install-update', url),
+    isAppInstalled: () => ipcRenderer.invoke('is-app-installed'),
+    getLocalIp: () => ipcRenderer.invoke('get-local-ip'),
+    onUpdateProgress: (callback: (progress: number) => void) => {
+        const listener = (_event: any, progress: number) => callback(progress);
+        ipcRenderer.on('update-progress', listener);
+        return () => ipcRenderer.removeListener('update-progress', listener);
+    }
 });

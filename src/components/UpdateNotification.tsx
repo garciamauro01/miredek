@@ -9,9 +9,10 @@ interface UpdateNotificationProps {
     } | null;
     onClose: () => void;
     onDownload: (url: string) => void;
+    progress?: number;
 }
 
-export function UpdateNotification({ info, onClose, onDownload }: UpdateNotificationProps) {
+export function UpdateNotification({ info, onClose, onDownload, progress = 0 }: UpdateNotificationProps) {
     if (!info) return null;
 
     return (
@@ -75,28 +76,58 @@ export function UpdateNotification({ info, onClose, onDownload }: UpdateNotifica
                         {info.releaseNotes}
                     </div>
                 )}
-                <button
-                    onClick={() => onDownload(info.downloadUrl)}
-                    style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: info.critical ? '#cc0000' : '#357ABD',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
-                    onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
-                >
-                    {info.critical ? 'Atualizar Agora (Crítico)' : 'Baixar e Instalar'}
-                </button>
+                {progress > 0 && progress < 100 ? (
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: '12px',
+                            color: '#666',
+                            marginBottom: '4px'
+                        }}>
+                            <span>Baixando...</span>
+                            <span>{progress}%</span>
+                        </div>
+                        <div style={{
+                            width: '100%',
+                            height: '6px',
+                            backgroundColor: '#eee',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: `${progress}%`,
+                                height: '100%',
+                                backgroundColor: info.critical ? '#cc0000' : '#4A90E2',
+                                transition: 'width 0.3s ease-out'
+                            }} />
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => onDownload(info.downloadUrl)}
+                        style={{
+                            width: '100%',
+                            padding: '10px',
+                            backgroundColor: info.critical ? '#cc0000' : '#357ABD',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+                        onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
+                        disabled={progress === 100}
+                    >
+                        {progress === 100 ? 'Abrindo Instalador...' : (info.critical ? 'Atualizar Agora (Crítico)' : 'Baixar e Instalar')}
+                    </button>
+                )}
             </div>
         </div>
     );

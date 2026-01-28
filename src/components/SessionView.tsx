@@ -216,7 +216,7 @@ export function SessionView({
                     {/* Message Overlay if Waiting */}
                     {!connected && !incomingCall && (
                         <div style={{ position: 'absolute', color: '#fff', textAlign: 'center' }}>
-                            <h3>Aguardando conexão...</h3>
+                            <h3>Aguardando o usuário aceitar a conexão...</h3>
                             <p style={{ color: '#aaa', fontSize: '12px' }}>ID: {remoteId}</p>
                         </div>
                     )}
@@ -225,58 +225,6 @@ export function SessionView({
                 </div>
             </div>
 
-            {/* Incoming Call Modal Overlay - Root level to ensure clickability */}
-            {incomingCall && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.85)', zIndex: 100000,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    <div style={{
-                        background: '#fff', padding: '30px', borderRadius: '8px',
-                        textAlign: 'center', border: '1px solid #ddd',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)', width: '400px',
-                        color: '#333'
-                    }}>
-                        <h2 style={{ margin: '0 0 10px 0', color: '#e03226' }}>Pedido de Conexão</h2>
-                        <div style={{ fontSize: '16px', marginBottom: '20px' }}>
-                            ID: <b>{incomingCall.peer}</b> deseja conectar.
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-                            <button
-                                onClick={() => {
-                                    console.log('[SessionView] Clique DETECTADO em ACEITAR');
-                                    onAnswer();
-                                }}
-                                style={{
-                                    background: '#34a853', color: 'white', border: 'none',
-                                    padding: '12px 30px', borderRadius: '4px', cursor: 'pointer',
-                                    fontWeight: 'bold', fontSize: '14px'
-                                }}
-                            >
-                                ACEITAR
-                            </button>
-                            <button
-                                onClick={() => {
-                                    console.log('[SessionView] Clique DETECTADO em REJEITAR');
-                                    onReject();
-                                }}
-                                style={{
-                                    background: '#ea4335', color: 'white', border: 'none',
-                                    padding: '12px 30px', borderRadius: '4px', cursor: 'pointer',
-                                    fontWeight: 'bold', fontSize: '14px'
-                                }}
-                            >
-                                REJEITAR
-                            </button>
-                        </div>
-                        <div style={{ marginTop: '20px', fontSize: '12px', color: '#777' }}>
-                            Isso permitirá que vejam sua tela e usem o mouse.
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 }

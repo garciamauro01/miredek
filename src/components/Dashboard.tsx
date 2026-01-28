@@ -48,13 +48,31 @@ export function Dashboard({
     const [showMenuId, setShowMenuId] = useState<string | null>(null);
     const [isAutostart, setIsAutostart] = useState(false);
     const [appVersion, setAppVersion] = useState('');
+    const [isInstalled, setIsInstalled] = useState(false); // Começa false para mostrar o banner se detectado portátil
+    const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+    const [machineIp, setMachineIp] = useState<string>('');
 
     useEffect(() => {
         if (window.electronAPI) {
             window.electronAPI.getAutostartStatus().then(setIsAutostart);
             window.electronAPI.getAppVersion().then(setAppVersion);
+            if (window.electronAPI.isAppInstalled) {
+                window.electronAPI.isAppInstalled().then(setIsInstalled);
+            }
+            if ((window.electronAPI as any).getLocalIp) {
+                (window.electronAPI as any).getLocalIp().then(setMachineIp);
+            }
+
+            // Ouvinte de progresso de download
+            if (window.electronAPI.onUpdateProgress) {
+                const cleanup = window.electronAPI.onUpdateProgress((progress) => {
+                    console.log(`Progresso de download: ${progress}%`);
+                    setDownloadProgress(progress);
+                });
+                return cleanup;
+            }
         }
-    }, []);
+    }, [window.electronAPI]);
 
     const toggleAutostart = async () => {
         if (window.electronAPI) {
@@ -121,18 +139,24 @@ export function Dashboard({
                                 </p>
                             </div>
                         ) : (
-                            // App Desktop: Funciona normalmente
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <span style={{ fontSize: '28px', fontWeight: 400, color: '#333', letterSpacing: '1px' }}>
-                                    {myId || '--- --- ---'}
-                                </span>
-                                <button onClick={() => navigator.clipboard.writeText(myId)} title="Copiar" style={{ background: 'none', border: 'none', marginLeft: '10px', color: '#888' }}>
-                                    <Copy size={16} />
-                                </button>
-                                <button onClick={onResetId} title="Gerar Novo ID" style={{ background: 'none', border: 'none', marginLeft: '5px', color: '#888' }}>
-                                    <RotateCw size={16} />
-                                </button>
-                            </div>
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '28px', fontWeight: 400, color: '#333', letterSpacing: '1px' }}>
+                                        {myId || '--- --- ---'}
+                                    </span>
+                                    <button onClick={() => navigator.clipboard.writeText(myId)} title="Copiar" style={{ background: 'none', border: 'none', marginLeft: '10px', color: '#888' }}>
+                                        <Copy size={16} />
+                                    </button>
+                                    <button onClick={onResetId} title="Gerar Novo ID" style={{ background: 'none', border: 'none', marginLeft: '5px', color: '#888' }}>
+                                        <RotateCw size={16} />
+                                    </button>
+                                </div>
+                                {machineIp && (
+                                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                                        IP Local: {machineIp}
+                                    </div>
+                                )}
+                            </>
                         )}
                         {logs.some(l => l.includes('unavailable-id')) && <span style={{ color: 'red', fontSize: '11px' }}>ID Indisponível (Em uso)</span>}
                     </div>
@@ -231,6 +255,86 @@ export function Dashboard({
                             <strong>Segurança:</strong> Use esta senha para acessar de outro lugar sem precisar clicar em "Aceitar".
                         </small>
                     </div>
+
+                    {/* Banner de Instalação (Estilo AnyDesk) */}
+                    {!isInstalled && window.electronAPI && (
+                        <div style={{
+                            marginTop: '20px',
+                            background: 'linear-gradient(135deg, #e03226 0%, #b91c1c 100%)',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            color: 'white',
+                            boxShadow: '0 4px 12px rgba(224, 50, 38, 0.3)',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                    <Monitor size={24} />
+                                    <strong style={{ fontSize: '14px' }}>Instalar Miré-Desk</strong>
+                                </div>
+                                <p style={{ margin: '0 0 15px 0', fontSize: '12px', opacity: 0.9, lineHeight: '1.4' }}>
+                                    Para ter auto-update automático, acesso mais estável e iniciar com o Windows, instale o aplicativo agora!
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        if (downloadProgress !== null) return;
+
+                                        // Validação de IP para download remoto
+                                        if (serverIp === 'localhost' || serverIp === '127.0.0.1') {
+                                            const confirmInstall = window.confirm(
+                                                "O 'IP do Servidor' está configurado como 'localhost'.\n\n" +
+                                                "Se você estiver em uma máquina diferente da que gerou o instalador, o download vai falhar.\n\n" +
+                                                "Deseja tentar baixar de 'localhost' assim mesmo?"
+                                            );
+                                            if (!confirmInstall) return;
+                                        }
+
+                                        const url = serverIp.includes('http')
+                                            ? `${serverIp.replace(/\/$/, '')}/MireDesk-Setup.exe`
+                                            : `http://${serverIp}:3001/MireDesk-Setup.exe`;
+
+                                        if (window.electronAPI) {
+                                            setDownloadProgress(0);
+                                            window.electronAPI.downloadAndInstallUpdate(url).catch(err => {
+                                                console.error('Erro ao baixar:', err);
+                                                setDownloadProgress(null);
+                                                alert(
+                                                    'Falha ao baixar instalador.\n\n' +
+                                                    'Causa Provável: O app não conseguiu encontrar o servidor em: ' + url + '\n\n' +
+                                                    'Dica: Mude o "IP do Servidor" na esquerda para o IP da sua máquina de desenvolvimento.'
+                                                );
+                                            });
+                                        }
+                                    }}
+                                    className="ad-btn-primary"
+                                    disabled={downloadProgress !== null}
+                                    style={{
+                                        width: '100%',
+                                        background: downloadProgress !== null ? '#ccc' : 'white',
+                                        color: '#e03226',
+                                        border: 'none',
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        padding: '10px',
+                                        cursor: downloadProgress !== null ? 'wait' : 'pointer'
+                                    }}
+                                >
+                                    {downloadProgress !== null ? `Baixando... ${downloadProgress}%` : 'Instalar Agora'}
+                                </button>
+
+                                {downloadProgress !== null && (
+                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '10px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${downloadProgress}%`, height: '100%', background: 'white', transition: 'width 0.3s' }}></div>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Efeito decorativo */}
+                            <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.1 }}>
+                                <Monitor size={100} />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Remote Desk */}
