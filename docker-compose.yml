@@ -12,10 +12,7 @@ services:
       - "9000:9000"
     environment:
       - PORT=9000
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+
   # Versão Web do MiréDesk (Landing Page / Web Client)
   web:
     build:
