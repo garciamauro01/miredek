@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.29",
+  "version": "1.0.30",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server:peer": "peerjs --port 9000 --allow_discovery true",
+    "server:peer": "peerjs --port 9000 --path /peerjs --allow_discovery true",
     "dist": "npm run build && electron-builder",
     "test": "vitest"
   },

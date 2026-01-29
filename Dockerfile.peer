@@ -11,4 +11,4 @@ EXPOSE 9000
 
 # Executa o servidor PeerJS
 # --allow_discovery permite que os peers se encontrem (opcional, mas útil para o clone)
-ENTRYPOINT ["peerjs", "--port", "9000", "--path", "/peerjs", "--allow_discovery"]
+ENTRYPOINT ["peerjs", "--port", "9000", "--path", "/peerjs", "--allow_discovery", "--cors", "*", "--host", "0.0.0.0"]

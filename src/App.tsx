@@ -219,6 +219,7 @@ function App() {
         const endpoints = workingEndpointRef.current
           ? [workingEndpointRef.current]
           : [
+            `http://${serverIp}:9000/peerjs/peerjs/peers`,
             `http://${serverIp}:9000/peerjs/peers`,
             `http://${serverIp}:9000/peers`
           ];
@@ -256,8 +257,10 @@ function App() {
 
           await Promise.all(recentSessions.map(async (id) => {
             const testUrls = [
+              `http://${serverIp}:9000/peerjs/peerjs/${id}/online`,
               `http://${serverIp}:9000/peerjs/${id}/online`,
               `http://${serverIp}:9000/${id}/online`,
+              `http://${serverIp}:9000/peerjs/peerjs/online/${id}`,
               `http://${serverIp}:9000/peerjs/online/${id}`,
               `http://${serverIp}:9000/online/${id}`
             ];
@@ -784,6 +787,7 @@ function App() {
 
     peer.on('error', (err) => {
       console.error('[Host] Peer error:', err);
+      addLog(`Erro no Peer: ${err.type} - ${err.message}`);
 
       // Se não conseguiu conectar inicialmente ou servidor caiu feio
       if (err.type === 'network' || err.type === 'server-error') {
