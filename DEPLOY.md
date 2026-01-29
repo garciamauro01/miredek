@@ -7,7 +7,7 @@ Este guia foca na arquitetura **App-to-App** (Desktop ↔ Desktop), onde o servi
 - **Foco:** Conexão remota entre aplicativos Desktop (Windows/Linux/Mac).
 - **Servidor:** PeerJS Server (Sinalização WebRTC).
 - **HTTPS:** **Não obrigatório** (Electron não tem restrições de segurança como navegadores).
-- **Web Client:** Desabilitado por padrão (exigiria HTTPS).
+- **Web Client:** Agora suportado via Docker (útil para acesso via navegador).
 
 ---
 
@@ -21,12 +21,15 @@ O objetivo é subir apenas o **Servidor PeerJS** para permitir que os clientes s
 
 ### 2. Instalação
 
-Copie os arquivos `docker-compose.yml` e `Dockerfile.peer` para o servidor e rode:
+Copie o repositório completo (ou os arquivos essenciais) para o servidor e rode:
 
 ```bash
-# Iniciar o servidor de sinalização (porta 9000)
-docker-compose up -d peerjs
+# Iniciar todos os serviços (Sinalização + Web Client)
+docker-compose up -d --build
 ```
+
+> [!NOTE]
+> O Docker agora compila o projeto automaticamente através de builds multi-estágio. Não é necessário rodar `npm run build` na sua máquina local antes de enviar para o servidor.
 
 ### 3. Verificar Status
 
@@ -47,14 +50,12 @@ Nos computadores que vão usar o MiréDesk, aponte para seu novo servidor cloud.
 1. Abra o código fonte `src/App.tsx` (ou arquivo de config se implementado).
 2. Atualize a configuração do PeerJS:
 
-```typescript
 const peer = new Peer(id, {
   host: 'SEU_IP_PUBLICO', // Ex: 123.45.67.89
   port: 9000,
-  path: '/',
-  // secure: false, // Importante: maintain false se não usar HTTPS
+  path: '/peerjs',
+  // secure: false, // Importante: manter false se não usar HTTPS
 });
-```
 
 3. Gere o executável novamente:
 ```bash

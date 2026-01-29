@@ -9,9 +9,9 @@ interface SessionViewProps {
     onAnswer: () => void;
     onReject: () => void;
     onHookMethods: {
-        handleMouseMove: (e: React.MouseEvent) => void;
-        handleMouseDown: (e: React.MouseEvent) => void;
-        handleMouseUp: (e: React.MouseEvent) => void;
+        handleMouseMove: (e: React.MouseEvent | React.TouchEvent) => void;
+        handleMouseDown: (e: React.MouseEvent | React.TouchEvent) => void;
+        handleMouseUp: (e: React.MouseEvent | React.TouchEvent) => void;
         handleKeyDown: (e: React.KeyboardEvent) => void;
         handleKeyUp: (e: React.KeyboardEvent) => void;
     };
@@ -129,6 +129,19 @@ export function SessionView({
                         tabIndex={0}
                         onKeyDown={onHookMethods.handleKeyDown}
                         onKeyUp={onHookMethods.handleKeyUp}
+                        onTouchStart={(e) => {
+                            // Previne scroll ao tentar controlar
+                            if (e.cancelable) e.preventDefault();
+                            onHookMethods.handleMouseDown(e);
+                        }}
+                        onTouchEnd={(e) => {
+                            if (e.cancelable) e.preventDefault();
+                            onHookMethods.handleMouseUp(e);
+                        }}
+                        onTouchMove={(e) => {
+                            if (e.cancelable) e.preventDefault();
+                            onHookMethods.handleMouseMove(e);
+                        }}
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

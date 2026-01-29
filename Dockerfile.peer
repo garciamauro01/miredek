@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:22-slim
 
 # Instala a CLI do PeerJS globalmente
 RUN npm install -g peer
@@ -11,4 +11,4 @@ EXPOSE 9000
 
 # Executa o servidor PeerJS
 # --allow_discovery permite que os peers se encontrem (opcional, mas útil para o clone)
-ENTRYPOINT ["peerjs", "--port", "9000", "--path", "/", "--allow_discovery"]
+ENTRYPOINT ["peerjs", "--port", "9000", "--path", "/peerjs", "--allow_discovery"]

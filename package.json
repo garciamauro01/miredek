@@ -1,7 +1,9 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.26",
+  "version": "1.0.29",
+  "description": "Miré-Desk Remote Control Solution",
+  "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --host",
@@ -13,6 +15,9 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
     "axios": "^1.13.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",

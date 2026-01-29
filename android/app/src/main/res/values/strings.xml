@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MireDesk</string>
+    <string name="title_activity_main">MireDesk</string>
+    <string name="package_name">com.mire.desk</string>
+    <string name="custom_url_scheme">com.mire.desk</string>
+</resources>

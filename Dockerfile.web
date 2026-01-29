@@ -1,9 +1,37 @@
-# Estágio Único: Servir Estáticos
-# Assumes que 'npm run build' já foi rodado localmente e a pasta 'dist' existe
+# Estágio 1: Build da Aplicação React
+FROM node:22-slim AS build
+
+WORKDIR /app
+
+# Copia apenas arquivos de dependências para aproveitar cache do Docker
+COPY package*.json ./
+
+# Remove dependências nativas/desktop que não são necessárias para o web client
+# Isso evita falhas de compilação do robotjs que não seria usado no browser anyway
+RUN npm pkg delete dependencies.robotjs && \
+    npm pkg delete devDependencies.electron && \
+    npm pkg delete devDependencies.electron-builder && \
+    npm pkg delete devDependencies.vite-plugin-electron && \
+    npm pkg delete devDependencies.vite-plugin-electron-renderer
+
+# Instala todas as dependências (apenas as necessárias para a web)
+# Agora sem python/make/g++ pois o robotjs foi removido e não há outros módulos nativos
+RUN npm install
+
+# Copia o restante do código fonte
+COPY . .
+
+# Usa a config do vite otimizada para o web client (sem electron)
+RUN cp vite.config.docker.ts vite.config.ts
+
+# Executa a build de produção (Vite)
+RUN npm run build
+
+# Estágio 2: Servir Estáticos com Nginx
 FROM nginx:alpine
 
-# Copia o resultado da build local para o Nginx
-COPY dist /usr/share/nginx/html
+# Copia o resultado da build do primeiro estágio para o Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Expõe a porta 80
 EXPOSE 80

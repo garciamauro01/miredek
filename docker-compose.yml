@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Servidor de Sinalização (WebRTC)
   peerjs:
@@ -12,17 +10,21 @@ services:
       - "9000:9000"
     environment:
       - PORT=9000
-  # Versão Web do MiréDesk (Landing Page / Web Client) - DESABILITADO
-  # web:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.web
-  #   container_name: miredesk-web
-  #   restart: always
-  #   ports:
-  #     - "5175:80"
-  #   depends_on:
-  #     - peerjs
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+  # Versão Web do MiréDesk (Landing Page / Web Client)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: miredesk-web
+    restart: always
+    ports:
+      - "5175:80"
+    depends_on:
+      - peerjs
   # Opcional: Adicione um container para o Banco de Dados se for persistir contatos futuramente
   # db:
   #   image: postgres:alpine

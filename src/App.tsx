@@ -485,13 +485,24 @@ function App() {
   }
 
   // --- Função auxiliar para cálculo de mouse preciso ---
-  const getRelativeMousePos = (e: React.MouseEvent, videoElement: HTMLVideoElement | null, viewMode: 'fit' | 'original' | 'stretch' = 'fit') => {
+  const getRelativeMousePos = (e: React.MouseEvent | React.TouchEvent, videoElement: HTMLVideoElement | null, viewMode: 'fit' | 'original' | 'stretch' = 'fit') => {
     const video = videoElement;
     if (!video || video.videoWidth === 0) return null;
 
     const rect = video.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    let clientX, clientY;
+
+    if ('touches' in e) {
+      if (e.touches.length === 0) return null;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     let finalX = 0;
     let finalY = 0;
@@ -742,7 +753,7 @@ function App() {
     const peerConfig = serverIp === 'cloud' ? {
       config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
     } : {
-      host: serverIp, port: 9000, path: '/',
+      host: serverIp, port: 9000, path: '/peerjs',
       config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
     }
 
@@ -1073,7 +1084,7 @@ function App() {
                 if (activeSession.dataConnection?.open) {
                   const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
                   if (pos) {
-                    const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+                    const b = ('button' in e) ? (e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle') : 'left';
                     activeSession.dataConnection.send({ type: 'mousedown', button: b, x: pos.x, y: pos.y });
                   }
                 }
@@ -1082,7 +1093,7 @@ function App() {
                 if (activeSession.dataConnection?.open) {
                   const pos = getRelativeMousePos(e, activeVideoRefs.remote.current, activeSession.viewMode);
                   if (pos) {
-                    const b = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+                    const b = ('button' in e) ? (e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle') : 'left';
                     activeSession.dataConnection.send({ type: 'mouseup', button: b, x: pos.x, y: pos.y });
                   }
                 }

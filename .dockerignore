@@ -1,11 +1,18 @@
-node_modules
-dist-package
-.git
+node_modules/
+dist/
+dist-electron/
+dist-package/
+android/
+delphi_client/
+server/
+certs/
+.git/
+.agent/
+brain/
 *.exe
 *.bat
-README.md
+*.log
 Dockerfile.*
 docker-compose.yml
-.agent
-brain
-C:\Users\Mauro Garcia\.gemini\antigravity\brain
+README.md
+DEPLOY.md

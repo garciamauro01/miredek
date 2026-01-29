@@ -28,7 +28,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         return {
             host: serverIp,
             port: 9000,
-            path: '/',
+            path: '/peerjs',
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
