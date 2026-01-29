@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Monitor, ArrowRight, Copy, RotateCw, Settings, ShieldCheck, Star, MoreVertical, History } from 'lucide-react';
+import { Monitor, Copy, RotateCw, Settings, ShieldCheck, Star, MoreVertical, History } from 'lucide-react';
 import { useEffect } from 'react';
 import type { Contact } from '../types/Contact';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface DashboardProps {
     myId: string;
@@ -17,8 +17,8 @@ interface DashboardProps {
     onCloseSession?: (id: string) => void;
     unattendedPassword?: string;
     setUnattendedPassword?: (password: string) => void;
-    tempPassword?: string;
-    setTempPassword?: (password: string) => void;
+    sessionPassword?: string;
+    onRegenerateSessionPassword?: () => void;
     recentSessions?: string[];
     onSelectRecent?: (id: string) => void;
     recentStatusMap?: { [id: string]: 'online' | 'offline' | 'checking' };
@@ -29,11 +29,10 @@ interface DashboardProps {
 }
 
 export function Dashboard({
-    myId, serverIp, setServerIp,
-    remoteId, setRemoteId, onConnect, onResetId, logs,
-    sessions = [], onCloseSession,
+    myId,
+    remoteId, setRemoteId, onConnect,
     unattendedPassword, setUnattendedPassword,
-    tempPassword, setTempPassword,
+    sessionPassword, onRegenerateSessionPassword,
     recentSessions = [], onSelectRecent,
     recentStatusMap = {},
     peerStatus = 'offline',
@@ -46,549 +45,401 @@ export function Dashboard({
     const [searchTerm, setSearchTerm] = useState('');
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [showMenuId, setShowMenuId] = useState<string | null>(null);
-    const [isAutostart, setIsAutostart] = useState(false);
     const [appVersion, setAppVersion] = useState('');
-    const [isInstalled, setIsInstalled] = useState(false); // Começa false para mostrar o banner se detectado portátil
-    const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
-    const [machineIp, setMachineIp] = useState<string>('');
 
     useEffect(() => {
         if (window.electronAPI) {
-            window.electronAPI.getAutostartStatus().then(setIsAutostart);
             window.electronAPI.getAppVersion().then(setAppVersion);
-            if (window.electronAPI.isAppInstalled) {
-                window.electronAPI.isAppInstalled().then(setIsInstalled);
-            }
-            if ((window.electronAPI as any).getLocalIp) {
-                (window.electronAPI as any).getLocalIp().then(setMachineIp);
-            }
-
-            // Ouvinte de progresso de download
-            if (window.electronAPI.onUpdateProgress) {
-                const cleanup = window.electronAPI.onUpdateProgress((progress) => {
-                    console.log(`Progresso de download: ${progress}%`);
-                    setDownloadProgress(progress);
-                });
-                return cleanup;
-            }
         }
-    }, [window.electronAPI]);
+    }, []);
 
-    const toggleAutostart = async () => {
-        if (window.electronAPI) {
-            const status = await window.electronAPI.setAutostart(!isAutostart);
-            setIsAutostart(status);
-        }
-    };
+    // const toggleAutostart = async () => {
+    //     if (window.electronAPI) {
+    //         const status = await window.electronAPI.setAutostart(!isAutostart);
+    //         setIsAutostart(status);
+    //     }
+    // };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 40px)', background: 'var(--ad-sidebar-bg)', overflow: 'hidden' }}>
-            <div style={{ height: '50px', background: '#ffffff', borderBottom: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <img src="/icon.png" alt="Logo" style={{ height: '32px', marginRight: '10px', borderRadius: '4px' }} />
-                    <span style={{ fontWeight: 600, fontSize: '18px', color: '#333' }}>Miré-Desk</span>
-                </div>
-                {appVersion && (
-                    <span style={{ fontSize: '12px', color: '#999', background: '#f5f5f5', padding: '2px 8px', borderRadius: '10px', border: '1px solid #eee' }}>
-                        v{appVersion}
-                    </span>
-                )}
-            </div>
+        <div style={{ display: 'flex', height: '100vh', background: '#f5f6f7', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
 
-            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+            {/* --- SIDEBAR (ESQUERDA) --- */}
+            <div style={{
+                width: '300px',
+                background: '#fff',
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '2px 0 10px rgba(0,0,0,0.02)',
+                zIndex: 10
+            }}>
+                <div style={{ padding: '25px', flex: 1, overflowY: 'auto' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 5px 0', color: '#333' }}>Seu Computador</h2>
+                    <p style={{ fontSize: '12px', color: '#888', marginBottom: '25px' }}>
+                        Seu computador pode ser acessado com este ID e senha.
+                    </p>
 
-                {/* Left Column: This Desk (My ID) */}
-                <div className="ad-card">
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', color: 'var(--ad-text-secondary)' }}>
-                        <Monitor size={18} style={{ marginRight: '8px' }} />
-                        <span style={{ fontSize: '14px', fontWeight: 500 }}>Este Computador</span>
-                    </div>
-
-                    <div style={{ marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                            <label style={{ fontSize: '11px', color: '#888' }}>O seu endereço</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <div style={{
-                                    width: '8px', height: '8px', borderRadius: '50%',
-                                    background: peerStatus === 'online' ? '#4CAF50' : peerStatus === 'connecting' ? '#FFC107' : '#F44336'
-                                }}></div>
-                                <span style={{ fontSize: '10px', fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>
-                                    {peerStatus === 'online' ? 'Online' : peerStatus === 'connecting' ? 'Conectando...' : 'Offline'}
-                                </span>
-                            </div>
-                        </div>
-                        {!window.electronAPI ? (
-                            // Navegador: Bloqueia uso como Host
-                            <div style={{
-                                background: '#fff3cd',
-                                border: '1px solid #ffc107',
-                                borderRadius: '6px',
-                                padding: '15px',
-                                marginTop: '10px'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '20px' }}>⚠️</span>
-                                    <strong style={{ color: '#856404' }}>Modo Host Desabilitado</strong>
-                                </div>
-                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#856404', lineHeight: '1.5' }}>
-                                    Para <strong>receber conexões</strong> e permitir que outros controlem este computador,
-                                    você precisa instalar o <strong>Miré-Desk Desktop</strong>.
-                                </p>
-                                <p style={{ margin: '0', fontSize: '12px', color: '#856404' }}>
-                                    💡 <em>Você ainda pode usar o navegador para <strong>conectar-se a outros computadores</strong> normalmente.</em>
-                                </p>
-                            </div>
-                        ) : (
-                            <>
-                                <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '28px', fontWeight: 400, color: '#333', letterSpacing: '1px' }}>
-                                        {myId || '--- --- ---'}
-                                    </span>
-                                    <button onClick={() => navigator.clipboard.writeText(myId)} title="Copiar" style={{ background: 'none', border: 'none', marginLeft: '10px', color: '#888' }}>
-                                        <Copy size={16} />
-                                    </button>
-                                    <button onClick={onResetId} title="Gerar Novo ID" style={{ background: 'none', border: 'none', marginLeft: '5px', color: '#888' }}>
-                                        <RotateCw size={16} />
-                                    </button>
-                                </div>
-                                {machineIp && (
-                                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                                        IP Local: {machineIp}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        {logs.some(l => l.includes('unavailable-id')) && <span style={{ color: 'red', fontSize: '11px' }}>ID Indisponível (Em uso)</span>}
-                    </div>
-
-                    <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '15px 0' }} />
-
-                    <div style={{ marginBottom: '10px' }}>
-                        <label style={{ fontSize: '11px', color: '#888' }}>Configuração de Rede (VPN/IP)</label>
-                        <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
-                            <input
-                                type="text"
-                                className="ad-input"
-                                value={serverIp}
-                                onChange={(e) => setServerIp(e.target.value)}
-                                style={{ flex: 1 }}
-                                placeholder="IP do Servidor"
-                            />
-                            <button onClick={() => window.location.reload()} style={{ padding: '5px', border: '1px solid #ddd', background: '#fff', borderRadius: '3px' }}>
-                                <RotateCw size={14} />
+                    {/* ID Card */}
+                    <div style={{
+                        background: '#f0f7ff',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        marginBottom: '30px',
+                        border: '1px solid #dbeafe',
+                        position: 'relative'
+                    }}>
+                        <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Seu ID</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '30px', fontWeight: 500, color: '#1e3a8a', letterSpacing: '1px' }}>
+                                {myId || '--- --- ---'}
+                            </span>
+                            <button onClick={() => navigator.clipboard.writeText(myId)} style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', padding: '5px' }}>
+                                <Copy size={18} />
                             </button>
                         </div>
-                        <small style={{ color: '#999', fontSize: '10px' }}>Altere se estiver usando VPN (ex: 10.8.0.x)</small>
+                        <button
+                            onClick={() => {/* Lógica de convite ou cópia link */ }}
+                            style={{
+                                marginTop: '15px',
+                                width: '100%',
+                                padding: '8px',
+                                background: '#fff',
+                                border: '1px solid #dbeafe',
+                                borderRadius: '6px',
+                                color: '#1e40af',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Convidar
+                        </button>
                     </div>
 
-                    {/* Lista de Sessões Ativas (Host) */}
-                    {sessions.filter(s => s.isIncoming && s.connected).length > 0 && (
-                        <>
-                            <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '15px 0' }} />
-                            <div style={{ marginBottom: '10px' }}>
-                                <label style={{ display: 'block', fontSize: '11px', color: '#888', marginBottom: '8px' }}>Usuários Conectados a Você</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {sessions.filter(s => s.isIncoming && s.connected).map(s => (
-                                        <div key={s.id} style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            background: '#f8f9fa', padding: '8px 12px', borderRadius: '4px',
-                                            border: '1px solid #eee'
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4CAF50' }}></div>
-                                                <span style={{ fontSize: '13px', fontWeight: 500, color: '#333' }}>{s.remoteId}</span>
-                                            </div>
-                                            <button
-                                                onClick={() => onCloseSession?.(s.id)}
-                                                style={{
-                                                    background: '#fee2e2', color: '#dc2626', border: 'none',
-                                                    padding: '4px 8px', borderRadius: '4px', fontSize: '11px',
-                                                    cursor: 'pointer', fontWeight: 600
-                                                }}
-                                            >
-                                                Desconectar
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
+                    {/* Password Section */}
+                    <div style={{ marginBottom: '30px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#444', marginBottom: '15px' }}>Senhas de Acesso</h3>
 
-                    <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '15px 0' }} />
-
-                    <div style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', color: 'var(--ad-text-secondary)' }}>
-                            <Settings size={16} style={{ marginRight: '8px' }} />
-                            <span style={{ fontSize: '13px', fontWeight: 500 }}>Configurações do App</span>
-                        </div>
-                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px', fontSize: '13px', color: '#555' }}>
-                            <input
-                                type="checkbox"
-                                checked={isAutostart}
-                                onChange={toggleAutostart}
-                                style={{ width: '16px', height: '16px' }}
-                            />
-                            Iniciar com o Windows
-                        </label>
-                        <p style={{ fontSize: '11px', color: '#999', marginTop: '5px' }}>
-                            O aplicativo ficará minimizado na bandeja do sistema ao fechar.
-                        </p>
-                    </div>
-
-                    <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '15px 0' }} />
-
-                    <div style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', color: 'var(--ad-text-secondary)' }}>
-                            <ShieldCheck size={16} style={{ marginRight: '8px', color: '#059669' }} />
-                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>Acesso Não Supervisionado</span>
-                        </div>
-                        <input
-                            type="password"
-                            className="ad-input"
-                            value={unattendedPassword}
-                            onChange={(e) => setUnattendedPassword?.(e.target.value)}
-                            placeholder="Definir senha secreta..."
-                            style={{ width: '100%', marginBottom: '5px', border: '1px solid #059669' }}
-                        />
-                        <small style={{ color: '#666', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-                            <strong>Segurança:</strong> Use esta senha para acessar de outro lugar sem precisar clicar em "Aceitar".
-                        </small>
-                    </div>
-
-                    {/* Banner de Instalação (Estilo AnyDesk) */}
-                    {!isInstalled && window.electronAPI && (
-                        <div style={{
-                            marginTop: '20px',
-                            background: 'linear-gradient(135deg, #e03226 0%, #b91c1c 100%)',
-                            borderRadius: '8px',
-                            padding: '20px',
-                            color: 'white',
-                            boxShadow: '0 4px 12px rgba(224, 50, 38, 0.3)',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{ position: 'relative', zIndex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                    <Monitor size={24} />
-                                    <strong style={{ fontSize: '14px' }}>Instalar Miré-Desk</strong>
-                                </div>
-                                <p style={{ margin: '0 0 15px 0', fontSize: '12px', opacity: 0.9, lineHeight: '1.4' }}>
-                                    Para ter auto-update automático, acesso mais estável e iniciar com o Windows, instale o aplicativo agora!
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        if (downloadProgress !== null) return;
-
-                                        // Validação de IP para download remoto
-                                        if (serverIp === 'localhost' || serverIp === '127.0.0.1') {
-                                            const confirmInstall = window.confirm(
-                                                "O 'IP do Servidor' está configurado como 'localhost'.\n\n" +
-                                                "Se você estiver em uma máquina diferente da que gerou o instalador, o download vai falhar.\n\n" +
-                                                "Deseja tentar baixar de 'localhost' assim mesmo?"
-                                            );
-                                            if (!confirmInstall) return;
-                                        }
-
-                                        const url = serverIp.includes('http')
-                                            ? `${serverIp.replace(/\/$/, '')}/MireDesk-Setup.exe`
-                                            : `http://${serverIp}:3001/MireDesk-Setup.exe`;
-
-                                        if (window.electronAPI) {
-                                            setDownloadProgress(0);
-                                            window.electronAPI.downloadAndInstallUpdate(url).catch(err => {
-                                                console.error('Erro ao baixar:', err);
-                                                setDownloadProgress(null);
-                                                alert(
-                                                    'Falha ao baixar instalador.\n\n' +
-                                                    'Causa Provável: O app não conseguiu encontrar o servidor em: ' + url + '\n\n' +
-                                                    'Dica: Mude o "IP do Servidor" na esquerda para o IP da sua máquina de desenvolvimento.'
-                                                );
-                                            });
-                                        }
+                        {/* Senha Temporária */}
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '5px' }}>Senha Temporária (Sessão)</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={sessionPassword || '...'}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px',
+                                        background: '#f9fafb',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        fontSize: '15px',
+                                        fontWeight: 600,
+                                        color: '#111',
+                                        fontFamily: 'monospace'
                                     }}
-                                    className="ad-btn-primary"
-                                    disabled={downloadProgress !== null}
+                                />
+                                <button title="Gerar nova senha" onClick={onRegenerateSessionPassword} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
+                                    <RotateCw size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Senha Fixa */}
+                        <div>
+                            <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '5px' }}>Senha Fixa (Não Supervisionado)</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="password"
+                                    value={unattendedPassword}
+                                    onChange={(e) => setUnattendedPassword?.(e.target.value)}
+                                    placeholder="Definir senha fixa..."
                                     style={{
                                         width: '100%',
-                                        background: downloadProgress !== null ? '#ccc' : 'white',
-                                        color: '#e03226',
-                                        border: 'none',
-                                        fontSize: '13px',
-                                        fontWeight: 'bold',
-                                        padding: '10px',
-                                        cursor: downloadProgress !== null ? 'wait' : 'pointer'
+                                        padding: '10px 35px 10px 10px',
+                                        background: '#fff',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        boxSizing: 'border-box'
                                     }}
-                                >
-                                    {downloadProgress !== null ? `Baixando... ${downloadProgress}%` : 'Instalar Agora'}
-                                </button>
-
-                                {downloadProgress !== null && (
-                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '10px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${downloadProgress}%`, height: '100%', background: 'white', transition: 'width 0.3s' }}></div>
-                                    </div>
-                                )}
-                            </div>
-                            {/* Efeito decorativo */}
-                            <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.1 }}>
-                                <Monitor size={100} />
+                                />
+                                <ShieldCheck size={16} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#10b981' }} />
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* App Settings Shortcut */}
+                    <div style={{ paddingTop: '20px', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666', fontSize: '13px', cursor: 'pointer' }}>
+                            <Settings size={16} />
+                            <span>Configurações</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Column: Remote Desk */}
-                <div>
-                    <div className="ad-card" style={{ padding: '40px 30px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <label style={{ fontSize: '14px', color: 'var(--ad-text-secondary)', marginBottom: '10px' }}>Outra Área de Trabalho</label>
-                        <div style={{ display: 'flex', gap: '10px', height: '48px' }}>
+                {/* Sidebar Footer (Splash Logo) */}
+                <div style={{ padding: '10px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+                    <img src="/splash.png" alt="Mire-Desk" style={{ width: '80%', opacity: 0.8 }} />
+                    <div style={{ fontSize: '10px', color: '#bbb', marginTop: '5px' }}>Miré-Desk v{appVersion}</div>
+                </div>
+            </div>
+
+            {/* --- MAIN AREA (DIREITA) --- */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 'calc(100% - 300px)' }}>
+
+                {/* Connection Header */}
+                <div style={{ padding: '40px 60px', background: '#fff', borderBottom: '1px solid #e0e0e0' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: 600, color: '#111', margin: '0 0 25px 0' }}>Controle um Computador Remoto</h1>
+
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', maxWidth: '700px' }}>
+                        <div style={{ flex: 1, position: 'relative' }}>
                             <input
                                 type="text"
                                 value={remoteId}
                                 onChange={(e) => setRemoteId(e.target.value)}
-                                className="ad-input"
                                 placeholder="Insira o ID da mesa remota..."
-                                style={{ flex: 1, fontSize: '18px', padding: '10px' }}
-                            />
-                            <button
-                                onClick={onConnect}
-                                className="ad-btn-primary"
-                                style={{ padding: '0 30px', fontSize: '14px', display: 'flex', alignItems: 'center' }}
-                            >
-                                Conectar <ArrowRight size={16} style={{ marginLeft: '5px' }} />
-                            </button>
-                        </div>
-                        <div style={{ marginTop: '10px' }}>
-                            <input
-                                type="password"
-                                value={tempPassword}
-                                onChange={(e) => setTempPassword?.(e.target.value)}
-                                className="ad-input"
-                                placeholder="Senha de acesso (opcional)..."
-                                style={{ width: '100%', fontSize: '13px' }}
+                                style={{
+                                    width: '100%',
+                                    padding: '15px 20px',
+                                    fontSize: '18px',
+                                    borderRadius: '10px',
+                                    border: '2px solid #e5e7eb',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    boxSizing: 'border-box'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             />
                         </div>
-                    </div>
-
-                    <div style={{ marginTop: '30px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderBottom: '2px solid transparent' }}>
-                            <button
-                                onClick={() => setActiveTab('recent')}
-                                style={{ background: 'none', border: 'none', borderBottom: activeTab === 'recent' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'recent' ? 'var(--ad-red)' : '#666' }}>
-                                Sessões Recentes
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('favorites')}
-                                style={{ background: 'none', border: 'none', borderBottom: activeTab === 'favorites' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'favorites' ? 'var(--ad-red)' : '#666' }}>
-                                Favoritos
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('address')}
-                                style={{ background: 'none', border: 'none', borderBottom: activeTab === 'address' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'address' ? 'var(--ad-red)' : '#666' }}>
-                                Lista de Endereços
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('transfers')}
-                                style={{ background: 'none', border: 'none', borderBottom: activeTab === 'transfers' ? '2px solid var(--ad-red)' : 'none', padding: '5px 15px', fontWeight: 600, color: activeTab === 'transfers' ? 'var(--ad-red)' : '#666' }}>
-                                Transferências
-                            </button>
-                        </div>
-
-                        <div style={{ background: '#fff', border: '1px solid #ddd', padding: '15px', borderRadius: '4px', minHeight: '300px' }}>
-                            {/* Search Bar */}
-                            <div style={{ position: 'relative', marginBottom: '15px' }}>
-                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
-                                <input
-                                    type="text"
-                                    placeholder="Pesquisar por ID ou nome..."
-                                    className="ad-input"
-                                    style={{ width: '100%', paddingLeft: '35px', fontSize: '13px' }}
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                                {searchTerm && (
-                                    <X
-                                        size={14}
-                                        onClick={() => setSearchTerm('')}
-                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', cursor: 'pointer' }}
-                                    />
-                                )}
-                            </div>
-
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-                                gap: '15px',
-                                background: '#f8f9fa',
-                                padding: '15px',
-                                borderRadius: '8px',
-                                minHeight: '200px',
-                                alignItems: 'start'
-                            }}>
-                                {(() => {
-                                    if (activeTab === 'transfers') {
-                                        return (
-                                            <div style={{ gridColumn: '1 / -1', padding: '20px', color: '#666' }}>
-                                                <h4 style={{ margin: '0 0 10px 0' }}>Histórico de Transferências</h4>
-                                                <div style={{ fontSize: '13px', background: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #eee' }}>
-                                                    {logs.filter(l => l.toLowerCase().includes('arquivo')).length > 0 ? (
-                                                        logs.filter(l => l.toLowerCase().includes('arquivo')).map((l, i) => (
-                                                            <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #f0f0f0' }}>{l}</div>
-                                                        ))
-                                                    ) : (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', opacity: 0.6 }}>
-                                                            <History size={32} style={{ marginBottom: '10px' }} />
-                                                            <span>Nenhuma transferência registrada recentemente.</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-
-                                    const list = activeTab === 'recent'
-                                        ? recentSessions.map(id => contacts.find(c => c.id === id) || { id, isFavorite: false } as Contact)
-                                        : activeTab === 'favorites'
-                                            ? contacts.filter(c => c.isFavorite)
-                                            : contacts;
-
-                                    const filtered = list.filter(c =>
-                                        c.id.includes(searchTerm) ||
-                                        (c.alias && c.alias.toLowerCase().includes(searchTerm.toLowerCase()))
-                                    );
-
-                                    if (filtered.length === 0) {
-                                        return (
-                                            <div key="empty" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#999' }}>
-                                                <History size={48} style={{ opacity: 0.2, marginBottom: '10px', display: 'inline-block' }} />
-                                                <p>Nenhum endereço encontrado.</p>
-                                            </div>
-                                        );
-                                    }
-
-                                    return filtered.map((contact: Contact) => {
-                                        const id = contact.id;
-                                        return (
-                                            <div
-                                                key={id}
-                                                onClick={() => onSelectRecent?.(id)}
-                                                onDoubleClick={() => {
-                                                    // Duplo clique: conecta automaticamente com senha salva
-                                                    setRemoteId(id);
-                                                    if (contact.password) {
-                                                        setTempPassword?.(contact.password);
-                                                    }
-                                                    // Pequeno delay para garantir que os estados foram atualizados
-                                                    setTimeout(() => onConnect(), 50);
-                                                }}
-                                                style={{
-                                                    background: '#fff',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid #ddd',
-                                                    overflow: 'hidden',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    position: 'relative',
-                                                    transition: 'transform 0.2s, box-shadow 0.2s'
-                                                }} className="ad-session-card">
-                                                {/* Thumbnail Area */}
-                                                <div style={{ height: '100px', background: '#111', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                                    {contact.thumbnail ? (
-                                                        <img
-                                                            src={contact.thumbnail}
-                                                            alt="Snapshot"
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{
-                                                            width: '100%', height: '100%',
-                                                            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8
-                                                        }}>
-                                                            <Monitor size={40} color="#fff" style={{ opacity: 0.2 }} />
-                                                        </div>
-                                                    )}
-
-                                                    <div style={{
-                                                        position: 'absolute', top: '8px', left: '8px', width: '10px', height: '10px',
-                                                        borderRadius: '50%', background: recentStatusMap[id] === 'online' ? '#4CAF50' : '#f44336',
-                                                        border: '1.5px solid #fff', boxShadow: '0 0 4px rgba(0,0,0,0.3)', zIndex: 2
-                                                    }}></div>
-
-                                                    <div onClick={(e) => { e.stopPropagation(); onUpdateContact?.({ ...contact, isFavorite: !contact.isFavorite }); }}
-                                                        style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 10, cursor: 'pointer' }}>
-                                                        <Star size={16} fill={contact.isFavorite ? "#fbbf24" : "none"} color={contact.isFavorite ? "#fbbf24" : "#fff"} />
-                                                    </div>
-                                                </div>
-
-                                                {/* Bottom Info Bar */}
-                                                <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-                                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                            {contact.alias || id}
-                                                        </span>
-                                                        {contact.alias && <span style={{ fontSize: '10px', color: '#999' }}>{id}</span>}
-                                                    </div>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <button onClick={(e) => { e.stopPropagation(); setShowMenuId(showMenuId === id ? null : id); }}
-                                                            style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '2px' }}>
-                                                            <MoreVertical size={16} />
-                                                        </button>
-                                                        {showMenuId === id && (
-                                                            <div style={{ position: 'absolute', bottom: '25px', right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, width: '140px', padding: '5px 0' }}>
-                                                                <div onClick={(e) => { e.stopPropagation(); onConnect(); setShowMenuId(null); }} className="ad-menu-item">Conectar</div>
-                                                                <div onClick={(e) => { e.stopPropagation(); setEditingContact(contact); setShowMenuId(null); }} className="ad-menu-item">Renomear</div>
-                                                                <div onClick={(e) => { e.stopPropagation(); onRemoveContact?.(id); setShowMenuId(null); }} className="ad-menu-item" style={{ color: 'red' }}>Remover</div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    });
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Modal Renomear */}
-                        {editingContact && (
-                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                                <div className="ad-card" style={{ width: '350px', padding: '25px' }}>
-                                    <h3 style={{ marginTop: 0, fontSize: '16px', marginBottom: '20px' }}>Renomear Endereço</h3>
-                                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '5px' }}>Novo nome para {editingContact.id}</label>
-                                    <input
-                                        autoFocus
-                                        className="ad-input"
-                                        style={{ width: '100%', marginBottom: '20px' }}
-                                        value={editingContact.alias || ''}
-                                        onChange={(e) => setEditingContact({ ...editingContact, alias: e.target.value })}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                onUpdateContact?.(editingContact);
-                                                setEditingContact(null);
-                                            } else if (e.key === 'Escape') {
-                                                setEditingContact(null);
-                                            }
-                                        }}
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                        <button onClick={() => setEditingContact(null)} className="ad-btn-secondary" style={{ padding: '8px 15px', background: '#eee', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
-                                        <button onClick={() => { onUpdateContact?.(editingContact); setEditingContact(null); }} className="ad-btn-primary" style={{ padding: '8px 20px' }}>Salvar</button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <button
+                            onClick={onConnect}
+                            style={{
+                                padding: '15px 35px',
+                                background: '#3b82f6',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '16px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'background 0.2s',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            Conectar
+                        </button>
                     </div>
                 </div>
 
+                {/* Content Area (Recent, Favorites, etc.) */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '30px 60px' }}>
+
+                    {/* Tabs */}
+                    <div style={{ display: 'flex', gap: '30px', marginBottom: '25px', borderBottom: '1px solid #e0e0e0' }}>
+                        {[
+                            { id: 'recent', label: 'Sessões Recentes' },
+                            { id: 'favorites', label: 'Favoritos' },
+                            { id: 'address', label: 'Lista de Endereços' },
+                            { id: 'transfers', label: 'Transferências' }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                style={{
+                                    padding: '10px 5px',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderBottom: activeTab === tab.id ? '3px solid #3b82f6' : '3px solid transparent',
+                                    color: activeTab === tab.id ? '#3b82f6' : '#666',
+                                    fontWeight: activeTab === tab.id ? 700 : 500,
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Search in Content */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                        <div style={{ position: 'relative', width: '250px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                            <input
+                                type="text"
+                                placeholder="Pesquisar ID..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 10px 8px 35px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e5e7eb',
+                                    fontSize: '13px',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Main Grid */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                        gap: '25px'
+                    }}>
+                        {(() => {
+                            if (activeTab === 'transfers') {
+                                return (
+                                    <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px dashed #ddd' }}>
+                                        <History size={48} style={{ color: '#ccc', marginBottom: '15px' }} />
+                                        <div style={{ color: '#666' }}>Nenhuma transferência nos registros.</div>
+                                    </div>
+                                );
+                            }
+
+                            const list = activeTab === 'recent'
+                                ? recentSessions.map(id => contacts.find(c => c.id === id) || { id, isFavorite: false } as Contact)
+                                : activeTab === 'favorites'
+                                    ? contacts.filter(c => c.isFavorite)
+                                    : contacts;
+
+                            const filtered = list.filter(c =>
+                                c.id.includes(searchTerm) ||
+                                (c.alias && c.alias.toLowerCase().includes(searchTerm.toLowerCase()))
+                            );
+
+                            if (filtered.length === 0) {
+                                return (
+                                    <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#999' }}>
+                                        Nenhum computador encontrado.
+                                    </div>
+                                );
+                            }
+
+                            return filtered.map((contact) => (
+                                <div
+                                    key={contact.id}
+                                    onDoubleClick={() => { setRemoteId(contact.id); setTimeout(onConnect, 50); }}
+                                    onClick={() => onSelectRecent?.(contact.id)}
+                                    style={{
+                                        background: '#fff',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e5e7eb',
+                                        overflow: 'hidden',
+                                        cursor: 'pointer',
+                                        transition: 'transform 0.2s, box-shadow 0.2s',
+                                        position: 'relative'
+                                    }}
+                                    className="ad-hover-card"
+                                >
+                                    {/* Thumbnail 16:9 */}
+                                    <div style={{ width: '100%', paddingTop: '56.25%', background: '#111', position: 'relative' }}>
+                                        {contact.thumbnail ? (
+                                            <img src={contact.thumbnail} style={{ position: 'absolute', top: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ position: 'absolute', top: 0, width: '100%', height: '100%', background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Monitor size={48} color="rgba(255,255,255,0.2)" />
+                                            </div>
+                                        )}
+
+                                        {/* Status Dot */}
+                                        <div style={{
+                                            position: 'absolute', bottom: '10px', left: '10px', width: '10px', height: '10px',
+                                            borderRadius: '50%', background: recentStatusMap[contact.id] === 'online' ? '#10b981' : '#ef4444',
+                                            border: '2px solid #fff', boxShadow: '0 0 5px rgba(0,0,0,0.2)'
+                                        }}></div>
+                                    </div>
+
+                                    {/* Info Panel */}
+                                    <div style={{ padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ overflow: 'hidden' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                {contact.alias || contact.id}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#888' }}>{contact.id}</div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setShowMenuId(showMenuId === contact.id ? null : contact.id); }}
+                                            style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}
+                                        >
+                                            <MoreVertical size={18} />
+                                        </button>
+
+                                        {showMenuId === contact.id && (
+                                            <div style={{ position: 'absolute', bottom: '15px', right: '15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', zIndex: 100, width: '150px', padding: '5px 0' }}>
+                                                <div onClick={() => { setRemoteId(contact.id); onConnect(); }} className="ad-menu-item" style={{ padding: '10px 15px', fontSize: '13px', cursor: 'pointer' }}>Conectar</div>
+                                                <div onClick={() => setEditingContact(contact)} className="ad-menu-item" style={{ padding: '10px 15px', fontSize: '13px', cursor: 'pointer' }}>Renomear</div>
+                                                <div onClick={() => onRemoveContact?.(contact.id)} className="ad-menu-item" style={{ padding: '10px 15px', fontSize: '13px', cursor: 'pointer', color: '#ef4444' }}>Remover</div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Favorite Star */}
+                                    <div
+                                        onClick={(e) => { e.stopPropagation(); onUpdateContact?.({ ...contact, isFavorite: !contact.isFavorite }); }}
+                                        style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 5, cursor: 'pointer' }}
+                                    >
+                                        <Star size={18} fill={contact.isFavorite ? "#fbbf24" : "rgba(0,0,0,0.3)"} color={contact.isFavorite ? "#fbbf24" : "#fff"} />
+                                    </div>
+                                </div>
+                            ));
+                        })()}
+                    </div>
+                </div>
+
+                {/* Status Bar (Footer) */}
+                <div style={{
+                    height: '25px',
+                    background: '#f8f9fa',
+                    borderTop: '1px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 20px',
+                    fontSize: '11px',
+                    color: '#888'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: peerStatus === 'online' ? '#10b981' : '#f59e0b' }}></div>
+                        <span>{peerStatus === 'online' ? 'Pronto' : 'Conectando ao servidor...'}</span>
+                    </div>
+                    <div style={{ marginLeft: 'auto' }}>ID: {myId}</div>
+                </div>
             </div>
 
-            {/* Footer/Logs */}
-            <div style={{ marginTop: 'auto', background: '#222', color: '#aaa', padding: '10px', fontSize: '11px', height: '150px', overflowY: 'auto' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '5px', color: '#fff' }}>Log de Eventos:</div>
-                {logs.map((log, i) => <div key={i}>{log}</div>)}
-            </div>
-        </div >
+            {/* Modal Renomear */}
+            {editingContact && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <div style={{ background: '#fff', borderRadius: '16px', width: '380px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>Renomear Computador</h3>
+                        <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>Dê um apelido para facilitar a identificação de <strong>{editingContact.id}</strong>.</p>
+                        <input
+                            autoFocus
+                            value={editingContact.alias || ''}
+                            onChange={(e) => setEditingContact({ ...editingContact, alias: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { onUpdateContact?.(editingContact); setEditingContact(null); } }}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '2px solid #3b82f6',
+                                borderRadius: '10px',
+                                fontSize: '15px',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                                marginBottom: '25px'
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setEditingContact(null)} style={{ padding: '10px 20px', background: '#f3f4f6', border: 'none', borderRadius: '8px', color: '#4b5563', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
+                            <button onClick={() => { onUpdateContact?.(editingContact); setEditingContact(null); }} style={{ padding: '10px 25px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

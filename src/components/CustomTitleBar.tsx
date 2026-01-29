@@ -24,6 +24,10 @@ interface CustomTitleBarProps {
     onActionsClick?: () => void;
     onDisplayClick?: () => void;
     onPermissionsClick?: () => void;
+    // Monitor switching
+    remoteSources?: any[];
+    activeSourceId?: string;
+    onSourceSelect?: (sourceId: string) => void;
     // ...
     updateAvailable?: { version: string; downloadUrl: string } | null;
     onUpdateClick?: () => void;
@@ -37,6 +41,9 @@ export function CustomTitleBar({
     onActionsClick,
     onDisplayClick,
     onPermissionsClick,
+    remoteSources = [],
+    activeSourceId,
+    onSourceSelect,
     updateAvailable,
     onUpdateClick,
     tabs = [],
@@ -151,6 +158,39 @@ export function CustomTitleBar({
                     <ToolbarButton icon={<Zap size={16} />} onClick={onActionsClick} title="Ações" />
                     <ToolbarButton icon={<Monitor size={16} />} onClick={onDisplayClick} title="Display" />
                     <ToolbarButton icon={<Lock size={16} />} onClick={onPermissionsClick} title="Permissões" />
+
+                    {/* Monitor Switchers */}
+                    {remoteSources.length > 1 && (
+                        <>
+                            <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0 5px' }}>
+                                {remoteSources.map((source, index) => (
+                                    <button
+                                        key={source.id}
+                                        onClick={() => onSourceSelect?.(source.id)}
+                                        title={`Monitor ${index + 1}`}
+                                        style={{
+                                            width: '24px',
+                                            height: '24px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            background: activeSourceId === source.id ? '#e03226' : '#f0f0f0',
+                                            color: activeSourceId === source.id ? '#fff' : '#666',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
                     <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
 
                     {updateAvailable && (

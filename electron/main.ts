@@ -88,7 +88,7 @@ if (!gotTheLock) {
         nodeIntegration: false,
         contextIsolation: true,
         preload: join(__dirname, 'preload.js'),
-        devTools: true, // Habilitar em produção para depuração se necessário
+        devTools: !app.isPackaged, // Desabilitar em produção
       },
     });
 
@@ -109,11 +109,8 @@ if (!gotTheLock) {
 
     if (process.env.VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
+      // mainWindow.webContents.openDevTools({ mode: 'detach' }); // Opcional no dev
     } else {
-      // FORÇAR DEVTOOLS EM PRODUÇÃO PARA DEBUG
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-
       // Tenta caminhos comuns em apps empacotados
       const possiblePaths = [
         join(__dirname, 'index.html'),           // Caso o vite-plugin-electron coloque na raiz do dist-electron

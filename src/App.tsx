@@ -116,17 +116,11 @@ function App() {
   const [unattendedPassword, setUnattendedPassword] = useState<string>(() => {
     return localStorage.getItem('miré_desk_unattended_pw') || '';
   })
-  const [tempPassword, setTempPassword] = useState<string>('')
   const unattendedPasswordRef = useRef(unattendedPassword);
-  const tempPasswordRef = useRef(tempPassword);
 
   useEffect(() => {
     unattendedPasswordRef.current = unattendedPassword;
   }, [unattendedPassword]);
-
-  useEffect(() => {
-    tempPasswordRef.current = tempPassword;
-  }, [tempPassword]);
 
   const [recentSessions, setRecentSessions] = useState<string[]>(() => {
     const saved = localStorage.getItem('miré_desk_recent_sessions');
@@ -147,6 +141,17 @@ function App() {
   // Status das sessões recentes
   const [recentStatusMap, setRecentStatusMap] = useState<{ [id: string]: 'online' | 'offline' | 'checking' }>({});
   const [logs, setLogs] = useState<string[]>([]);
+  const [sessionPassword, setSessionPassword] = useState<string>('');
+
+  const regenerateSessionPassword = useCallback(() => {
+    const newPass = Math.random().toString(36).substring(2, 8);
+    setSessionPassword(newPass);
+    addLog('Nova senha de sessão gerada.');
+  }, []);
+
+  useEffect(() => {
+    regenerateSessionPassword();
+  }, [regenerateSessionPassword]);
 
   const addLog = useCallback((msg: string) => {
     const formatted = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -637,9 +642,19 @@ function App() {
 
         if (session.isIncoming) {
           if (data && data.type === 'AUTH') {
-            const isCorrect = !!(unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
-            conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
-            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: isCorrect } : s);
+            console.log(`[Host] Recebido AUTH de ${session.remoteId}. Senha fornecida: ${data.password}`);
+            const isSessionPass = data.password === sessionPassword;
+            const isUnattendedPass = unattendedPasswordRef.current && data.password === unattendedPasswordRef.current;
+
+            if (isSessionPass || isUnattendedPass) {
+              console.log('[Host] Senha correta!', isUnattendedPass ? '(Acesso Não Supervisionado)' : '(Senha de Sessão)');
+              conn.send({ type: 'AUTH_STATUS', status: 'OK' });
+              return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true } : s);
+            } else {
+              console.log('[Host] Senha incorreta.');
+              conn.send({ type: 'AUTH_STATUS', status: 'FAIL' });
+              return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: false } : s);
+            }
           } else if (data && data.type === 'SWITCH_MONITOR') {
             selectSource(data.sourceId);
           } else if (data && data.type && ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(data.type)) {
@@ -685,16 +700,7 @@ function App() {
       });
     });
 
-    if (conn.open && !sessions.find(s => s.id === sessionId)?.isIncoming && tempPasswordRef.current) {
-      conn.send({ type: 'AUTH', password: tempPasswordRef.current });
-    } else {
-      conn.on('open', () => {
-        const s = sessions.find(sess => sess.id === sessionId);
-        if (s && !s.isIncoming && tempPasswordRef.current) {
-          conn.send({ type: 'AUTH', password: tempPasswordRef.current });
-        }
-      });
-    }
+    // Handshake de autenticação agora é disparado pelo ConnectionModal via dataConnection.send
   }, [sessions]); // unattendedPasswordRef não precisa estar nas deps pois usamos Ref
 
   // Session manager
@@ -736,6 +742,9 @@ function App() {
             setActiveSessionId('dashboard');
           }
         }
+
+        // NOVO: Se fechou a sessão que estava tentando conectar, limpa o modal
+        setPendingSessionId(prevPending => prevPending === sessionId ? null : prevPending);
 
         return remaining;
       });
@@ -883,14 +892,11 @@ function App() {
       let newContacts;
 
       if (existingContact) {
-        newContacts = prev.map(c =>
-          c.id === tempRemoteId ? { ...c, password: tempPassword || c.password } : c
-        );
+        newContacts = [...prev];
       } else {
         newContacts = [...prev, {
           id: tempRemoteId,
-          isFavorite: false,
-          password: tempPassword || undefined
+          isFavorite: false
         }];
       }
 
@@ -901,8 +907,7 @@ function App() {
     sessionManager.connectToRemote(sessionId, tempRemoteId, localStreamRef.current!);
     setPendingSessionId(sessionId);
 
-    // Limpa os campos após iniciar a conexão
-    setTempPassword('');
+    // Limpa apenas o ID
     setTempRemoteId('');
   }
 
@@ -940,17 +945,21 @@ function App() {
       }
     }
 
-    // Delay mínimo para garantir que o state do stream atualizou
-    setTimeout(() => {
-      console.log('[Host] Respondendo chamada com stream:', !!localStreamRef.current);
-      if (localStreamRef.current) {
-        sessionManager.answerCall(sessionId, session.incomingCall, localStreamRef.current)
-        // Limpa o estado de chamada recebida para fechar o modal visual imediatamente
-        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, incomingCall: null } : s))
-      } else {
-        console.error('[Host] Falha fatal: Stream ainda nulo após seleção.');
-      }
-    }, 100);
+    // Espera até que o stream local esteja disponível (até 2 segundos)
+    let attempts = 0;
+    while (!localStreamRef.current && attempts < 20) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+
+    if (localStreamRef.current) {
+      console.log('[Host] Respondendo chamada com stream após', attempts * 100, 'ms');
+      // Limpa o estado de chamada recebida ANTES de responder para fechar o modal visual imediatamente
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, incomingCall: null } : s));
+      sessionManager.answerCall(sessionId, session.incomingCall, localStreamRef.current);
+    } else {
+      console.error('[Host] Falha fatal: Stream ainda nulo após seleção.');
+    }
   }
 
   const handleRejectCall = (sessionId: string) => {
@@ -1026,11 +1035,19 @@ function App() {
           }
         }}
         onPermissionsClick={() => console.log('Permissions click')}
+        remoteSources={activeSession?.remoteSources}
+        activeSourceId={activeSession?.activeSourceId}
+        onSourceSelect={(sourceId) => {
+          if (activeSession && activeSession.dataConnection?.open) {
+            activeSession.dataConnection.send({ type: 'SWITCH_MONITOR', sourceId });
+          }
+        }}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         {activeSessionId === 'dashboard' ? (
           <Dashboard
+            key="main-dashboard"
             myId={myId} serverIp={serverIp}
             setServerIp={(ip) => { setServerIp(ip); localStorage.setItem('miré_desk_server_ip', ip); }}
             remoteId={tempRemoteId} setRemoteId={setTempRemoteId}
@@ -1038,7 +1055,8 @@ function App() {
             logs={logs} sessions={sessions} onCloseSession={closeSession}
             unattendedPassword={unattendedPassword}
             setUnattendedPassword={(pw) => { setUnattendedPassword(pw); localStorage.setItem('miré_desk_unattended_pw', pw); }}
-            tempPassword={tempPassword} setTempPassword={setTempPassword}
+            sessionPassword={sessionPassword}
+            onRegenerateSessionPassword={regenerateSessionPassword}
             recentSessions={recentSessions} onSelectRecent={setTempRemoteId}
             recentStatusMap={recentStatusMap}
             peerStatus={peerStatus}
@@ -1070,7 +1088,8 @@ function App() {
           />
         ) : activeSession && activeVideoRefs ? (
           <SessionView
-            key={activeSession.id} connected={activeSession.connected}
+            key={`session-view-${activeSession.id}`}
+            connected={activeSession.connected}
             remoteVideoRef={activeVideoRefs.remote} remoteStream={activeSession.remoteStream || null}
             incomingCall={null} onAnswer={() => handleAnswerCall(activeSession.id)}
             onReject={() => handleRejectCall(activeSession.id)} remoteId={activeSession.remoteId}
@@ -1121,6 +1140,7 @@ function App() {
         )}
         {showUpdate && updateAvailable && (
           <UpdateNotification
+            key="update-notification"
             info={updateAvailable}
             progress={updateProgress}
             onClose={() => setShowUpdate(false)}
@@ -1139,7 +1159,9 @@ function App() {
 
         {pendingSessionId && (
           <ConnectionModal
+            key={`connection-password-modal-${pendingSessionId}`}
             remoteId={sessions.find(s => s.id === pendingSessionId)?.remoteId || ''}
+            isConnecting={sessions.find(s => s.id === pendingSessionId)?.isConnecting || sessions.find(s => s.id === pendingSessionId)?.isAuthenticating}
             onCancel={() => {
               sessionManager.closeSession(pendingSessionId);
               setPendingSessionId(null);

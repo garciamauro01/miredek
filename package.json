@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.30",
+  "version": "1.0.38",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",

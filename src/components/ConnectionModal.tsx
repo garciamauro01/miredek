@@ -5,9 +5,10 @@ interface ConnectionModalProps {
     remoteId: string;
     onCancel: () => void;
     onConnectWithPassword: (password: string) => void;
+    isConnecting?: boolean;
 }
 
-export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword }: ConnectionModalProps) {
+export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword, isConnecting = false }: ConnectionModalProps) {
     const [password, setPassword] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -107,9 +108,10 @@ export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword }: C
                                 <input
                                     autoFocus
                                     type="password"
-                                    placeholder="Senha de acesso..."
+                                    placeholder={isConnecting ? "Conectando..." : "Senha de acesso..."}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    disabled={isConnecting}
                                     style={{
                                         width: '100%',
                                         padding: '10px 12px 10px 36px',
@@ -118,29 +120,31 @@ export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword }: C
                                         fontSize: '14px',
                                         boxSizing: 'border-box',
                                         outline: 'none',
-                                        transition: 'border-color 0.2s'
+                                        transition: 'border-color 0.2s',
+                                        backgroundColor: isConnecting ? '#f9fafb' : '#fff',
+                                        opacity: isConnecting ? 0.7 : 1
                                     }}
                                     className="focus:border-red-500"
                                 />
                             </div>
                             <button
                                 type="submit"
-                                disabled={!password.trim()}
+                                disabled={!password.trim() || isConnecting}
                                 style={{
                                     width: '100%',
                                     marginTop: '12px',
                                     padding: '10px',
-                                    backgroundColor: password.trim() ? '#e03226' : '#9ca3af',
-                                    color: '#white',
+                                    backgroundColor: (password.trim() && !isConnecting) ? '#e03226' : '#9ca3af',
+                                    color: 'white',
                                     border: 'none',
                                     borderRadius: '6px',
                                     fontWeight: 600,
                                     fontSize: '14px',
-                                    cursor: password.trim() ? 'pointer' : 'not-allowed',
+                                    cursor: (password.trim() && !isConnecting) ? 'pointer' : 'not-allowed',
                                     transition: 'background-color 0.2s'
                                 }}
                             >
-                                Conectar com Senha
+                                {isConnecting ? 'Autenticando...' : 'Conectar com Senha'}
                             </button>
                         </form>
                     </div>
