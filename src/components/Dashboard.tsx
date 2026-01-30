@@ -181,7 +181,7 @@ export function Dashboard({
 
                 {/* Sidebar Footer (Splash Logo) */}
                 <div style={{ padding: '10px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-                    <img src="/splash.png" alt="Mire-Desk" style={{ width: '80%', opacity: 0.8 }} />
+                    <img src="./splash.png" alt="Mire-Desk" style={{ width: '80%', opacity: 0.8 }} />
                     <div style={{ fontSize: '10px', color: '#bbb', marginTop: '5px' }}>Miré-Desk v{appVersion}</div>
                 </div>
             </div>

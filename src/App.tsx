@@ -68,7 +68,7 @@ if (typeof window !== 'undefined') {
 function App() {
   const [myId, setMyId] = useState<string>('')
   const [serverIp, setServerIp] = useState<string>(() => {
-    return localStorage.getItem('miré_desk_server_ip') || window.location.hostname || 'localhost';
+    return localStorage.getItem('miré_desk_server_ip') || import.meta.env.VITE_SERVER_IP || window.location.hostname || '167.234.241.147';
   })
   const { updateAvailable } = useUpdateCheck(serverIp);
   const [showUpdate, setShowUpdate] = useState(true);
@@ -1161,15 +1161,19 @@ function App() {
           <ConnectionModal
             key={`connection-password-modal-${pendingSessionId}`}
             remoteId={sessions.find(s => s.id === pendingSessionId)?.remoteId || ''}
-            isConnecting={sessions.find(s => s.id === pendingSessionId)?.isConnecting || sessions.find(s => s.id === pendingSessionId)?.isAuthenticating}
+            isConnecting={sessions.find(s => s.id === pendingSessionId)?.isAuthenticating}
             onCancel={() => {
               sessionManager.closeSession(pendingSessionId);
               setPendingSessionId(null);
             }}
             onConnectWithPassword={(password) => {
               const session = sessions.find(s => s.id === pendingSessionId);
-              if (session && session.dataConnection) {
+              if (session && session.dataConnection && session.dataConnection.open) {
+                // Seta estado de autenticando para desabilitar o input no modal
+                setSessions(prev => prev.map(s => s.id === pendingSessionId ? { ...s, isAuthenticating: true } : s));
                 session.dataConnection.send({ type: 'AUTH', password });
+              } else {
+                alert('Aguardando conexão segura com o parceiro...');
               }
             }}
           />

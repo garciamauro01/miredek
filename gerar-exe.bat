@@ -6,6 +6,15 @@ echo   Lançando Build do Miré-Desk (Instalador NSIS)
 echo ========================================
 
 echo.
+set /p CLOUD_IP="Digite o IP do Servidor (deixe em branco para usar 167.234.241.147): "
+if "!CLOUD_IP!"=="" set CLOUD_IP=167.234.241.147
+set VITE_SERVER_IP=!CLOUD_IP!
+echo Usando Servidor IP: !VITE_SERVER_IP!
+echo.
+set /p UPDATE_TOKEN="Digite o Token de Upload (deixe em branco para o padrao): "
+if "!UPDATE_TOKEN!"=="" set UPDATE_TOKEN=miredesk-secret-token
+
+echo.
 echo 1. Incrementando versao e instalando dependencias...
 :: Incrementa automagicamente a versao (patch: 1.0.0 -> 1.0.1)
 call npm version patch --no-git-tag-version
@@ -62,6 +71,34 @@ echo   Processo concluido!
 echo   1. Instalador em: dist-package
 echo   2. Update preparado em: server/public
 echo   3. Manifesto de versao atualizado: server/version.json
+echo ========================================
+
+echo.
+set /p UPLOAD="Deseja enviar o instalador para o servidor cloud (!VITE_SERVER_IP!)? (S/N): "
+if /i "!UPLOAD!"=="S" (
+    echo.
+    echo [Upload] Enviando arquivos para o servidor...
+    
+    :: Usando curl para enviar os arquivos
+    :: -F indica multipart/form-data
+    :: -H adiciona o header customizado para o token
+    curl -X POST "http://!VITE_SERVER_IP!:3001/upload-update" ^
+         -H "x-update-token: !UPDATE_TOKEN!" ^
+         -F "exe=@server/public/MireDesk-Setup.exe" ^
+         -F "version=@server/version.json"
+    
+    if !errorlevel! equ 0 (
+        echo.
+        echo [OK] Arquivos enviados e publicados com sucesso no servidor!
+    ) else (
+        echo.
+        echo [ERRO] Falha no upload. Verifique o IP, Token e se o servidor esta rodando.
+    )
+)
+
+echo.
+echo ========================================
+echo   Processo concluido!
 echo ========================================
 echo NOTA: Quando o app for instalado, mude 'SERVER_IP' no version.json 
 echo para o IP real do seu servidor de rede.

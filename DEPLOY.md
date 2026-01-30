@@ -45,22 +45,18 @@ Seu servidor está pronto!
 
 ## 💻 Configurando o App Desktop
 
-Nos computadores que vão usar o MiréDesk, aponte para seu novo servidor cloud.
+Agora é muito simples configurar o IP do seu servidor cloud ao gerar o executável:
 
-1. Abra o código fonte `src/App.tsx` (ou arquivo de config se implementado).
-2. Atualize a configuração do PeerJS:
+1. Execute o script de build:
+   ```powershell
+   .\gerar-exe.bat
+   ```
+2. O script perguntará: **"Digite o IP do Servidor"**.
+3. Insira o IP da sua VPS (ex: `123.45.67.89`) e aperte Enter.
+4. O instalador gerado em `dist-package/` já virá pré-configurado para conectar ao seu servidor!
 
-const peer = new Peer(id, {
-  host: 'SEU_IP_PUBLICO', // Ex: 123.45.67.89
-  port: 9000,
-  path: '/peerjs',
-  // secure: false, // Importante: manter false se não usar HTTPS
-});
-
-3. Gere o executável novamente:
-```bash
-.\gerar-exe.bat
-```
+> [!TIP]
+> Você também pode fixar o IP padrão no arquivo `.env` alterando a variável `VITE_SERVER_IP`.
 
 ---
 

@@ -72,6 +72,10 @@ if (!gotTheLock) {
   }
 
   function createWindow() {
+    const iconPath = app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '../public/icon.png');
+
     mainWindow = new BrowserWindow({
       width: 1000,
       height: 800,
@@ -80,6 +84,7 @@ if (!gotTheLock) {
       backgroundColor: '#ffffff', // Cor de fundo inicial para evitar flash branco
       frame: false, // Janela sem bordas (frameless)
       titleBarStyle: 'hidden', // Oculta barra de título nativa mas mantém comportamento de snap
+      icon: iconPath,
       minimizable: true,
       maximizable: true,
       closable: true,
