@@ -6,4 +6,5 @@ export interface Contact {
     lastConnected?: number;
     thumbnail?: string;
     password?: string; // Senha para acesso não supervisionado
+    savedPassword?: string; // Senha lembrada para este contato
 }

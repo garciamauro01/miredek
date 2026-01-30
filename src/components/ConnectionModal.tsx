@@ -1,20 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, X, Loader2, Key } from 'lucide-react';
 
 interface ConnectionModalProps {
     remoteId: string;
     onCancel: () => void;
-    onConnectWithPassword: (password: string) => void;
+    onConnectWithPassword: (password: string, remember: boolean) => void;
     isConnecting?: boolean;
+    initialPassword?: string;
 }
 
-export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword, isConnecting = false }: ConnectionModalProps) {
-    const [password, setPassword] = useState('');
+export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword, isConnecting = false, initialPassword = '' }: ConnectionModalProps) {
+    const [password, setPassword] = useState(initialPassword);
+    const [remember, setRemember] = useState(!!initialPassword);
+
+    // Sincroniza o estado local quando initialPassword mudar
+    useEffect(() => {
+        setPassword(initialPassword);
+        setRemember(!!initialPassword);
+    }, [initialPassword]);
+
+    console.log(`[ConnectionModal] Renderizando para ${remoteId}, isConnecting:`, isConnecting, 'initialPassword:', initialPassword, 'password state:', password);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (password.trim()) {
-            onConnectWithPassword(password);
+            onConnectWithPassword(password, remember);
         }
     };
 
@@ -127,12 +137,31 @@ export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword, isC
                                     className="focus:border-red-500"
                                 />
                             </div>
+
+                            <div style={{
+                                marginTop: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                userSelect: 'none'
+                            }} onClick={() => setRemember(!remember)}>
+                                <input
+                                    type="checkbox"
+                                    checked={remember}
+                                    onChange={(e) => setRemember(e.target.checked)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '13px', color: '#4b5563' }}>Lembrar senha neste computador</span>
+                            </div>
+
                             <button
                                 type="submit"
                                 disabled={!password.trim() || isConnecting}
                                 style={{
                                     width: '100%',
-                                    marginTop: '12px',
+                                    marginTop: '16px',
                                     padding: '10px',
                                     backgroundColor: (password.trim() && !isConnecting) ? '#e03226' : '#9ca3af',
                                     color: 'white',

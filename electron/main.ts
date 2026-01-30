@@ -114,7 +114,7 @@ if (!gotTheLock) {
 
     if (process.env.VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-      // mainWindow.webContents.openDevTools({ mode: 'detach' }); // Opcional no dev
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
     } else {
       // Tenta caminhos comuns em apps empacotados
       const possiblePaths = [

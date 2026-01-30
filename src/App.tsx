@@ -572,8 +572,27 @@ function App() {
       }
     };
 
-    if (conn.open) sendSourcesList();
-    else conn.on('open', sendSourcesList);
+    const triggerAutoAuth = () => {
+      setSessions(prev => {
+        const session = prev.find(s => s.id === sessionId);
+        if (session && session.pendingPassword && !session.isAuthenticated && !session.isIncoming) {
+          console.log(`[Client] Enviando AUTO-AUTH para ${session.remoteId}`);
+          conn.send({ type: 'AUTH', password: session.pendingPassword });
+          return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: true } : s);
+        }
+        return prev;
+      });
+    };
+
+    if (conn.open) {
+      sendSourcesList();
+      triggerAutoAuth();
+    } else {
+      conn.on('open', () => {
+        sendSourcesList();
+        triggerAutoAuth();
+      });
+    }
 
     conn.on('data', async (data: any) => {
       console.log(`Dados na sessão ${sessionId}:`, data);
@@ -670,6 +689,17 @@ function App() {
           if (data && data.type === 'AUTH_STATUS') {
             if (data.status === 'OK') {
               if (localStreamRef.current) {
+                // Se foi bem sucedido e 'remember' estava ativo, salva a senha no contato
+                if (session.shouldRememberPassword && session.pendingPassword) {
+                  setContacts(currentContacts => {
+                    const updated = currentContacts.map(c =>
+                      c.id === session.remoteId ? { ...c, savedPassword: session.pendingPassword } : c
+                    );
+                    localStorage.setItem('miré_desk_contacts', JSON.stringify(updated));
+                    return updated;
+                  });
+                }
+
                 // Salva no histórico ao autenticar com sucesso
                 setRecentSessions(old => {
                   const filtered = old.filter(id => id !== session.remoteId);
@@ -683,8 +713,18 @@ function App() {
               }
               return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false } : s);
             } else {
+              // Se falhou a autenticação automática (usando senha salva), limpa a senha salva para forçar o modal
+              if (session.pendingPassword) {
+                setContacts(currentContacts => {
+                  const updated = currentContacts.map(c =>
+                    c.id === session.remoteId ? { ...c, savedPassword: undefined } : c
+                  );
+                  localStorage.setItem('miré_desk_contacts', JSON.stringify(updated));
+                  return updated;
+                });
+              }
               alert('Senha incorreta.');
-              return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false } : s);
+              return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, pendingPassword: undefined, shouldRememberPassword: false } : s);
             }
           } else if (data && data.type === 'SOURCES_LIST') {
             return prev.map(s =>
@@ -708,7 +748,15 @@ function App() {
     serverIp,
     onSessionUpdate: (sessionId, updates) => {
       setSessions(prev => {
-        const newSessions = prev.map(s => s.id === sessionId ? { ...s, ...updates } : s);
+        const newSessions = prev.map(s => {
+          if (s.id === sessionId) {
+            const updated = { ...s, ...updates };
+            // Força isAuthenticating para false quando conecta (ex: aceite manual)
+            if (updates.connected) updated.isAuthenticating = false;
+            return updated;
+          }
+          return s;
+        });
         const session = newSessions.find(s => s.id === sessionId);
         if (session && updates.dataConnection) {
           setupDataListeners(sessionId, updates.dataConnection, session.isIncoming);
@@ -874,7 +922,22 @@ function App() {
     }
 
     const sessionId = `session-${Date.now()}`
+    const savedPassword = contacts.find(c => c.id === tempRemoteId)?.savedPassword;
+
+    console.log(`[handleConnect] Criando nova sessão para ${tempRemoteId}, savedPassword:`, savedPassword);
+
     const newSession = createSession(sessionId, tempRemoteId, false)
+    newSession.pendingPassword = savedPassword;
+    newSession.isAuthenticating = false; // Sempre inicia false
+    newSession.shouldRememberPassword = !!savedPassword;
+
+    console.log(`[handleConnect] Nova sessão criada:`, {
+      id: sessionId,
+      pendingPassword: newSession.pendingPassword,
+      isAuthenticating: newSession.isAuthenticating,
+      shouldRememberPassword: newSession.shouldRememberPassword
+    });
+
     videoRefsMap.current.set(sessionId, { remote: createRef<HTMLVideoElement>() })
 
     setSessions(prev => [...prev, newSession])
@@ -1159,18 +1222,24 @@ function App() {
 
         {pendingSessionId && (
           <ConnectionModal
-            key={`connection-password-modal-${pendingSessionId}`}
+            key={pendingSessionId}
             remoteId={sessions.find(s => s.id === pendingSessionId)?.remoteId || ''}
             isConnecting={sessions.find(s => s.id === pendingSessionId)?.isAuthenticating}
+            initialPassword={contacts.find(c => c.id === sessions.find(s => s.id === pendingSessionId)?.remoteId)?.savedPassword}
             onCancel={() => {
               sessionManager.closeSession(pendingSessionId);
               setPendingSessionId(null);
             }}
-            onConnectWithPassword={(password) => {
+            onConnectWithPassword={(password, remember) => {
               const session = sessions.find(s => s.id === pendingSessionId);
               if (session && session.dataConnection && session.dataConnection.open) {
                 // Seta estado de autenticando para desabilitar o input no modal
-                setSessions(prev => prev.map(s => s.id === pendingSessionId ? { ...s, isAuthenticating: true } : s));
+                setSessions(prev => prev.map(s => s.id === pendingSessionId ? {
+                  ...s,
+                  isAuthenticating: true,
+                  pendingPassword: password,
+                  shouldRememberPassword: remember
+                } : s));
                 session.dataConnection.send({ type: 'AUTH', password });
               } else {
                 alert('Aguardando conexão segura com o parceiro...');

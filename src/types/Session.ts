@@ -16,6 +16,8 @@ export interface Session {
     isAuthenticated?: boolean;
     isAuthenticating?: boolean;
     viewMode?: 'fit' | 'original' | 'stretch';
+    shouldRememberPassword?: boolean;
+    pendingPassword?: string;
 }
 
 export function createSession(id: string, remoteId: string = '', isIncoming: boolean = false): Session {
