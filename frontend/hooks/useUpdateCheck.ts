@@ -73,7 +73,12 @@ export function useUpdateCheck(serverIp: string) {
                     }
                 }
             } catch (err: any) {
-                console.error('[UpdateCheck] Falha na verificação:', err.message);
+                // Silencie network errors para não alarmar o usuário, apenas log warning
+                if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+                    console.warn('[UpdateCheck] Não foi possível contatar o servidor de atualizações (pode estar offline).');
+                } else {
+                    console.error('[UpdateCheck] Falha na verificação:', err.message);
+                }
             }
         };
 
