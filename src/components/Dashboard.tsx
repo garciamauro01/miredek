@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Monitor, Copy, RotateCw, Settings, ShieldCheck, Star, MoreVertical, History } from 'lucide-react';
+import { Monitor, Settings, Search, Copy, RotateCw, ShieldCheck, Star, Bug, MoreVertical, History as HistoryIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import type { Contact } from '../types/Contact';
-import { Search } from 'lucide-react';
 
 interface DashboardProps {
     myId: string;
@@ -30,6 +29,7 @@ interface DashboardProps {
 
 export function Dashboard({
     myId,
+    serverIp, setServerIp,
     remoteId, setRemoteId, onConnect,
     unattendedPassword, setUnattendedPassword,
     sessionPassword, onRegenerateSessionPassword,
@@ -46,6 +46,13 @@ export function Dashboard({
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [showMenuId, setShowMenuId] = useState<string | null>(null);
     const [appVersion, setAppVersion] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
+    const [tempServerIp, setTempServerIp] = useState(serverIp);
+
+    // Sincroniza o IP temporário quando o IP real muda (ex: carregamento inicial)
+    useEffect(() => {
+        setTempServerIp(serverIp);
+    }, [serverIp]);
 
     useEffect(() => {
         if (window.electronAPI) {
@@ -127,6 +134,7 @@ export function Dashboard({
                                 <input
                                     type="text"
                                     readOnly
+                                    data-testid="session-password-input"
                                     value={sessionPassword || '...'}
                                     style={{
                                         flex: 1,
@@ -172,7 +180,13 @@ export function Dashboard({
 
                     {/* App Settings Shortcut */}
                     <div style={{ paddingTop: '20px', borderTop: '1px solid #f0f0f0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666', fontSize: '13px', cursor: 'pointer' }}>
+                        <div
+                            onClick={() => {
+                                console.log('Botão de configurações clicado!');
+                                setShowSettings(true);
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666', fontSize: '13px', cursor: 'pointer' }}
+                        >
                             <Settings size={16} />
                             <span>Configurações</span>
                         </div>
@@ -183,6 +197,15 @@ export function Dashboard({
                 <div style={{ padding: '10px', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
                     <img src="./splash.png" alt="Mire-Desk" style={{ width: '80%', opacity: 0.8 }} />
                     <div style={{ fontSize: '10px', color: '#bbb', marginTop: '5px' }}>Miré-Desk v{appVersion}</div>
+                    {/* Debug Button */}
+                    <div
+                        onClick={() => window.electronAPI?.openDevTools?.()}
+                        style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', cursor: 'pointer', color: '#ef4444', fontSize: '10px' }}
+                        title="Abrir DevTools (Debug)"
+                    >
+                        <Bug size={12} />
+                        <span>Debug</span>
+                    </div>
                 </div>
             </div>
 
@@ -296,7 +319,7 @@ export function Dashboard({
                             if (activeTab === 'transfers') {
                                 return (
                                     <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px dashed #ddd' }}>
-                                        <History size={48} style={{ color: '#ccc', marginBottom: '15px' }} />
+                                        <HistoryIcon size={48} style={{ color: '#ccc', marginBottom: '15px' }} />
                                         <div style={{ color: '#666' }}>Nenhuma transferência nos registros.</div>
                                     </div>
                                 );
@@ -413,7 +436,7 @@ export function Dashboard({
 
             {/* Modal Renomear */}
             {editingContact && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000 }}>
                     <div style={{ background: '#fff', borderRadius: '16px', width: '380px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>Renomear Computador</h3>
                         <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>Dê um apelido para facilitar a identificação de <strong>{editingContact.id}</strong>.</p>
@@ -436,6 +459,59 @@ export function Dashboard({
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                             <button onClick={() => setEditingContact(null)} style={{ padding: '10px 20px', background: '#f3f4f6', border: 'none', borderRadius: '8px', color: '#4b5563', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
                             <button onClick={() => { onUpdateContact?.(editingContact); setEditingContact(null); }} style={{ padding: '10px 25px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Configurações */}
+            {showSettings && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000 }}>
+                    <div style={{ background: '#fff', borderRadius: '16px', width: '380px', padding: '30px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>Configurações</h3>
+                        <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>Configurações globais da aplicação.</p>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '8px' }}>IP do Servidor (Requer Reinício)</label>
+                            <input
+                                autoFocus
+                                value={tempServerIp}
+                                onChange={(e) => setTempServerIp(e.target.value)}
+                                placeholder="Ex: 192.168.1.100 ou cloud"
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                            <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '5px' }}>Deixe em branco ou 'cloud' para usar servidor padrão.</p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => { setShowSettings(false); setTempServerIp(serverIp); }}
+                                style={{ padding: '10px 20px', background: '#f3f4f6', border: 'none', borderRadius: '8px', color: '#4b5563', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setServerIp(tempServerIp);
+                                    setShowSettings(false);
+                                    if (tempServerIp !== serverIp) {
+                                        if (confirm('O aplicativo precisa ser recarregado para aplicar o novo IP. Recarregar agora?')) {
+                                            window.location.reload();
+                                        }
+                                    }
+                                }}
+                                style={{ padding: '10px 25px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Salvar
+                            </button>
                         </div>
                     </div>
                 </div>

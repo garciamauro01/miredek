@@ -24,5 +24,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (_event: any, progress: number) => callback(progress);
         ipcRenderer.on('update-progress', listener);
         return () => ipcRenderer.removeListener('update-progress', listener);
-    }
+    },
+    openDevTools: () => ipcRenderer.invoke('open-devtools')
 });

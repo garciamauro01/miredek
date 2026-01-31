@@ -33,6 +33,7 @@ export function createSession(id: string, remoteId: string = '', isIncoming: boo
         incomingCall: null,
         isIncoming,
         remoteSources: [],
-        viewMode: 'fit'
+        viewMode: 'fit',
+        isAuthenticating: false
     };
 }

@@ -112,9 +112,13 @@ if (!gotTheLock) {
     const appPath = app.getAppPath();
     logToFile(`[Main] app.getAppPath(): ${appPath}`);
 
+    // Força DevTools em modo desenvolvimento, independente da URL
+    if (!app.isPackaged) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+
     if (process.env.VITE_DEV_SERVER_URL) {
       mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
     } else {
       // Tenta caminhos comuns em apps empacotados
       const possiblePaths = [
@@ -142,6 +146,23 @@ if (!gotTheLock) {
         logToFile(`[Main] ERRO CRÍTICO: Nenhum index.html encontrado em nenhum dos caminhos testados.`);
       }
     }
+
+    // --- IPC Handlers DevTools ---
+    ipcMain.handle('open-devtools', () => {
+      mainWindow?.webContents.openDevTools({ mode: 'detach' });
+    });
+
+    // --- DevTools Shortcut (F12) ---
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'F12' && input.type === 'keyDown') {
+        mainWindow?.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+      if (input.key === 'r' && input.control && input.type === 'keyDown') {
+        mainWindow?.reload();
+        event.preventDefault();
+      }
+    });
 
     mainWindow.webContents.on('did-finish-load', () => {
       logToFile('[Main] webContents: did-finish-load');
@@ -237,6 +258,33 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     createWindow();
     createTray();
+
+    // Configura auto-início automaticamente na primeira execução após instalação
+    if (app.isPackaged) {
+      try {
+        const userDataPath = app.getPath('userData');
+        const flagFile = join(userDataPath, '.first_run_done');
+
+        if (!fs.existsSync(flagFile)) {
+          logToFile('[Main] Primeira execução detectada. Configurando auto-início...');
+          const exePath = app.getPath('exe');
+
+          app.setLoginItemSettings({
+            openAtLogin: true,
+            path: exePath,
+            args: ['--hidden']
+          });
+
+          const settings = app.getLoginItemSettings();
+          logToFile(`[Main] Auto-início configurado: ${settings.openAtLogin}`);
+
+          // Marca como executado
+          fs.writeFileSync(flagFile, new Date().toISOString());
+        }
+      } catch (e) {
+        logToFile(`[Main] Erro ao configurar auto-início na primeira execução: ${e}`);
+      }
+    }
   });
 
   app.on('before-quit', () => {

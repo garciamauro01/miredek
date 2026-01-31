@@ -34,6 +34,8 @@ declare global {
       downloadAndInstallUpdate: (url: string) => Promise<boolean>;
       isAppInstalled: () => Promise<boolean>;
       onUpdateProgress: (callback: (progress: number) => void) => () => void;
+      openDevTools: () => Promise<void>;
+      getLocalIp: () => Promise<string>;
     }
   }
 }
@@ -101,12 +103,29 @@ function App() {
   const currentSourceIdRef = useRef(currentSourceId);
 
   useEffect(() => {
-    sourcesRef.current = sources;
-  }, [sources]);
-
-  useEffect(() => {
     currentSourceIdRef.current = currentSourceId;
   }, [currentSourceId]);
+
+  const sessionsRef = useRef(sessions);
+  useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
+
+  useEffect(() => {
+    const handleFocus = (e: any) => {
+      console.log('[Focus] Elemento focado:', e.target?.tagName, e.target?.id, e.target?.placeholder || e.target?.innerText?.slice(0, 20));
+    };
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      // Log importante para depurar "teclado desabilitado"
+      console.log('[Keyboard] Tecla:', e.key, 'Target:', (e.target as any)?.tagName, 'ID:', (e.target as any)?.id);
+    };
+    window.addEventListener('focusin', handleFocus);
+    window.addEventListener('keydown', handleGlobalKey, true); // Capture phase para ver TUDO
+    return () => {
+      window.removeEventListener('focusin', handleFocus);
+      window.removeEventListener('keydown', handleGlobalKey, true);
+    };
+  }, []);
 
   const [tempRemoteId, setTempRemoteId] = useState('')
   const workingEndpointRef = useRef<string | null>(null)
@@ -142,6 +161,11 @@ function App() {
   const [recentStatusMap, setRecentStatusMap] = useState<{ [id: string]: 'online' | 'offline' | 'checking' }>({});
   const [logs, setLogs] = useState<string[]>([]);
   const [sessionPassword, setSessionPassword] = useState<string>('');
+  const sessionPasswordRef = useRef(sessionPassword);
+
+  useEffect(() => {
+    sessionPasswordRef.current = sessionPassword;
+  }, [sessionPassword]);
 
   const regenerateSessionPassword = useCallback(() => {
     const newPass = Math.random().toString(36).substring(2, 8);
@@ -161,6 +185,49 @@ function App() {
       window.electronAPI.writeLog(msg);
     }
   }, []);
+
+  const handleSessionClose = useCallback((sessionId: string, reason: string) => {
+    console.log(`[handleSessionClose] Sessão ${sessionId} encerrada: ${reason}`);
+
+    let needsActiveSessionUpdate = false;
+    let fallbackSessionId = 'dashboard';
+    let needsPendingReset = false;
+
+    setSessions(prev => {
+      const session = prev.find(s => s.id === sessionId);
+      if (!session) {
+        console.warn(`[handleSessionClose] Sessão ${sessionId} não encontrada no estado.`);
+        return prev;
+      }
+
+      videoRefsMap.current.delete(sessionId);
+      const remaining = prev.filter(s => s.id !== sessionId);
+      console.log(`[handleSessionClose] Removendo ${sessionId}. Restantes: ${remaining.length}`);
+
+      // Prepara dados para os efeitos colaterais fora do updater
+      if (activeSessionId === sessionId) {
+        needsActiveSessionUpdate = true;
+        const outgoingRemaining = remaining.filter(s => !s.isIncoming);
+        fallbackSessionId = outgoingRemaining.length > 0 ? outgoingRemaining[0].id : 'dashboard';
+      }
+
+      if (pendingSessionId === sessionId) {
+        needsPendingReset = true;
+      }
+
+      return remaining;
+    });
+
+    // Side effects fora do setSessions
+    if (needsActiveSessionUpdate) {
+      console.log(`[handleSessionClose] Atualizando activeSessionId para ${fallbackSessionId}`);
+      setActiveSessionId(fallbackSessionId);
+    }
+    if (needsPendingReset) {
+      console.log(`[handleSessionClose] Resetando pendingSessionId`);
+      setPendingSessionId(null);
+    }
+  }, [activeSessionId, pendingSessionId]);
 
   const captureSnapshot = useCallback((sessionId: string, remoteId: string) => {
     const refs = videoRefsMap.current.get(sessionId);
@@ -561,6 +628,12 @@ function App() {
   const setupDataListeners = useCallback((sessionId: string, conn: any, isIncoming: boolean) => {
     if (!conn) return;
 
+    conn.on('close', () => handleSessionClose(sessionId, 'Canal de dados encerrado.'));
+    conn.on('error', (err: any) => {
+      console.error(`[${sessionId}] Erro no canal de dados:`, err);
+      handleSessionClose(sessionId, `Erro no canal de dados: ${err.message}`);
+    });
+
     // Envia lista de fontes inicial se for Host
     const sendSourcesList = () => {
       if (isIncoming && conn.open) {
@@ -573,10 +646,11 @@ function App() {
     };
 
     const triggerAutoAuth = () => {
+      console.log(`[triggerAutoAuth] Verificando para ${sessionId}. password: ${!!sessionPasswordRef.current}`);
       setSessions(prev => {
         const session = prev.find(s => s.id === sessionId);
         if (session && session.pendingPassword && !session.isAuthenticated && !session.isIncoming) {
-          console.log(`[Client] Enviando AUTO-AUTH para ${session.remoteId}`);
+          console.log(`[Client] Enviando AUTO-AUTH para ${session.remoteId} com senha salva.`);
           conn.send({ type: 'AUTH', password: session.pendingPassword });
           return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: true } : s);
         }
@@ -659,10 +733,20 @@ function App() {
         const session = prev.find(s => s.id === sessionId);
         if (!session) return prev;
 
+        if (data && data.type === 'CALL_REJECTED') {
+          alert('A conexão foi rejeitada pelo parceiro.');
+          sessionManager.closeSession(sessionId);
+          setPendingSessionId(prev => (prev === sessionId ? null : prev));
+          return prev.filter(s => s.id !== sessionId);
+        } else if (data && data.type === 'CALL_CANCELLED') {
+          sessionManager.closeSession(sessionId);
+          return prev.filter(s => s.id !== sessionId);
+        }
+
         if (session.isIncoming) {
           if (data && data.type === 'AUTH') {
             console.log(`[Host] Recebido AUTH de ${session.remoteId}. Senha fornecida: ${data.password}`);
-            const isSessionPass = data.password === sessionPassword;
+            const isSessionPass = data.password === sessionPasswordRef.current;
             const isUnattendedPass = unattendedPasswordRef.current && data.password === unattendedPasswordRef.current;
 
             if (isSessionPass || isUnattendedPass) {
@@ -724,9 +808,11 @@ function App() {
                 });
               }
               alert('Senha incorreta.');
+              console.log(`[setupDataListeners] Auth FAIL para ${sessionId}. Resetando isAuthenticating.`);
               return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, pendingPassword: undefined, shouldRememberPassword: false } : s);
             }
           } else if (data && data.type === 'SOURCES_LIST') {
+            console.log(`[setupDataListeners] Recebida lista de fontes para ${sessionId}`);
             return prev.map(s =>
               s.id === sessionId ? { ...s, remoteSources: data.sources, activeSourceId: data.activeSourceId } : s
             );
@@ -741,12 +827,18 @@ function App() {
     });
 
     // Handshake de autenticação agora é disparado pelo ConnectionModal via dataConnection.send
-  }, [sessions]); // unattendedPasswordRef não precisa estar nas deps pois usamos Ref
+    // Handshake de autenticação agora é disparado pelo ConnectionModal via dataConnection.send
+  }, [handleSessionClose]); // sessions removido das deps para ser estável!
 
   // Session manager
   const sessionManager = useSessionManager({
     serverIp,
     onSessionUpdate: (sessionId, updates) => {
+      console.log(`[onSessionUpdate] Session: ${sessionId}, Updates:`, Object.keys(updates));
+      let shouldSetupListeners = false;
+      let connToSetup = null;
+      let sessionIncoming = false;
+
       setSessions(prev => {
         const newSessions = prev.map(s => {
           if (s.id === sessionId) {
@@ -757,46 +849,29 @@ function App() {
           }
           return s;
         });
+
         const session = newSessions.find(s => s.id === sessionId);
         if (session && updates.dataConnection) {
-          setupDataListeners(sessionId, updates.dataConnection, session.isIncoming);
+          shouldSetupListeners = true;
+          connToSetup = updates.dataConnection;
+          sessionIncoming = session.isIncoming;
         }
+
         // Se a sessão conectou e é de saída, remove o estado de pendente
         if (updates.connected && session && !session.isIncoming) {
           setPendingSessionId(null);
           setActiveSessionId(sessionId);
         }
         return newSessions;
-      })
-    },
-    onSessionClose: (sessionId, reason) => {
-      console.log(`[${sessionId}] Sessão encerrada: ${reason}`);
-      setSessions(prev => {
-        const session = prev.find(s => s.id === sessionId);
-        if (!session) return prev;
-
-        // Limpa referências de vídeo
-        videoRefsMap.current.delete(sessionId);
-
-        // Remove a sessão
-        const remaining = prev.filter(s => s.id !== sessionId);
-
-        // Ajusta aba ativa se necessário
-        if (activeSessionId === sessionId) {
-          const outgoingRemaining = remaining.filter(s => !s.isIncoming);
-          if (outgoingRemaining.length > 0) {
-            setActiveSessionId(outgoingRemaining[0].id);
-          } else {
-            setActiveSessionId('dashboard');
-          }
-        }
-
-        // NOVO: Se fechou a sessão que estava tentando conectar, limpa o modal
-        setPendingSessionId(prevPending => prevPending === sessionId ? null : prevPending);
-
-        return remaining;
       });
+
+      // Side effect fora do updater
+      if (shouldSetupListeners && connToSetup) {
+        console.log(`[App] Iniciando setupDataListeners para ${sessionId}`);
+        setupDataListeners(sessionId, connToSetup, sessionIncoming);
+      }
     },
+    onSessionClose: handleSessionClose,
     onLog: (sessionId, message) => {
       console.log(`[${sessionId}] ${message}`)
     }
@@ -864,34 +939,70 @@ function App() {
     })
 
     peer.on('connection', (conn) => {
+      const existing = sessionsRef.current.find(s => s.remoteId === conn.peer);
+      const sessionId = existing ? existing.id : `session-${Date.now()}`;
+
       setSessions(prev => {
         const session = prev.find(s => s.remoteId === conn.peer);
         if (session) {
-          setupDataListeners(session.id, conn, true);
           return prev.map(s => s.id === session.id ? { ...s, dataConnection: conn, isIncoming: true } : s);
         } else {
-          const newId = `session-${Date.now()}`;
-          const newSession = createSession(newId, conn.peer, true);
+          const newSession = createSession(sessionId, conn.peer, true);
           newSession.dataConnection = conn;
-          videoRefsMap.current.set(newId, { remote: createRef<HTMLVideoElement>() });
-          setupDataListeners(newId, conn, true);
+          videoRefsMap.current.set(sessionId, { remote: createRef<HTMLVideoElement>() });
           return [...prev, newSession];
         }
       });
+
+      setupDataListeners(sessionId, conn, true);
     });
 
     peer.on('call', (call) => {
       console.log('[Host] Chamada Recebida de:', call.peer);
+
+      const handleClose = (reason: string) => {
+        console.log(`[Host] Chamada cancelada/fechada. Motivo: ${reason}`);
+        setSessions(prev => {
+          return prev.map(s => {
+            if (s.incomingCall === call) return { ...s, incomingCall: null };
+            return s;
+          }).filter(s => {
+            if (s.remoteId === call.peer && !s.incomingCall && !s.connected && (!s.dataConnection || !s.dataConnection.open)) {
+              return false;
+            }
+            return true;
+          });
+        });
+      };
+
+      call.on('close', () => handleClose('Evento close do call'));
+      call.on('error', (err) => {
+        console.error('[Host] Erro na chamada recebida:', err);
+        handleClose(`Erro: ${err.message}`);
+      });
+
+      if (call.peerConnection) {
+        call.peerConnection.oniceconnectionstatechange = () => {
+          const state = call.peerConnection.iceConnectionState;
+          if (state === 'failed' || state === 'closed') {
+            console.log('[Host] Detectada queda de conexão via ICE (Terminal).');
+            handleClose(`ICE State: ${state}`);
+          }
+        };
+      }
+
+      const existing = sessionsRef.current.find(s => s.remoteId === call.peer);
+      const sessionId = existing ? existing.id : `session-${Date.now()}`;
+
       setSessions(prev => {
-        const existingSession = prev.find(s => s.remoteId === call.peer && !s.incomingCall);
-        if (existingSession) {
-          return prev.map(s => s.id === existingSession.id ? { ...s, incomingCall: call } : s);
+        const session = prev.find(s => s.id === sessionId);
+        if (session) {
+          return prev.map(s => s.id === session.id ? { ...s, incomingCall: call, isIncoming: true } : s);
         }
-        const newSessionId = `session-${Date.now()}`
-        const newSession = createSession(newSessionId, call.peer, true)
-        newSession.incomingCall = call
-        if (!videoRefsMap.current.has(newSessionId)) {
-          videoRefsMap.current.set(newSessionId, { remote: createRef<HTMLVideoElement>() })
+        const newSession = createSession(sessionId, call.peer, true);
+        newSession.incomingCall = call;
+        if (!videoRefsMap.current.has(sessionId)) {
+          videoRefsMap.current.set(sessionId, { remote: createRef<HTMLVideoElement>() });
         }
         if (window.electronAPI) {
           window.electronAPI.showWindow();
@@ -916,6 +1027,12 @@ function App() {
   const handleConnect = async () => {
     if (!tempRemoteId) return;
 
+    // Prevenção de duplicatas
+    if (sessions.some(s => s.remoteId === tempRemoteId && !s.isIncoming)) {
+      alert('Já existe uma sessão ativa ou pendente para este parceiro.');
+      return;
+    }
+
     if (!localStreamRef.current) {
       if (!window.electronAPI) await selectSource('browser');
       else { alert('Selecione uma tela!'); return; }
@@ -930,17 +1047,21 @@ function App() {
     newSession.pendingPassword = savedPassword;
     newSession.isAuthenticating = false; // Sempre inicia false
     newSession.shouldRememberPassword = !!savedPassword;
+    newSession.isConnecting = true; // Já inicia como tentando conectar
 
     console.log(`[handleConnect] Nova sessão criada:`, {
       id: sessionId,
-      pendingPassword: newSession.pendingPassword,
-      isAuthenticating: newSession.isAuthenticating,
-      shouldRememberPassword: newSession.shouldRememberPassword
+      remoteId: tempRemoteId,
+      hasSavedPassword: !!savedPassword,
+      isAuthenticating: newSession.isAuthenticating
     });
 
     videoRefsMap.current.set(sessionId, { remote: createRef<HTMLVideoElement>() })
 
-    setSessions(prev => [...prev, newSession])
+    setSessions(prev => {
+      console.log(`[handleConnect] Adicionando sessão ${sessionId} ao estado. Total antes: ${prev.length}`);
+      return [...prev, newSession];
+    });
 
     // Adiciona ao histórico e garante que existe nos contatos
     setRecentSessions(old => {
@@ -1026,6 +1147,11 @@ function App() {
   }
 
   const handleRejectCall = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session && session.dataConnection && session.dataConnection.open) {
+      session.dataConnection.send({ type: 'CALL_REJECTED' });
+    }
+
     setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, incomingCall: null } : s))
     sessionManager.closeSession(sessionId);
     setSessions(prev => prev.filter(s => s.id !== sessionId));
@@ -1220,33 +1346,44 @@ function App() {
           />
         )}
 
-        {pendingSessionId && (
-          <ConnectionModal
-            key={pendingSessionId}
-            remoteId={sessions.find(s => s.id === pendingSessionId)?.remoteId || ''}
-            isConnecting={sessions.find(s => s.id === pendingSessionId)?.isAuthenticating}
-            initialPassword={contacts.find(c => c.id === sessions.find(s => s.id === pendingSessionId)?.remoteId)?.savedPassword}
-            onCancel={() => {
-              sessionManager.closeSession(pendingSessionId);
-              setPendingSessionId(null);
-            }}
-            onConnectWithPassword={(password, remember) => {
-              const session = sessions.find(s => s.id === pendingSessionId);
-              if (session && session.dataConnection && session.dataConnection.open) {
-                // Seta estado de autenticando para desabilitar o input no modal
-                setSessions(prev => prev.map(s => s.id === pendingSessionId ? {
-                  ...s,
-                  isAuthenticating: true,
-                  pendingPassword: password,
-                  shouldRememberPassword: remember
-                } : s));
-                session.dataConnection.send({ type: 'AUTH', password });
-              } else {
-                alert('Aguardando conexão segura com o parceiro...');
-              }
-            }}
-          />
-        )}
+        {(() => {
+          const pSession = sessions.find(s => s.id === pendingSessionId);
+          if (!pendingSessionId || !pSession) return null;
+
+          return (
+            <ConnectionModal
+              key={pendingSessionId}
+              remoteId={pSession.remoteId}
+              isConnecting={!!pSession.isAuthenticating}
+              initialPassword={contacts.find(c => c.id === pSession.remoteId)?.savedPassword}
+              onCancel={() => {
+                console.log(`[ConnectionModal] Cancelando sessão ${pendingSessionId}`);
+                if (pSession.dataConnection?.open) {
+                  pSession.dataConnection.send({ type: 'CALL_CANCELLED' });
+                }
+                sessionManager.closeSession(pendingSessionId);
+                setPendingSessionId(null);
+              }}
+              onConnectWithPassword={(password, remember) => {
+                console.log(`[ConnectionModal] Tentando conectar com senha para ${pendingSessionId}`);
+                if (pSession.dataConnection && pSession.dataConnection.open) {
+                  setSessions(prev => {
+                    console.log(`[onConnectWithPassword] Setando isAuthenticating=true para ${pendingSessionId}`);
+                    return prev.map(s => s.id === pendingSessionId ? {
+                      ...s,
+                      isAuthenticating: true,
+                      pendingPassword: password,
+                      shouldRememberPassword: remember
+                    } : s);
+                  });
+                  pSession.dataConnection.send({ type: 'AUTH', password });
+                } else {
+                  alert('Aguardando conexão segura com o parceiro...');
+                }
+              }}
+            />
+          );
+        })()}
       </div>
     </div>
   )

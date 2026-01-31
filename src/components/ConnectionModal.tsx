@@ -19,6 +19,13 @@ export function ConnectionModal({ remoteId, onCancel, onConnectWithPassword, isC
         setRemember(!!initialPassword);
     }, [initialPassword]);
 
+    useEffect(() => {
+        console.log(`[ConnectionModal] Montado para ${remoteId}. IsConnecting: ${isConnecting}`);
+        return () => {
+            console.log(`[ConnectionModal] Desmontado para ${remoteId}`);
+        };
+    }, [remoteId]);
+
     console.log(`[ConnectionModal] Renderizando para ${remoteId}, isConnecting:`, isConnecting, 'initialPassword:', initialPassword, 'password state:', password);
 
     const handleSubmit = (e: React.FormEvent) => {

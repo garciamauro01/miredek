@@ -22,48 +22,58 @@ export function useUpdateCheck(serverIp: string) {
 
         const checkUpdate = async () => {
             try {
-                // Assume que o servidor de sinalização também serve a versão na porta 3001 (ou ajustada)
-                // Se serverIp for apenas IP (ex: 192.168.1.5), adicionamos protocolo e porta padrão
-                let url = serverIp;
-                if (!url.startsWith('http')) {
-                    url = `http://${serverIp}:3001/version`; // Porta padrão do server socket.io
-                } else {
-                    // Se já tiver http, assume que está completo ou ajusta
-                    url = `${url.replace(/\/$/, '')}/version`;
+                // Monta URL com Cache Busting para evitar leituras antigas
+                let baseUrl = serverIp;
+                if (baseUrl === 'cloud') {
+                    baseUrl = '167.234.241.147';
                 }
 
-                // Em dev, pode ser localhost:3001 se serverIp não estiver setado
-                if (!serverIp) url = 'http://localhost:3001/version';
+                if (!baseUrl.startsWith('http')) {
+                    baseUrl = `http://${baseUrl}:3001`;
+                }
+                baseUrl = baseUrl.replace(/\/$/, ''); // Remove barra final se houver
 
-                console.log('[UpdateCheck] Verificando update em:', url);
+                const url = `${baseUrl}/version?t=${Date.now()}`; // Cache busting
+                console.log(`[UpdateCheck] Iniciando verificação em: ${url}`);
 
                 const res = await fetch(url);
-                if (res.ok) {
-                    const info: UpdateInfo = await res.json();
+                console.log(`[UpdateCheck] Status da resposta: ${res.status}`);
 
-                    // Smart URL: se for relativa, anexa ao servidor base
-                    if (info.downloadUrl.startsWith('/')) {
-                        const baseUrl = url.replace('/version', '');
-                        info.downloadUrl = `${baseUrl}${info.downloadUrl}`;
-                    }
+                if (!res.ok) {
+                    throw new Error(`Servidor respondeu com status ${res.status}`);
+                }
 
-                    console.log('[UpdateCheck] Info remota processada:', info);
+                const text = await res.text();
+                // console.log('[UpdateCheck] Payload recebido:', text);
 
-                    if (window.electronAPI) {
-                        const current = await window.electronAPI.getAppVersion();
-                        console.log('[UpdateCheck] Comparando versões - Atual:', current, 'Servidor:', info.version);
+                let info: UpdateInfo;
+                try {
+                    info = JSON.parse(text);
+                } catch (e) {
+                    throw new Error(`Resposta inválida (não é JSON): ${text.substring(0, 100)}...`);
+                }
 
-                        // Comparação simples de string (ideal seria semver)
-                        if (info.version !== current) {
-                            console.log('[UpdateCheck] ✅ Nova versão disponível!');
-                            setUpdateAvailable(info);
-                        } else {
-                            console.log('[UpdateCheck] ℹ️ App já está na versão mais recente');
-                        }
+                // Normaliza URL de download se for relativa
+                if (info.downloadUrl.startsWith('/')) {
+                    info.downloadUrl = `${baseUrl}${info.downloadUrl}`;
+                }
+
+                console.log('[UpdateCheck] Versão no Servidor:', info.version);
+
+                if (window.electronAPI) {
+                    const current = await window.electronAPI.getAppVersion();
+                    console.log(`[UpdateCheck] Comparativo: App [${current}] vs Server [${info.version}]`);
+
+                    // Normaliza versões para comparação (semantica simples)
+                    if (info.version.trim() !== current.trim()) {
+                        console.log('[UpdateCheck] ✅ DIFERENÇA DETECTADA -> Atualização Disponível!');
+                        setUpdateAvailable(info);
+                    } else {
+                        console.log('[UpdateCheck] ℹ️ Versões iguais. Nenhuma ação necessária.');
                     }
                 }
-            } catch (err) {
-                console.error('[UpdateCheck] Falha ao verificar update:', err);
+            } catch (err: any) {
+                console.error('[UpdateCheck] Falha na verificação:', err.message);
             }
         };
 

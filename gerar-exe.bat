@@ -65,6 +65,9 @@ echo     "releaseNotes": "Versao !VERSION! (Instalador NSIS) gerada em %date% %t
 echo }
 ) > "server\version.json"
 
+:: Copia para public também para garantir visibilidade
+copy /Y "server\version.json" "server\public\version.json"
+
 echo.
 echo ========================================
 echo   Processo concluido!
