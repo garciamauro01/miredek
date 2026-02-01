@@ -18,7 +18,10 @@ try {
 
 export function setupInputHandlers() {
     ipcMain.handle('execute-input', async (event, data) => {
-        if (!robot) return;
+        if (!robot) {
+            console.error('[Input-Electron] ERRO: RobotJS não está disponível!');
+            return;
+        }
 
         try {
             const { type } = data;
@@ -28,8 +31,9 @@ export function setupInputHandlers() {
 
             switch (type) {
                 case 'mousemove':
-                    const x = bounds.x + (data.x * bounds.width);
-                    const y = bounds.y + (data.y * bounds.height);
+                    const x = Math.round(bounds.x + (data.x * bounds.width));
+                    const y = Math.round(bounds.y + (data.y * bounds.height));
+                    // console.log(`[Input-Electron] Movendo mouse para: ${x}, ${y} (Bounds: ${bounds.width}x${bounds.height})`);
                     robot.moveMouse(x, y);
                     break;
 
@@ -83,6 +87,25 @@ export function setupInputHandlers() {
             } catch (e) {
                 logToFile(`Erro robotjs moveMouse (${x},${y}): ${e}`);
             }
+        }
+    });
+
+    ipcMain.handle('reset-input', () => {
+        if (!robot) return;
+        try {
+            console.log('[Input-Electron] Resetando estado do input (segurança)...');
+            // Solta botões do mouse
+            robot.mouseToggle('up', 'left');
+            robot.mouseToggle('up', 'right');
+            robot.mouseToggle('up', 'middle');
+
+            // Solta teclas de modificação comuns
+            const modifiers = ['control', 'shift', 'alt', 'command'];
+            modifiers.forEach(key => {
+                try { robot.keyToggle(key, 'up'); } catch (e) { }
+            });
+        } catch (e) {
+            console.error('[Input-Electron] Erro ao resetar input:', e);
         }
     });
 }

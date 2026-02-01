@@ -171,6 +171,13 @@ if (!gotTheLock) {
     setupFileHandlers();
     setupUpdateHandlers();
     setupIpcHandlers(() => mainWindow);
+
+    try {
+      const robot = require('robotjs');
+      logToFile(`[Main] Sistema de input carregado com sucesso. RobotJS disponível: ${!!robot}`);
+    } catch (e) {
+      logToFile(`[Main] ERRO: Falha ao carregar RobotJS no processo principal: ${e}`);
+    }
   });
 
   app.on('before-quit', () => {

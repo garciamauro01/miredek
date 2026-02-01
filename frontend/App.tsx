@@ -171,6 +171,9 @@ function App() {
     if (s?.dataConnection) await sendFile(s.dataConnection, path);
   });
 
+  // Ref para o modal de chamada recebida
+  const incomingModalVideoRef = useRef<HTMLVideoElement>(null);
+
   // --- Feature: Snapshot Loop ---
   useEffect(() => {
     const timeouts: any[] = [];
@@ -194,14 +197,24 @@ function App() {
   // Helper para Inputs
   const handleInput = (type: string, e: any) => {
     const activeSession = sessions.find(s => s.id === activeSessionId);
-    if (activeSession?.dataConnection?.open && videoRefsMap.current.get(activeSessionId!)?.remote.current) {
-      const pos = getRelativeMousePos(e, videoRefsMap.current.get(activeSessionId!)!.remote.current!, activeSession.viewMode);
+    if (!activeSession) return;
+
+    if (activeSession.dataConnection?.open && videoRefsMap.current.get(activeSessionId!)?.remote.current) {
+      const videoEl = videoRefsMap.current.get(activeSessionId!)!.remote.current!;
+      const pos = getRelativeMousePos(e, videoEl, activeSession.viewMode);
+
       if (pos) {
         const data: any = { type, x: pos.x, y: pos.y };
         if ('button' in e) data.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
         if ('key' in e) data.key = e.key;
+
+        console.log(`[Input-Client] Enviando ${type}:`, data);
         activeSession.dataConnection.send(data);
+      } else {
+        console.warn(`[Input-Client] Falha ao calcular posição relativa para ${type}`);
       }
+    } else {
+      console.warn(`[Input-Client] Não foi possível enviar ${type}: Conexão aberta? ${activeSession.dataConnection?.open}, VideoRef disponível? ${!!videoRefsMap.current.get(activeSessionId!)?.remote.current}`);
     }
   };
 
@@ -250,11 +263,11 @@ function App() {
             recentStatusMap={{}} // TODO: Add logic back if needed
           />
         ) : (
-          sessions.find(s => s.id === activeSessionId) && (
+          sessions.find(s => s.id === activeSessionId) && videoRefsMap.current.get(activeSessionId!)?.remote && (
             <SessionView
               key={activeSessionId}
               connected={sessions.find(s => s.id === activeSessionId)!.connected}
-              remoteVideoRef={videoRefsMap.current.get(activeSessionId!)?.remote!}
+              remoteVideoRef={videoRefsMap.current.get(activeSessionId!)!.remote}
               remoteStream={sessions.find(s => s.id === activeSessionId)!.remoteStream || null}
               incomingCall={null} onAnswer={() => { }} onReject={() => { }}
               remoteId={sessions.find(s => s.id === activeSessionId)!.remoteId}
@@ -278,7 +291,7 @@ function App() {
         {/* INCOMING MODAL */}
         {sessions.find(s => s.incomingCall && !s.isAuthenticated) && (
           <SessionView
-            key="incoming" connected={false} remoteVideoRef={useRef(null)} remoteStream={null} isOnlyModal={true}
+            key="incoming" connected={false} remoteVideoRef={incomingModalVideoRef} remoteStream={null} isOnlyModal={true}
             incomingCall={sessions.find(s => s.incomingCall && !s.isAuthenticated)!.incomingCall}
             onAnswer={() => sessionManager.answerCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id, sessions.find(s => s.incomingCall && !s.isAuthenticated)!.incomingCall, localStreamRef.current!)}
             onReject={() => handleSessionClose(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id, 'Rejected')}

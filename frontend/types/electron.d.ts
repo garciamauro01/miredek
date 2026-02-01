@@ -18,6 +18,7 @@ export interface ElectronAPI {
     downloadAndInstallUpdate: (url: string) => Promise<void>;
     isAppInstalled: () => Promise<boolean>;
     getLocalIp: () => Promise<string>;
+    resetInput: () => Promise<void>;
     onUpdateProgress: (callback: (progress: number) => void) => () => void;
     openDevTools: () => Promise<void>;
 }

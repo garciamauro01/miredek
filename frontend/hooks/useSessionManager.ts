@@ -111,12 +111,23 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         const peer = new Peer(uniquePeerId, getPeerConfig());
         peersMap.current.set(sessionId, peer);
 
+        let connectedFlag = false;
+        const timeout = setTimeout(() => {
+            if (!connectedFlag) {
+                onLog(sessionId, 'Tempo de conexão esgotado.');
+                onSessionUpdate(sessionId, { connected: false, isConnecting: false });
+                onSessionClose?.(sessionId, 'Não foi possível conectar: Tempo de conexão esgotado.');
+                peer.destroy();
+            }
+        }, 15000);
+
         peer.on('open', () => {
             onLog(sessionId, `Peer criado: ${uniquePeerId}`);
             const call = peer.call(remoteId, localStream);
 
             if (!call) {
                 console.error('[SessionManager] Falha ao criar chamada');
+                clearTimeout(timeout);
                 onSessionClose?.(sessionId, 'Erro ao iniciar chamada de vídeo.');
                 return;
             }
@@ -124,6 +135,8 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
             callsMap.current.set(sessionId, call);
 
             call.on('stream', (remoteStream: MediaStream) => {
+                connectedFlag = true;
+                clearTimeout(timeout);
                 streamsMap.current.set(sessionId, remoteStream);
                 onSessionUpdate(sessionId, {
                     connected: true,
@@ -133,29 +146,39 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
             });
 
             call.on('close', () => {
+                clearTimeout(timeout);
                 onLog(sessionId, 'Chamada de vídeo finalizada.');
                 onSessionClose?.(sessionId, 'Conexão de vídeo encerrada pelo peer remoto.');
             });
 
             call.on('error', (err) => {
+                clearTimeout(timeout);
                 onLog(sessionId, `Erro na chamada: ${err}`);
                 onSessionUpdate(sessionId, { connected: false, isConnecting: false });
             });
 
             const conn = peer.connect(remoteId);
             conn.on('open', () => {
+                connectedFlag = true;
+                clearTimeout(timeout);
                 onSessionUpdate(sessionId, { dataConnection: conn });
             });
 
             conn.on('close', () => {
+                clearTimeout(timeout);
                 onLog(sessionId, 'Canal de dados fechado.');
                 onSessionClose?.(sessionId, 'Conexão de dados encerrada pelo peer remoto.');
             });
         });
 
-        peer.on('error', (err) => {
+        peer.on('error', (err: any) => {
+            clearTimeout(timeout);
             onLog(sessionId, `Erro no Peer: ${err.message}`);
             onSessionUpdate(sessionId, { connected: false, isConnecting: false });
+
+            if (err.type === 'peer-unavailable') {
+                onSessionClose?.(sessionId, 'O ID remoto não está disponível ou está offline.');
+            }
         });
 
     }, [getPeerConfig, onLog, onSessionUpdate]);
@@ -171,7 +194,8 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
             onSessionUpdate(sessionId, {
                 connected: true,
                 remoteStream,
-                incomingCall: null
+                incomingCall: null,
+                isAuthenticated: true // [FIX] Mark as authenticated so mouse events are processed
             });
         });
 

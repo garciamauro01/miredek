@@ -1,0 +1,48 @@
+﻿Ôä╣´©Å  HTTPS desabilitado (certificados n├úo encontrados)
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="4" failures="0" errors="0" time="0.1429852">
+    <testsuite name="frontend/hooks/__tests__/ConnectionFlow.test.tsx" timestamp="2026-01-31T19:26:14.519Z" hostname="NOTE-MAURO" tests="4" failures="0" errors="0" skipped="0" time="0.1429852">
+        <testcase classname="frontend/hooks/__tests__/ConnectionFlow.test.tsx" name="Connection Flow Tests &gt; 1. Host Initialization (Auto-Source Selection) &gt; should auto-select the first available source on mount" time="0.0809171">
+            <system-out>
+[Host] Selecionando fonte: screen1
+[Host] Usando getUserMedia (Electron) para Source ID: screen1
+
+[Host] Stream capturado com sucesso: mock-stream
+
+            </system-out>
+        </testcase>
+        <testcase classname="frontend/hooks/__tests__/ConnectionFlow.test.tsx" name="Connection Flow Tests &gt; 2. Client Initiation (Connect To) &gt; should initiate BOTH data connection and video call when connecting" time="0.0289474">
+            <system-out>
+[Client] Iniciando chamada de v├¡deo para: host-remote-id
+[session-1769887574443] Conectando ao ID: host-remote-id
+
+[session-1769887574443] Peer criado: session-1769887574443-1769887574443
+
+            </system-out>
+        </testcase>
+        <testcase classname="frontend/hooks/__tests__/ConnectionFlow.test.tsx" name="Connection Flow Tests &gt; 3. Host Reception (Trigger Window Open) &gt; should call onShowRequest when receiving a DATA connection" time="0.01531">
+            <system-out>
+[Peer] Iniciando com config: {
+  host: [32m&apos;localhost&apos;[39m,
+  port: [33m9000[39m,
+  path: [32m&apos;/peerjs&apos;[39m,
+  config: { iceServers: [ [36m[Object][39m ] }
+}
+
+            </system-out>
+        </testcase>
+        <testcase classname="frontend/hooks/__tests__/ConnectionFlow.test.tsx" name="Connection Flow Tests &gt; 3. Host Reception (Trigger Window Open) &gt; should call onShowRequest when receiving a VIDEO call" time="0.0159833">
+            <system-out>
+[Peer] Iniciando com config: {
+  host: [32m&apos;localhost&apos;[39m,
+  port: [33m9000[39m,
+  path: [32m&apos;/peerjs&apos;[39m,
+  config: { iceServers: [ [36m[Object][39m ] }
+}
+
+[Peer] Call Recebido de: client-id
+
+            </system-out>
+        </testcase>
+    </testsuite>
+</testsuites>

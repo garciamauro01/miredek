@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadAndInstallUpdate: (url: string) => ipcRenderer.invoke('download-and-install-update', url),
     isAppInstalled: () => ipcRenderer.invoke('is-app-installed'),
     getLocalIp: () => ipcRenderer.invoke('get-local-ip'),
+    resetInput: () => ipcRenderer.invoke('reset-input'),
     onUpdateProgress: (callback: (progress: number) => void) => {
         const listener = (_event: any, progress: number) => callback(progress);
         ipcRenderer.on('update-progress', listener);

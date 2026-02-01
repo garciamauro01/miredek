@@ -20,6 +20,23 @@ export function useDeviceSources(
         currentSourceIdRef.current = currentSourceId;
     }, [currentSourceId]);
 
+    // [FIX] Auto-select first source on mount
+    useEffect(() => {
+        const init = async () => {
+            if (window.electronAPI) {
+                const available = await window.electronAPI.getSources();
+                setSources(available);
+                if (available.length > 0) {
+                    selectSource(available[0].id);
+                }
+            } else {
+                // Browser dev mode
+                selectSource('browser');
+            }
+        };
+        init();
+    }, []);
+
     const selectSource = async (sourceId: string) => {
         console.log('[Host] Selecionando fonte:', sourceId);
         try {

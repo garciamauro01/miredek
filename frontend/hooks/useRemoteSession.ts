@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import React from 'react';
 import type { Session } from '../types/Session';
 import { createSession } from '../types/Session';
 import { useSessionManager } from './useSessionManager';
@@ -34,7 +35,12 @@ export function useRemoteSession({
     const currentSourceIdRef = useRef(currentSourceId);
     const sessionPasswordRef = useRef(sessionPassword);
     const unattendedPasswordRef = useRef(unattendedPassword);
+    const activeSessionIdRef = useRef(activeSessionId);
+    const pendingSessionIdRef = useRef(pendingSessionId);
+
     const videoRefsMap = useRef<Map<string, { remote: React.RefObject<HTMLVideoElement | null> }>>(new Map());
+    const answeredCallsRef = useRef<Set<string>>(new Set());
+    const attachedConnectionsRef = useRef<WeakSet<any>>(new WeakSet());
 
     // Update refs
     useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
@@ -42,20 +48,49 @@ export function useRemoteSession({
     useEffect(() => { currentSourceIdRef.current = currentSourceId; }, [currentSourceId]);
     useEffect(() => { sessionPasswordRef.current = sessionPassword; }, [sessionPassword]);
     useEffect(() => { unattendedPasswordRef.current = unattendedPassword; }, [unattendedPassword]);
+    useEffect(() => { activeSessionIdRef.current = activeSessionId; }, [activeSessionId]);
+    useEffect(() => { pendingSessionIdRef.current = pendingSessionId; }, [pendingSessionId]);
 
     const handleSessionClose = useCallback((sessionId: string, reason: string) => {
         console.log(`[handleSessionClose] Sessão ${sessionId} encerrada: ${reason}`);
 
+        // Show alert if it's a connection time-out or unavailable peer
+        if (reason && (reason.includes('esgotado') || reason.includes('disponível') || reason.includes('Erro'))) {
+            alert(reason);
+        }
+
         setSessions(prev => {
-            if (!prev.find(s => s.id === sessionId)) return prev;
+            const session = prev.find(s => s.id === sessionId);
+            if (!session) return prev;
+
+            // [FIX] Explicit cleanup of connections
+            if (session.dataConnection) {
+                try { session.dataConnection.close(); } catch (e) { }
+            }
+            if (session.incomingCall) {
+                try { session.incomingCall.close(); } catch (e) { }
+            }
+
+            console.log(`[useRemoteSession] Encerrando sessão ${sessionId}: ${reason}`);
+
+            // Se for Host, reseta o estado do mouse/teclado para segurança
+            if (session.isIncoming && window.electronAPI) {
+                window.electronAPI.resetInput();
+            }
+
+            if (sessionManagerFnRef.current) {
+                sessionManagerFnRef.current.closeSession(sessionId);
+            }
+
             videoRefsMap.current.delete(sessionId);
+            answeredCallsRef.current.delete(sessionId);
+
+            if (activeSessionIdRef.current === sessionId) setActiveSessionId('dashboard');
+            if (pendingSessionIdRef.current === sessionId) setPendingSessionId(null);
+
             return prev.filter(s => s.id !== sessionId);
         });
-
-        if (activeSessionId === sessionId) setActiveSessionId('dashboard');
-        if (pendingSessionId === sessionId) setPendingSessionId(null);
-
-    }, [activeSessionId, pendingSessionId]);
+    }, [setActiveSessionId, setPendingSessionId]);
 
     // PREVENT CIRCULAR DEPENDENCY: sessionManager depends on onSessionUpdate,
     // which depends on sessionManager (via setupDataListeners).
@@ -65,8 +100,16 @@ export function useRemoteSession({
     const setupDataListeners = useCallback((sessionId: string, conn: any, isIncoming: boolean) => {
         if (!conn) return;
 
-        conn.on('close', () => handleSessionClose(sessionId, 'Canal de dados encerrado.'));
-        conn.on('error', (err: any) => handleSessionClose(sessionId, `Erro DataChannel: ${err}`));
+        conn.on('close', () => {
+            console.log(`[useRemoteSession] Canal de dados fechado para ${sessionId}`);
+            attachedConnectionsRef.current.delete(conn);
+            handleSessionClose(sessionId, 'Canal de dados encerrado.');
+        });
+        conn.on('error', (err: any) => {
+            console.error(`[useRemoteSession] Erro no Canal de dados para ${sessionId}:`, err);
+            attachedConnectionsRef.current.delete(conn);
+            handleSessionClose(sessionId, `Erro DataChannel: ${err}`);
+        });
 
         const sendSourcesList = () => {
             if (isIncoming && conn.open) {
@@ -77,6 +120,17 @@ export function useRemoteSession({
                 });
             }
         };
+
+        const autoAuthenticateIfNoPassword = () => {
+            // [FIX] Auto-authenticate incoming sessions when no password is configured
+            if (isIncoming && !sessionPasswordRef.current && !unattendedPasswordRef.current) {
+                setSessions(prev => prev.map(s =>
+                    s.id === sessionId ? { ...s, isAuthenticated: true } : s
+                ));
+                console.log(`[useRemoteSession] Auto-autenticando sessão ${sessionId} (sem senha configurada)`);
+            }
+        };
+
 
         const triggerAutoAuth = () => {
             setSessions(prev => {
@@ -89,11 +143,27 @@ export function useRemoteSession({
             });
         };
 
-        if (conn.open) { sendSourcesList(); triggerAutoAuth(); }
-        else conn.on('open', () => { sendSourcesList(); triggerAutoAuth(); });
+        if (conn.open) { sendSourcesList(); autoAuthenticateIfNoPassword(); triggerAutoAuth(); }
+        else conn.on('open', () => { sendSourcesList(); autoAuthenticateIfNoPassword(); triggerAutoAuth(); });
 
         conn.on('data', async (data: any) => {
             if (!data) return;
+
+            // [FIX] Mover execução de input para FORA do setSessions (efeitos colaterais em pure functions são instáveis)
+            // Também adicionada verificação de autenticação por segurança
+            const currentSession = sessionsRef.current.find(s => s.id === sessionId);
+            if (currentSession?.isIncoming && ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(data.type)) {
+                console.log(`[Input-Host] Evento ${data.type} recebido. Autenticado: ${currentSession.isAuthenticated}`);
+                if (currentSession.isAuthenticated) {
+                    if (window.electronAPI) {
+                        const activeSource = sourcesRef.current.find(s => s.id === currentSourceIdRef.current);
+                        window.electronAPI.executeInput({ ...data, activeSourceBounds: activeSource?.bounds });
+                    }
+                } else {
+                    console.warn(`[Input-Host] Comando ${data.type} bloqueado: Sessão não autenticada.`);
+                }
+                return;
+            }
 
             // CLIPBOARD
             if (data.type === 'CLIPBOARD' && window.electronAPI) {
@@ -118,18 +188,15 @@ export function useRemoteSession({
                 }
 
                 if (session.isIncoming) {
-                    // HOST LOGIC
+                    // HOST LOGIC (Apenas processamento de estado aqui)
                     if (data.type === 'AUTH') {
                         const isCorrect = data.password === sessionPasswordRef.current ||
                             (unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
                         conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
+
+
+
                         return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: !!isCorrect } : s);
-                    }
-                    else if (['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(data.type)) {
-                        if (window.electronAPI) {
-                            const activeSource = sourcesRef.current.find(s => s.id === currentSourceIdRef.current);
-                            window.electronAPI.executeInput({ ...data, activeSourceBounds: activeSource?.bounds });
-                        }
                     }
                 } else {
                     // CLIENT LOGIC
@@ -143,9 +210,12 @@ export function useRemoteSession({
                                 });
                             }
                             // Start Video Call if needed
-                            if (localStream && sessionManagerFnRef.current) {
-                                sessionManagerFnRef.current.startVideoCall(sessionId, session.remoteId, localStream);
-                            }
+                            // [FIX] Removed redundant startVideoCall. 
+                            // The initial connectTo already initiates the call. 
+                            // Authenticating shouldn't restart it, just allow the stream to be viewed on Host side if blocked (or Host auto-answers).
+                            // if (localStream && sessionManagerFnRef.current) {
+                            //    sessionManagerFnRef.current.startVideoCall(sessionId, session.remoteId, localStream);
+                            // }
                             return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false } : s);
                         } else {
                             alert('Senha incorreta.');
@@ -163,15 +233,40 @@ export function useRemoteSession({
             });
         });
 
-    }, [localStream, onFileMessage, handleSessionClose, setContacts, setSessions]);
+    }, [onFileMessage, handleSessionClose, setContacts, setSessions]);
+
+    // [FIX] Automated Listener Attachment
+    // Ensures every dataConnection gets listeners regardless of when it was added to state
+    useEffect(() => {
+        sessions.forEach(s => {
+            if (s.dataConnection && !attachedConnectionsRef.current.has(s.dataConnection)) {
+                console.log(`[useRemoteSession] Atachando listeners automáticos para ${s.id} (Incoming: ${s.isIncoming})`);
+                attachedConnectionsRef.current.add(s.dataConnection);
+                setupDataListeners(s.id, s.dataConnection, s.isIncoming);
+            }
+        });
+    }, [sessions, setupDataListeners]);
+
+    // [FIX] Robust Auto-Answer Effect
+    // Monitors sessions for the condition: Authenticated AND Incoming Call AND Not Connected
+    useEffect(() => {
+        sessions.forEach(session => {
+            if (session.isIncoming && session.isAuthenticated && session.incomingCall && !session.connected) {
+                // Prevent duplicate answers
+                if (answeredCallsRef.current.has(session.id)) return;
+
+                if (sessionManagerFnRef.current && localStream) {
+                    console.log(`[Auto-Answer] Atendendo chamada para sessão ${session.id} (Auth: True, Call: Present)`);
+                    answeredCallsRef.current.add(session.id);
+                    sessionManagerFnRef.current.answerCall(session.id, session.incomingCall, localStream);
+                }
+            }
+        });
+    }, [sessions, localStream]);
 
     const sessionManager = useSessionManager({
         serverIp,
         onSessionUpdate: useCallback((sessionId, updates) => {
-            let shouldSetupListeners = false;
-            let connToSetup = null;
-            let sessionIncoming = false;
-
             setSessions(prev => {
                 const newSessions = prev.map(s => {
                     if (s.id === sessionId) {
@@ -182,23 +277,25 @@ export function useRemoteSession({
                     return s;
                 });
 
-                const session = newSessions.find(s => s.id === sessionId);
-                if (session && updates.dataConnection) {
-                    shouldSetupListeners = true;
-                    connToSetup = updates.dataConnection;
-                    sessionIncoming = session.isIncoming;
+                if (updates.connected) {
+                    const session = newSessions.find(s => s.id === sessionId);
+                    if (session && !session.isIncoming) {
+                        // These side-effects on state setters are fine here as they schedule updates
+                        // But ideal to do outside mapper? 
+                        // Logic suggests we want to switch view if connected.
+                    }
                 }
-
-                if (updates.connected && session && !session.isIncoming) {
-                    setPendingSessionId(null);
-                    setActiveSessionId(sessionId);
-                }
-
                 return newSessions;
             });
 
-            if (shouldSetupListeners && connToSetup) {
-                setupDataListeners(sessionId, connToSetup, sessionIncoming);
+            if (updates.connected) {
+                // We can't check 'session.isIncoming' easily here without looking up again.
+                // Let's use Ref.
+                const session = sessionsRef.current.find(s => s.id === sessionId);
+                if (session && !session.isIncoming) {
+                    setPendingSessionId(null);
+                    setActiveSessionId(sessionId);
+                }
             }
         }, [setupDataListeners]),
         onSessionClose: handleSessionClose,
@@ -224,10 +321,21 @@ export function useRemoteSession({
         newSession.shouldRememberPassword = !!savedPw;
         newSession.isConnecting = true;
 
+        // [FIX] Create videoRefsMap entry for client session
+        if (!videoRefsMap.current.has(sessionId)) {
+            videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
+        }
+
         setSessions(prev => [...prev, newSession]);
 
         if (localStream) {
+            console.log('[Client] Iniciando chamada de vídeo para:', remoteId);
             sessionManager.connectToRemote(sessionId, remoteId, localStream);
+        } else {
+            console.warn('[Client] AVISO: localStream é NULL. conectando apenas dados (Host não verá modal de aceite de vídeo!)');
+            // Mesmo sem vídeo, deveríamos tentar conectar dados? 
+            // O SessionManager.connectToRemote exige stream.
+            // Se não tiver stream, talvez devêssemos forçar init?
         }
         setPendingSessionId(sessionId);
 

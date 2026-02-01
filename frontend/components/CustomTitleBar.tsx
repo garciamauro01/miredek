@@ -211,9 +211,9 @@ export function CustomTitleBar({
 
             {/* Controles de Janela */}
             <div style={{ display: 'flex', height: '100%', WebkitAppRegion: 'no-drag' } as any}>
-                <WindowControlButton icon={<Minus size={24} />} onClick={handleMinimize} />
-                <WindowControlButton icon={<Square size={16} />} onClick={handleMaximize} />
-                <WindowControlButton icon={<X size={24} />} onClick={handleClose} isClose />
+                <WindowControlButton icon={<Minus size={42} strokeWidth={1} />} onClick={handleMinimize} />
+                <WindowControlButton icon={<Square size={28} strokeWidth={1.2} />} onClick={handleMaximize} />
+                <WindowControlButton icon={<X size={42} strokeWidth={1} />} onClick={handleClose} isClose />
             </div>
         </div>
     );

@@ -60,6 +60,7 @@ export function usePeerConnection(
         });
 
         peer.on('connection', (conn) => {
+            console.log('[Peer] ✅ Conexão DATA recebida de:', conn.peer);
             setSessions(prev => {
                 const existing = prev.find(s => s.remoteId === conn.peer);
                 const sessionId = existing ? existing.id : `session-${Date.now()}`;
@@ -72,6 +73,7 @@ export function usePeerConnection(
                     if (!videoRefsMap.current.has(sessionId)) {
                         videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                     }
+                    onShowRequest(); // [FIX] Garante que a janela abra ao receber conexão de dados
                     return [...prev, newSession];
                 }
             });
