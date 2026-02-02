@@ -113,6 +113,7 @@ describe('Connection Flow Tests', () => {
                 localStream: mockLocalStream,
                 sources: [],
                 currentSourceId: '',
+                selectSource: vi.fn().mockResolvedValue(undefined),
                 onFileMessage: vi.fn()
             }));
 
@@ -217,6 +218,7 @@ describe('Connection Flow Tests', () => {
                 localStream: mockLocalStream,
                 sources: [],
                 currentSourceId: '',
+                selectSource: vi.fn().mockResolvedValue(undefined),
                 onFileMessage: vi.fn()
             }));
 
@@ -280,6 +282,7 @@ describe('Connection Flow Tests', () => {
                 localStream: mockLocalStream,
                 sources: [],
                 currentSourceId: '',
+                selectSource: vi.fn().mockResolvedValue(undefined),
                 onFileMessage: vi.fn()
             }));
 
@@ -351,6 +354,7 @@ describe('Connection Flow Tests', () => {
                 localStream: mockLocalStream,
                 sources: [],
                 currentSourceId: '',
+                selectSource: vi.fn().mockResolvedValue(undefined),
                 onFileMessage: vi.fn()
             }));
 
@@ -431,6 +435,7 @@ describe('5. Reconnection Flow', () => {
             localStream: mockLocalStream,
             sources: [],
             currentSourceId: '',
+            selectSource: vi.fn().mockResolvedValue(undefined),
             onFileMessage: vi.fn()
         }));
 
@@ -503,6 +508,7 @@ describe('5. Reconnection Flow', () => {
                 localStream: mockLocalStream,
                 sources: [],
                 currentSourceId: '',
+                selectSource: vi.fn().mockResolvedValue(undefined),
                 onFileMessage: vi.fn()
             }));
 

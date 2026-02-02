@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '../styles/SessionView.css';
+import { Chat } from './Chat';
 
 interface SessionViewProps {
     connected: boolean;
@@ -20,20 +21,67 @@ interface SessionViewProps {
     onFileDrop?: (path: string, x?: number, y?: number) => void;
     transferProgress?: { name: string; progress: number; status: string } | null;
     viewMode?: 'fit' | 'original' | 'stretch';
+    isChatOpen?: boolean;
+    chatMessages?: { sender: 'me' | 'remote', text: string, timestamp: number }[];
+    onSendMessage?: (text: string) => void;
+    onToggleChat?: () => void;
+    status?: 'connected' | 'disconnected' | 'reconnecting';
 }
 
 export function SessionView({
     connected, remoteVideoRef, remoteStream, incomingCall,
     onAnswer, onReject, onHookMethods, remoteId,
     isOnlyModal = false, onFileDrop, transferProgress,
-    viewMode = 'fit'
+    viewMode = 'fit', isChatOpen = false, chatMessages = [],
+    onSendMessage, onToggleChat, status
 }: SessionViewProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const [showVScroll, setShowVScroll] = useState(false);
+    const [showHScroll, setShowHScroll] = useState(false);
 
     useEffect(() => {
         if (remoteVideoRef.current && remoteStream) {
             remoteVideoRef.current.srcObject = remoteStream;
         }
     }, [remoteStream, remoteVideoRef]);
+
+    const handleInternalMouseMove = (e: React.MouseEvent) => {
+        // Handle Auto-Scroll on Edge Proximity
+        if (viewMode === 'original' && containerRef.current) {
+            const container = containerRef.current;
+            const threshold = 100; // Distância da borda para começar a rolar
+            const speed = 15;     // Velocidade da rolagem
+
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Proximity for scrollbars (user requested only show when mouse is near)
+            setShowVScroll(mouseX > rect.width - 50); // Show vertical scrollbar if near right edge
+            setShowHScroll(mouseY > rect.height - 50); // Show horizontal scrollbar if near bottom edge
+
+            // Horizontal Auto-Scroll
+            if (mouseX < threshold) {
+                container.scrollLeft -= speed * (1 - mouseX / threshold);
+            } else if (mouseX > rect.width - threshold) {
+                container.scrollLeft += speed * (1 - (rect.width - mouseX) / threshold);
+            }
+
+            // Vertical Auto-Scroll
+            if (mouseY < threshold) {
+                container.scrollTop -= speed * (1 - mouseY / threshold);
+            } else if (mouseY > rect.height - threshold) {
+                container.scrollTop += speed * (1 - (rect.height - mouseY) / threshold);
+            }
+        } else {
+            if (showVScroll) setShowVScroll(false);
+            if (showHScroll) setShowHScroll(false);
+        }
+
+        // Pass to original handler
+        onHookMethods.handleMouseMove(e);
+    };
 
     if (isOnlyModal) {
         return incomingCall ? (
@@ -65,7 +113,10 @@ export function SessionView({
 
     return (
         <div className="session-view-container">
-            <div className={`video-container ${viewMode === 'original' ? 'original' : ''}`}>
+            <div
+                ref={containerRef}
+                className={`video-container ${viewMode === 'original' ? 'original' : ''} ${showVScroll ? 'show-v-scroll' : ''} ${showHScroll ? 'show-h-scroll' : ''}`}
+            >
                 <video
                     ref={remoteVideoRef}
                     autoPlay
@@ -73,7 +124,7 @@ export function SessionView({
                     controls={false}
                     className="remote-video"
                     style={videoStyle}
-                    onMouseMove={onHookMethods.handleMouseMove}
+                    onMouseMove={handleInternalMouseMove}
                     onMouseDown={onHookMethods.handleMouseDown}
                     onMouseUp={onHookMethods.handleMouseUp}
                     tabIndex={0}
@@ -141,10 +192,25 @@ export function SessionView({
                     </div>
                 )}
 
+                <Chat
+                    isOpen={isChatOpen}
+                    messages={chatMessages}
+                    onSendMessage={onSendMessage || (() => { })}
+                    onClose={onToggleChat || (() => { })}
+                />
+
                 {!connected && !incomingCall && (
                     <div className="waiting-overlay">
                         <h3>Aguardando o usuário aceitar a conexão...</h3>
                         <p className="waiting-id">ID: {remoteId}</p>
+                    </div>
+                )}
+
+                {status === 'reconnecting' && (
+                    <div className="reconnecting-overlay">
+                        <div className="reconnecting-spinner"></div>
+                        <h3>Reconectando...</h3>
+                        <p>A conexão com {remoteId} foi perdida. Tentando restabelecer...</p>
                     </div>
                 )}
             </div>

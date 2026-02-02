@@ -21,6 +21,13 @@ export interface ElectronAPI {
     resetInput: () => Promise<void>;
     onUpdateProgress: (callback: (progress: number) => void) => () => void;
     openDevTools: () => Promise<void>;
+
+    // Chat Multi-window
+    openChatWindow: (sessionId: string, remoteId: string) => Promise<void>;
+    notifyChatMessageReceived: (sessionId: string, message: any) => Promise<void>;
+    onChatMessageReceived: (callback: (message: any) => void) => () => void;
+    sendChatMessageFromWindow: (sessionId: string, message: any) => Promise<void>;
+    onChatMessageOutgoing: (callback: (sessionId: string, message: any) => void) => () => void;
 }
 
 declare global {

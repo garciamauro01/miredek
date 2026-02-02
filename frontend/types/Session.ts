@@ -18,6 +18,11 @@ export interface Session {
     viewMode?: 'fit' | 'original' | 'stretch';
     shouldRememberPassword?: boolean;
     pendingPassword?: string;
+    messages?: { sender: 'me' | 'remote', text: string, timestamp: number }[];
+    isChatOpen?: boolean;
+    hasNewMessage?: boolean;
+    status?: 'connected' | 'disconnected' | 'reconnecting';
+    lastHeartbeat?: number;
 }
 
 export function createSession(id: string, remoteId: string = '', isIncoming: boolean = false): Session {
@@ -34,6 +39,10 @@ export function createSession(id: string, remoteId: string = '', isIncoming: boo
         isIncoming,
         remoteSources: [],
         viewMode: 'fit',
-        isAuthenticating: false
+        isAuthenticating: false,
+        messages: [],
+        isChatOpen: false,
+        hasNewMessage: false,
+        status: isIncoming ? 'connected' : 'disconnected'
     };
 }

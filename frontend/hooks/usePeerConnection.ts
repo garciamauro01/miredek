@@ -12,6 +12,7 @@ export function usePeerConnection(
 ) {
     const [myId, setMyId] = useState('');
     const [peerStatus, setPeerStatus] = useState<'online' | 'offline' | 'connecting'>('connecting');
+    const [peerInstance, setPeerInstance] = useState<Peer | null>(null);
     const mainPeerRef = useRef<Peer | null>(null);
 
     useEffect(() => {
@@ -33,6 +34,7 @@ export function usePeerConnection(
         console.log('[Peer] Iniciando com config:', peerConfig);
         const peer = new Peer(fixedId, peerConfig);
         mainPeerRef.current = peer;
+        setPeerInstance(peer);
         setPeerStatus('connecting');
 
         peer.on('open', (id) => {
@@ -68,12 +70,19 @@ export function usePeerConnection(
                 if (existing) {
                     return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true } : s);
                 } else {
+                    // [FIX] Silência verificações de status
+                    if (conn.metadata?.type === 'status-check') {
+                        console.log('[Peer] Check de status recebido (Silencioso)');
+                        return prev;
+                    }
+
                     const newSession = createSession(sessionId, conn.peer, true);
                     newSession.dataConnection = conn;
                     if (!videoRefsMap.current.has(sessionId)) {
                         videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                     }
-                    onShowRequest(); // [FIX] Garante que a janela abra ao receber conexão de dados
+                    console.log('[Peer] Ativando janela para nova conexão DATA');
+                    onShowRequest();
                     return [...prev, newSession];
                 }
             });
@@ -103,19 +112,29 @@ export function usePeerConnection(
                     return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true } : s);
                 }
 
+                // [FIX] Silência verificações de status em chamadas (raro mas possível)
+                if (call.metadata?.type === 'status-check') {
+                    console.log('[Peer] Check de status em CALL recebido (Silencioso)');
+                    return prev;
+                }
+
                 const newSession = createSession(sessionId, call.peer, true);
                 newSession.incomingCall = call;
                 if (!videoRefsMap.current.has(sessionId)) {
                     videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                 }
+                console.log('[Peer] Ativando janela para nova conexão CALL');
                 onShowRequest(); // Notifica para abrir janela/focar
                 return [...prev, newSession];
             });
         });
 
-        return () => peer.destroy();
+        return () => {
+            peer.destroy();
+            setPeerInstance(null);
+        };
 
     }, [serverIp, setSessions, onShowRequest]);
 
-    return { myId, peerStatus, mainPeerRef };
+    return { myId, peerStatus, peerInstance, mainPeerRef };
 }

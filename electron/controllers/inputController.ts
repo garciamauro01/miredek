@@ -7,13 +7,13 @@ const require = createRequire(import.meta.url);
 let robot: any = null;
 
 try {
-    // Tenta carregar robotjs APENAS se estiver disponível (compilado corretamente)
+    // Tenta carregar @jitsi/robotjs APENAS se estiver disponível (compilado corretamente)
     // Usa require dinâmico para evitar crash se a lib nativa falhar
-    robot = require('robotjs');
+    robot = require('@jitsi/robotjs');
     // Ajusta delay do mouse para 0 para ser mais fluido
     if (robot) robot.setMouseDelay(0);
 } catch (e) {
-    logToFile(`[Input] ERRO: Falha ao carregar robotjs. Controle remoto não funcionará. ${e}`);
+    logToFile(`[Input] ERRO: Falha ao carregar @jitsi/robotjs. Controle remoto não funcionará. ${e}`);
 }
 
 export function setupInputHandlers() {

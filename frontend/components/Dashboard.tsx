@@ -281,7 +281,7 @@ export function Dashboard({
                 {/* Footer */}
                 <div className="status-bar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: peerStatus === 'online' ? '#10b981' : '#f59e0b' }}></div>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: peerStatus === 'online' ? '#10b981' : '#f59e0b' }}></div>
                         <span>{peerStatus === 'online' ? 'Pronto' : 'Conectando ao servidor...'}</span>
                     </div>
                     <div style={{ marginLeft: 'auto' }}>ID: {myId}</div>

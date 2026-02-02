@@ -76,11 +76,11 @@ if (!gotTheLock) {
     mainWindow.setMenu(null);
 
     // Debug events
-    mainWindow.on('minimize', () => console.log('[Main] Janela minimizada'));
-    mainWindow.on('maximize', () => console.log('[Main] Janela maximizada'));
-    mainWindow.on('restore', () => console.log('[Main] Janela restaurada'));
-    mainWindow.on('show', () => console.log('[Main] Janela mostrada'));
-    mainWindow.on('hide', () => console.log('[Main] Janela ocultada'));
+    mainWindow.on('minimize', () => logToFile('[Main] Janela minimizada'));
+    mainWindow.on('maximize', () => logToFile('[Main] Janela maximizada'));
+    mainWindow.on('restore', () => logToFile('[Main] Janela restaurada'));
+    mainWindow.on('show', () => logToFile('[Main] Janela mostrada'));
+    mainWindow.on('hide', () => logToFile('[Main] Janela ocultada'));
 
     console.log('Caminho do Preload:', join(__dirname, 'preload.js'));
 
@@ -139,9 +139,15 @@ if (!gotTheLock) {
     });
 
     mainWindow.on('ready-to-show', () => {
-      console.log('Janela pronta para exibição!');
-      mainWindow?.show();
-      mainWindow?.focus();
+      const isHidden = process.argv.includes('--hidden');
+      logToFile(`[Main] Janela pronta. Iniciar oculta (--hidden): ${isHidden}`);
+
+      if (!isHidden) {
+        mainWindow?.show();
+        mainWindow?.focus();
+      } else {
+        logToFile('[Main] App iniciado no modo tray (oculto).');
+      }
     });
   }
 
@@ -170,7 +176,7 @@ if (!gotTheLock) {
     setupInputHandlers();
     setupFileHandlers();
     setupUpdateHandlers();
-    setupIpcHandlers(() => mainWindow);
+    setupIpcHandlers(() => mainWindow, join(__dirname, 'preload.js'));
 
     try {
       const robot = require('robotjs');

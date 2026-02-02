@@ -141,8 +141,21 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 onSessionUpdate(sessionId, {
                     connected: true,
                     isConnecting: false,
-                    remoteStream
+                    remoteStream,
+                    status: 'connected'
                 });
+
+                if (call.peerConnection) {
+                    call.peerConnection.oniceconnectionstatechange = () => {
+                        const state = call.peerConnection.iceConnectionState;
+                        console.log(`[ICE-State] Session ${sessionId}: ${state}`);
+                        if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                            onSessionUpdate(sessionId, { status: 'disconnected' });
+                        } else if (state === 'connected' || state === 'completed') {
+                            onSessionUpdate(sessionId, { status: 'connected' });
+                        }
+                    };
+                }
             });
 
             call.on('close', () => {
@@ -195,8 +208,21 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 connected: true,
                 remoteStream,
                 incomingCall: null,
-                isAuthenticated: true // [FIX] Mark as authenticated so mouse events are processed
+                isAuthenticated: true,
+                status: 'connected'
             });
+
+            if (call.peerConnection) {
+                call.peerConnection.oniceconnectionstatechange = () => {
+                    const state = call.peerConnection.iceConnectionState;
+                    console.log(`[ICE-State] Session ${sessionId}: ${state}`);
+                    if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                        onSessionUpdate(sessionId, { status: 'disconnected' });
+                    } else if (state === 'connected' || state === 'completed') {
+                        onSessionUpdate(sessionId, { status: 'connected' });
+                    }
+                };
+            }
         });
 
         call.on('close', () => {

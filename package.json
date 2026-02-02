@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.98",
+  "version": "1.0.107",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
@@ -13,22 +13,22 @@
     "server:peer": "peerjs --port 9000 --path /peerjs --allow_discovery true",
     "dist": "npm run build && electron-builder",
     "test": "vitest",
-    "postinstall": "npx @electron/rebuild -v 29.4.0 -f -m . -w robotjs"
+    "postinstall": "npx @electron/rebuild -v 28.2.0 -f -m . -w @jitsi/robotjs"
   },
   "dependencies": {
+    "@jitsi/robotjs": "^0.6.21",
     "axios": "^1.13.3",
     "lucide-react": "^0.562.0",
     "nan": "^2.25.0",
     "peerjs": "^1.5.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "robotjs": "^0.6.0"
+    "react-dom": "^19.2.0"
   },
   "overrides": {
     "nan": "^2.25.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
+    "@electron/rebuild": "^4.0.3",
     "@eslint/js": "^9.39.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -38,13 +38,14 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^8.2.2",
-    "electron": "^29.4.0",
+    "electron": "^28.2.0",
     "electron-builder": "^24.13.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
+    "node-abi": "^4.26.0",
     "peer": "^1.0.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",

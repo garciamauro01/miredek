@@ -1,10 +1,12 @@
-import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus, Maximize, Shrink, StretchHorizontal } from 'lucide-react';
 
 interface Tab {
     id: string;
     remoteId: string;
     connected: boolean;
     isDashboard?: boolean;
+    hasNewMessage?: boolean;
 }
 
 interface CustomTitleBarProps {
@@ -19,10 +21,10 @@ interface CustomTitleBarProps {
     isSessionActive?: boolean;
     sessionRemoteId?: string;
     isSecure?: boolean;
+    hasNewMessage?: boolean;
     // Session Actions
     onChatToggle?: () => void;
     onActionsClick?: () => void;
-    onDisplayClick?: () => void;
     onPermissionsClick?: () => void;
     // Monitor switching
     remoteSources?: any[];
@@ -31,15 +33,17 @@ interface CustomTitleBarProps {
     // ...
     updateAvailable?: { version: string; downloadUrl: string } | null;
     onUpdateClick?: () => void;
+    currentViewMode?: 'fit' | 'original' | 'stretch';
+    onViewModeSelect?: (mode: 'fit' | 'original' | 'stretch') => void;
 }
 
 export function CustomTitleBar({
     isSessionActive = false,
     sessionRemoteId = '',
     isSecure = true,
+    hasNewMessage = false,
     onChatToggle,
     onActionsClick,
-    onDisplayClick,
     onPermissionsClick,
     remoteSources = [],
     activeSourceId,
@@ -50,8 +54,11 @@ export function CustomTitleBar({
     activeTabId,
     onTabClick,
     onTabClose,
-    onNewTab
+    onNewTab,
+    currentViewMode = 'fit',
+    onViewModeSelect
 }: CustomTitleBarProps) {
+    const [showDisplayMenu, setShowDisplayMenu] = useState(false);
 
     const handleMinimize = () => {
         if (window.electronAPI) window.electronAPI.minimizeWindow();
@@ -110,7 +117,15 @@ export function CustomTitleBar({
                                 fontWeight: activeTabId === tab.id ? 600 : 400
                             } as any}
                         >
-                            {tab.isDashboard ? <Home size={14} /> : <Monitor size={14} color={tab.connected ? '#4CAF50' : '#FF9800'} />}
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                {tab.isDashboard ? <Home size={14} /> : <Monitor size={14} color={tab.connected ? '#4CAF50' : '#FF9800'} />}
+                                {tab.hasNewMessage && (
+                                    <div style={{
+                                        position: 'absolute', top: -4, right: -4, width: 8, height: 8,
+                                        background: '#e03226', borderRadius: '50%', border: '2px solid #fff'
+                                    }}></div>
+                                )}
+                            </div>
                             <span style={{
                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                             }}>{tab.isDashboard ? 'Início' : tab.remoteId}</span>
@@ -154,9 +169,65 @@ export function CustomTitleBar({
                         {/* Monitor switchers simplificados aqui se necessário */}
                     </div>
 
-                    <ToolbarButton icon={<MessageSquare size={16} />} onClick={onChatToggle} title="Chat" />
+                    <div style={{ position: 'relative' }}>
+                        <ToolbarButton
+                            icon={<MessageSquare size={16} />}
+                            onClick={onChatToggle}
+                            title="Chat"
+                        />
+                        {hasNewMessage && (
+                            <div style={{
+                                position: 'absolute', top: 4, right: 4, width: 8, height: 8,
+                                background: '#e03226', borderRadius: '50%', border: '2px solid #fff',
+                                pointerEvents: 'none'
+                            }}></div>
+                        )}
+                    </div>
                     <ToolbarButton icon={<Zap size={16} />} onClick={onActionsClick} title="Ações" />
-                    <ToolbarButton icon={<Monitor size={16} />} onClick={onDisplayClick} title="Display" />
+
+                    {/* Display Menu Container */}
+                    <div style={{ position: 'relative' }}>
+                        <ToolbarButton
+                            icon={<Monitor size={16} />}
+                            onClick={() => setShowDisplayMenu(!showDisplayMenu)}
+                            title="Visualização"
+                            active={showDisplayMenu}
+                        />
+                        {showDisplayMenu && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '35px',
+                                right: '0',
+                                background: '#fff',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                zIndex: 1000,
+                                width: '180px',
+                                padding: '5px 0'
+                            }}>
+                                <DisplayMenuItem
+                                    label="Ajustar à Tela"
+                                    icon={<Shrink size={14} />}
+                                    active={currentViewMode === 'fit'}
+                                    onClick={() => { onViewModeSelect?.('fit'); setShowDisplayMenu(false); }}
+                                />
+                                <DisplayMenuItem
+                                    label="Tamanho Original"
+                                    icon={<Maximize size={14} />}
+                                    active={currentViewMode === 'original'}
+                                    onClick={() => { onViewModeSelect?.('original'); setShowDisplayMenu(false); }}
+                                />
+                                <DisplayMenuItem
+                                    label="Esticar"
+                                    icon={<StretchHorizontal size={14} />}
+                                    active={currentViewMode === 'stretch'}
+                                    onClick={() => { onViewModeSelect?.('stretch'); setShowDisplayMenu(false); }}
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     <ToolbarButton icon={<Lock size={16} />} onClick={onPermissionsClick} title="Permissões" />
 
                     {/* Monitor Switchers */}
@@ -165,27 +236,42 @@ export function CustomTitleBar({
                             <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
                             <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0 5px' }}>
                                 {remoteSources.map((source, index) => (
-                                    <button
-                                        key={source.id}
-                                        onClick={() => onSourceSelect?.(source.id)}
-                                        title={`Monitor ${index + 1}`}
-                                        style={{
-                                            width: '24px',
-                                            height: '24px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            background: activeSourceId === source.id ? '#e03226' : '#f0f0f0',
-                                            color: activeSourceId === source.id ? '#fff' : '#666',
-                                            border: '1px solid #ddd',
-                                            borderRadius: '4px',
-                                            fontSize: '11px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        {index + 1}
-                                    </button>
+                                    <div key={source.id} style={{ WebkitAppRegion: 'no-drag' } as any}>
+                                        <button
+                                            onClick={() => {
+                                                console.log(`[CustomTitleBar] Click (onClick) Monitor ${index + 1} (id: ${source.id})`);
+                                                onSourceSelect?.(source.id);
+                                            }}
+                                            onMouseDown={() => {
+                                                console.log(`[CustomTitleBar] Click (onMouseDown) Monitor ${index + 1} (id: ${source.id})`);
+                                                // onSourceSelect?.(source.id); // Evitar duplo disparo se onClick funcionar
+                                            }}
+                                            title={`Monitor ${index + 1}`}
+                                            style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                background: activeSourceId === source.id ? '#e03226' : '#f0f0f0',
+                                                color: activeSourceId === source.id ? '#fff' : '#666',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                fontSize: '11px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                WebkitAppRegion: 'no-drag',
+                                                transition: 'all 0.1s ease',
+                                                position: 'relative',
+                                                zIndex: 100,
+                                                pointerEvents: 'auto'
+                                            } as any}
+                                            onMouseEnter={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#e5e5e5')}
+                                            onMouseLeave={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#f0f0f0')}
+                                        >
+                                            {index + 1}
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </>
@@ -220,21 +306,48 @@ export function CustomTitleBar({
 }
 
 // Sub-componentes para botões
-function ToolbarButton({ icon, onClick, title }: { icon: React.ReactNode, onClick?: () => void, title?: string }) {
+function ToolbarButton({ icon, onClick, title, active = false }: { icon: React.ReactNode, onClick?: () => void, title?: string, active?: boolean }) {
     return (
         <button
             onClick={onClick}
             title={title}
             style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
+                background: active ? '#ddd' : 'transparent', border: 'none', cursor: 'pointer',
                 padding: '6px', borderRadius: '4px',
-                color: '#555', display: 'flex', alignItems: 'center'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#f0f0f0'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                color: '#555', display: 'flex', alignItems: 'center',
+                WebkitAppRegion: 'no-drag'
+            } as any}
+            onMouseEnter={(e) => !active && (e.currentTarget.style.background = '#f0f0f0')}
+            onMouseLeave={(e) => !active && (e.currentTarget.style.background = 'transparent')}
         >
             {icon}
         </button>
+    );
+}
+
+function DisplayMenuItem({ label, icon, active, onClick }: { label: string, icon: React.ReactNode, active: boolean, onClick: () => void }) {
+    return (
+        <div
+            onClick={onClick}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 15px',
+                cursor: 'pointer',
+                background: active ? '#f0f7ff' : 'transparent',
+                color: active ? '#e03226' : '#333',
+                fontSize: '12px',
+                fontWeight: active ? '600' : '400',
+                WebkitAppRegion: 'no-drag'
+            } as any}
+            onMouseEnter={(e) => !active && (e.currentTarget.style.background = '#f5f5f5')}
+            onMouseLeave={(e) => !active && (e.currentTarget.style.background = 'transparent')}
+        >
+            {icon}
+            <span style={{ flex: 1 }}>{label}</span>
+            {active && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e03226' }}></div>}
+        </div>
     );
 }
 

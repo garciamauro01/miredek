@@ -16,13 +16,14 @@ interface UseRemoteSessionProps {
     localStream: MediaStream | null;
     sources: any[];
     currentSourceId: string;
+    selectSource: (sourceId: string) => Promise<void>;
     onFileMessage: (data: any) => void;
 }
 
 export function useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword, localStream, sources, currentSourceId,
-    onFileMessage
+    selectSource, onFileMessage
 }: UseRemoteSessionProps) {
 
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -37,6 +38,7 @@ export function useRemoteSession({
     const unattendedPasswordRef = useRef(unattendedPassword);
     const activeSessionIdRef = useRef(activeSessionId);
     const pendingSessionIdRef = useRef(pendingSessionId);
+    const hasAttemptedStartupReconnect = useRef(false);
 
     const videoRefsMap = useRef<Map<string, { remote: React.RefObject<HTMLVideoElement | null> }>>(new Map());
     const answeredCallsRef = useRef<Set<string>>(new Set());
@@ -87,6 +89,13 @@ export function useRemoteSession({
 
             if (activeSessionIdRef.current === sessionId) setActiveSessionId('dashboard');
             if (pendingSessionIdRef.current === sessionId) setPendingSessionId(null);
+
+            // [FIX] Se o usuário fechou a sessão, limpamos o ID de reconexão automática
+            const lastActive = localStorage.getItem('miré_desk_last_active_remote');
+            if (lastActive === session.remoteId) {
+                console.log(`[handleSessionClose] Limpando persistência de reconexão para ${session.remoteId}`);
+                localStorage.removeItem('miré_desk_last_active_remote');
+            }
 
             return prev.filter(s => s.id !== sessionId);
         });
@@ -177,6 +186,31 @@ export function useRemoteSession({
                 return;
             }
 
+            if (data.type === 'CHAT_MESSAGE') {
+                const sRef = sessionsRef.current.find(x => x.id === sessionId);
+                if (sRef?.isIncoming) {
+                    window.electronAPI.openChatWindow(sessionId, sRef.remoteId);
+                    window.electronAPI.notifyChatMessageReceived(sessionId, { sender: 'remote', text: data.text, timestamp: data.timestamp });
+                }
+
+                setSessions(prev => prev.map(s => s.id === sessionId ? {
+                    ...s,
+                    messages: [...(s.messages || []), { sender: 'remote', text: data.text, timestamp: data.timestamp }],
+                    hasNewMessage: !s.isChatOpen
+                } : s));
+                return;
+            }
+
+            if (data.type === 'PING') {
+                conn.send({ type: 'PONG' });
+                return;
+            }
+
+            if (data.type === 'PONG') {
+                setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, lastHeartbeat: Date.now(), status: 'connected' } : s));
+                return;
+            }
+
             // LOGIC
             setSessions(prev => {
                 const session = prev.find(s => s.id === sessionId);
@@ -198,6 +232,17 @@ export function useRemoteSession({
 
                         return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: !!isCorrect } : s);
                     }
+
+                    if (data.type === 'SWITCH_MONITOR') {
+                        console.log(`[Host] Solicitação de troca de monitor recebida: ${data.sourceId}`);
+                        selectSource(data.sourceId).then(() => {
+                            // Opcional: Notificar todos os clientes que o monitor mudou
+                            conn.send({ type: 'MONITOR_CHANGED', activeSourceId: data.sourceId });
+                        }).catch(err => {
+                            console.error('[Host] Falha ao trocar monitor:', err);
+                        });
+                        return prev;
+                    }
                 } else {
                     // CLIENT LOGIC
                     if (data.type === 'AUTH_STATUS') {
@@ -216,10 +261,10 @@ export function useRemoteSession({
                             // if (localStream && sessionManagerFnRef.current) {
                             //    sessionManagerFnRef.current.startVideoCall(sessionId, session.remoteId, localStream);
                             // }
-                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false } : s);
+                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false, status: 'connected' } : s);
                         } else {
                             alert('Senha incorreta.');
-                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, pendingPassword: undefined } : s);
+                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, pendingPassword: undefined, status: 'disconnected' } : s);
                         }
                     }
                     else if (data.type === 'SOURCES_LIST') {
@@ -263,6 +308,7 @@ export function useRemoteSession({
             }
         });
     }, [sessions, localStream]);
+
 
     const sessionManager = useSessionManager({
         serverIp,
@@ -357,6 +403,100 @@ export function useRemoteSession({
 
     }, [contacts, localStream, sessionManager, setContacts, setRecentSessions]);
 
+    useEffect(() => {
+        const removeListener = window.electronAPI.onChatMessageOutgoing((sessionId: string, message: any) => {
+            const session = sessionsRef.current.find(s => s.id === sessionId);
+            if (session?.dataConnection?.open) {
+                session.dataConnection.send({ type: 'CHAT_MESSAGE', ...message });
+                setSessions(prev => prev.map(s => s.id === sessionId ? {
+                    ...s,
+                    messages: [...(s.messages || []), message]
+                } : s));
+            }
+        });
+        return removeListener;
+    }, []);
+
+    const sendMessage = useCallback((sessionId: string, text: string) => {
+        const session = sessionsRef.current.find(s => s.id === sessionId);
+        if (session && session.dataConnection?.open) {
+            const msg = { sender: 'me' as const, text, timestamp: Date.now() };
+            session.dataConnection.send({ type: 'CHAT_MESSAGE', ...msg });
+            setSessions(prev => prev.map(s => s.id === sessionId ? {
+                ...s,
+                messages: [...(s.messages || []), msg]
+            } : s));
+        }
+    }, []);
+
+    const toggleChat = useCallback((sessionId: string) => {
+        setSessions(prev => prev.map(s => s.id === sessionId ? {
+            ...s,
+            isChatOpen: !s.isChatOpen,
+            hasNewMessage: false
+        } : s));
+    }, []);
+
+    // --- HEARTBEAT & RECONNECTION LOGIC ---
+
+    // 1. Heartbeat Interval (Client-side sends Ping)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            sessionsRef.current.forEach(s => {
+                if (!s.isIncoming && s.dataConnection?.open) {
+                    s.dataConnection.send({ type: 'PING' });
+
+                    // Check if last PONG was too long ago
+                    const lastHB = s.lastHeartbeat || 0;
+                    if (lastHB > 0 && Date.now() - lastHB > 10000) {
+                        console.warn(`[Heartbeat] Session ${s.id} timed out. Marking as disconnected.`);
+                        setSessions(prev => prev.map(x => x.id === s.id ? { ...x, status: 'disconnected' } : x));
+                    }
+                }
+            });
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // 2. Persistent Active Session & Auto-Reconnect on lost connection
+    useEffect(() => {
+        sessions.forEach(s => {
+            if (!s.isIncoming && s.isAuthenticated) {
+                localStorage.setItem('miré_desk_last_active_remote', s.remoteId);
+            }
+        });
+    }, [sessions]);
+
+    useEffect(() => {
+        const reconnectInterval = setInterval(() => {
+            sessionsRef.current.forEach(s => {
+                if (!s.isIncoming && s.status === 'disconnected' && s.isAuthenticated) {
+                    console.log(`[Auto-Reconnect] Tentando reconectar sessão ${s.id} para ${s.remoteId}`);
+                    setSessions(prev => prev.map(x => x.id === s.id ? { ...x, status: 'reconnecting', isConnecting: true } : x));
+                    if (localStream) {
+                        sessionManagerFnRef.current?.connectToRemote(s.id, s.remoteId, localStream);
+                    }
+                }
+            });
+        }, 5000);
+        return () => clearInterval(reconnectInterval);
+    }, [localStream]);
+
+    // 3. Auto-Reconnect on Startup
+    useEffect(() => {
+        if (hasAttemptedStartupReconnect.current) return;
+
+        const lastRemote = localStorage.getItem('miré_desk_last_active_remote');
+        if (lastRemote && sessions.length === 0) {
+            hasAttemptedStartupReconnect.current = true;
+            console.log(`[Startup] Tentando reconectar à última sessão ativa: ${lastRemote}`);
+            // Wait for 2s to ensure hardware/peer is ready
+            setTimeout(() => {
+                if (sessionsRef.current.length === 0) connectTo(lastRemote);
+            }, 2000);
+        }
+    }, [connectTo, sessions.length]);
+
     return {
         sessions, setSessions,
         activeSessionId, setActiveSessionId,
@@ -365,6 +505,8 @@ export function useRemoteSession({
         connectTo,
         sessionManager,
         handleSessionClose,
-        setupDataListeners
+        setupDataListeners,
+        sendMessage,
+        toggleChat
     };
 }

@@ -13,6 +13,7 @@ import { useFileTransfer } from './hooks/useFileTransfer'
 import { useRemoteSession } from './hooks/useRemoteSession'
 import { usePeerConnection } from './hooks/usePeerConnection'
 import { useClipboardSync } from './hooks/useClipboardSync'
+import { usePeerStatusCheck } from './hooks/usePeerStatusCheck'
 import { getRelativeMousePos } from './utils/mouseUtils'
 import { captureSnapshot } from './utils/videoUtils'
 
@@ -31,6 +32,41 @@ if (typeof window !== 'undefined') {
     return pc;
   };
   Object.assign(window.RTCPeerConnection, OriginalRTCPeerConnection);
+}
+
+import { Chat } from './components/Chat'
+
+function ChatOnly() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('sessionId') || '';
+  const remoteId = params.get('remoteId') || '';
+  const [messages, setMessages] = useState<any[]>([]);
+
+  useEffect(() => {
+    return window.electronAPI.onChatMessageReceived((msg) => {
+      setMessages(prev => [...prev, msg]);
+    });
+  }, []);
+
+  const handleSend = (text: string) => {
+    const msg = { sender: 'me' as const, text, timestamp: Date.now() };
+    setMessages(prev => [...prev, msg]);
+    window.electronAPI.sendChatMessageFromWindow(sessionId, msg);
+  };
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+      <CustomTitleBar title={`Chat: ${remoteId}`} />
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <Chat
+          isOpen={true}
+          messages={messages}
+          onSendMessage={handleSend}
+          onClose={() => window.electronAPI.closeWindow()}
+        />
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -90,7 +126,7 @@ function App() {
 
   // 1. Sources
   const {
-    sources, currentSourceId, localStreamRef
+    sources, currentSourceId, selectSource, localStreamRef
   } = useDeviceSources(
     (stream) => sessionManagerRef.current?.updateLocalStream(stream),
     (_srcId) => {
@@ -110,12 +146,15 @@ function App() {
     connectTo,
     sessionManager,
     handleSessionClose,
-    setupDataListeners
+    setupDataListeners,
+    sendMessage,
+    toggleChat
   } = useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword,
     localStream: localStreamRef.current,
     sources, currentSourceId,
+    selectSource,
     myId: '',
     onFileMessage: handleFileMessage
   });
@@ -147,11 +186,14 @@ function App() {
   // Depende para `send`.
   // Vou usar o hook aqui.
 
-  const { myId, peerStatus } = usePeerConnection(
+  const { myId, peerStatus, peerInstance } = usePeerConnection(
     serverIp, setSessions, videoRefsMap,
     setupDataListeners,
     handleShowWindow
   );
+
+  // 5. Peer Status Check (verifica se peers estão online)
+  const recentStatusMap = usePeerStatusCheck(peerInstance, recentSessions, 30000);
 
   // --- CORREÇÃO DE DEPENDÊNCIA CIRCULAR E LISTENERS ---
   // Vou precisar de um Ref para sessions dentro de App para useFileTransfer?
@@ -218,13 +260,25 @@ function App() {
     }
   };
 
+  const isChatView = new URLSearchParams(window.location.search).get('view') === 'chat';
+
+  if (isChatView) return <ChatOnly />;
+
   // Render
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#000' }}>
       {/* TITLE BAR */}
       <CustomTitleBar
         title="Miré-Desk"
-        tabs={[{ id: 'dashboard', remoteId: 'Painel', connected: true, isDashboard: true }, ...sessions.filter(s => !s.isIncoming).map(s => ({ id: s.id, remoteId: s.remoteId, connected: s.connected }))]}
+        tabs={[
+          { id: 'dashboard', remoteId: 'Painel', connected: true, isDashboard: true },
+          ...sessions.filter(s => !s.isIncoming).map(s => ({
+            id: s.id,
+            remoteId: s.remoteId,
+            connected: s.connected,
+            hasNewMessage: s.hasNewMessage
+          }))
+        ]}
         activeTabId={activeSessionId}
         onTabClick={setActiveSessionId}
         onTabClose={(id) => handleSessionClose(id, 'User closed tab')}
@@ -233,17 +287,23 @@ function App() {
         onUpdateClick={() => updateAvailable?.downloadUrl && window.electronAPI.downloadAndInstallUpdate(updateAvailable.downloadUrl)}
         isSessionActive={!!(activeSessionId && sessions.find(s => s.id === activeSessionId)?.connected)}
         sessionRemoteId={sessions.find(s => s.id === activeSessionId)?.remoteId}
-        onDisplayClick={() => {
+        onChatToggle={() => activeSessionId && toggleChat(activeSessionId)}
+        hasNewMessage={sessions.find(s => s.id === activeSessionId)?.hasNewMessage}
+        currentViewMode={sessions.find(s => s.id === activeSessionId)?.viewMode || 'fit'}
+        onViewModeSelect={(mode) => {
           const s = sessions.find(x => x.id === activeSessionId);
           if (s) {
-            const modes: any[] = ['fit', 'original', 'stretch'];
-            const next = modes[(modes.indexOf(s.viewMode || 'fit') + 1) % modes.length];
-            setSessions(prev => prev.map(x => x.id === s.id ? { ...x, viewMode: next } : x));
+            setSessions(prev => prev.map(x => x.id === s.id ? { ...x, viewMode: mode } : x));
           }
         }}
         remoteSources={sessions.find(s => s.id === activeSessionId)?.remoteSources}
         activeSourceId={sessions.find(s => s.id === activeSessionId)?.activeSourceId}
-        onSourceSelect={(sid) => sessions.find(s => s.id === activeSessionId)?.dataConnection?.send({ type: 'SWITCH_MONITOR', sourceId: sid })}
+        onSourceSelect={(sid) => {
+          console.log('[App] Troca de monitor solicitado:', sid, 'ActiveSessionId:', activeSessionId);
+          const s = sessions.find(x => x.id === activeSessionId);
+          console.log('[App] Sessão encontrada para troca:', s?.id, 'DataConn Open:', s?.dataConnection?.open);
+          s?.dataConnection?.send({ type: 'SWITCH_MONITOR', sourceId: sid });
+        }}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
@@ -260,7 +320,7 @@ function App() {
             peerStatus={peerStatus} contacts={contacts}
             onUpdateContact={(c) => setContacts(prev => { const n = prev.map(x => x.id === c.id ? c : x); if (!n.find(x => x.id === c.id)) n.push(c); localStorage.setItem('miré_desk_contacts', JSON.stringify(n)); return n; })}
             onRemoveContact={(id) => { setContacts(prev => prev.filter(c => c.id !== id)); setRecentSessions(prev => prev.filter(r => r !== id)); }}
-            recentStatusMap={{}} // TODO: Add logic back if needed
+            recentStatusMap={recentStatusMap}
           />
         ) : (
           sessions.find(s => s.id === activeSessionId) && videoRefsMap.current.get(activeSessionId!)?.remote && (
@@ -272,6 +332,11 @@ function App() {
               incomingCall={null} onAnswer={() => { }} onReject={() => { }}
               remoteId={sessions.find(s => s.id === activeSessionId)!.remoteId}
               viewMode={sessions.find(s => s.id === activeSessionId)!.viewMode || 'fit'}
+              isChatOpen={sessions.find(s => s.id === activeSessionId)?.isChatOpen}
+              chatMessages={sessions.find(s => s.id === activeSessionId)?.messages || []}
+              onSendMessage={(txt: string) => activeSessionId && sendMessage(activeSessionId, txt)}
+              onToggleChat={() => activeSessionId && toggleChat(activeSessionId)}
+              status={sessions.find(s => s.id === activeSessionId)?.status}
               onFileDrop={(p, x, y) => {
                 const s = sessions.find(x => x.id === activeSessionId);
                 if (s?.dataConnection) sendFile(s.dataConnection, p, x, y);

@@ -26,5 +26,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-progress', listener);
         return () => ipcRenderer.removeListener('update-progress', listener);
     },
-    openDevTools: () => ipcRenderer.invoke('open-devtools')
+    openDevTools: () => ipcRenderer.invoke('open-devtools'),
+    openChatWindow: (sessionId: string, remoteId: string) => ipcRenderer.invoke('open-chat-window', sessionId, remoteId),
+    notifyChatMessageReceived: (sessionId: string, message: any) => ipcRenderer.invoke('chat-notify-received', sessionId, message),
+    onChatMessageReceived: (callback: (message: any) => void) => {
+        const listener = (_event: any, message: any) => callback(message);
+        ipcRenderer.on('chat-message-received', listener);
+        return () => ipcRenderer.removeListener('chat-message-received', listener);
+    },
+    sendChatMessageFromWindow: (sessionId: string, message: any) => ipcRenderer.invoke('chat-send-from-window', sessionId, message),
+    onChatMessageOutgoing: (callback: (sessionId: string, message: any) => void) => {
+        const listener = (_event: any, sessionId: string, message: any) => callback(sessionId, message);
+        ipcRenderer.on('chat-message-outgoing', listener);
+        return () => ipcRenderer.removeListener('chat-message-outgoing', listener);
+    }
 });

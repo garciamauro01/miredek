@@ -1,7 +1,9 @@
 import { app, ipcMain, BrowserWindow, clipboard, desktopCapturer } from 'electron';
 import { logToFile } from '../utils/logger';
 
-export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null) {
+const chatWindows = new Map<string, BrowserWindow>();
+
+export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, preloadPath: string) {
     // --- IPC Handlers DevTools ---
     ipcMain.handle('open-devtools', () => {
         getMainWindow()?.webContents.openDevTools({ mode: 'detach' });
@@ -143,6 +145,55 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null) {
         } catch (error) {
             logToFile(`[Main] Erro fatal ao capturar fontes: ${error}`);
             return [];
+        }
+    });
+
+    // --- MULTI-WINDOW CHAT ---
+    ipcMain.handle('open-chat-window', (event, sessionId: string, remoteId: string) => {
+        if (chatWindows.has(sessionId)) {
+            const win = chatWindows.get(sessionId);
+            win?.show();
+            win?.focus();
+            return;
+        }
+
+        const chatWin = new BrowserWindow({
+            width: 400,
+            height: 500,
+            frame: false,
+            titleBarStyle: 'hidden',
+            backgroundColor: '#ffffff',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: preloadPath,
+            },
+        });
+
+        chatWindows.set(sessionId, chatWin);
+
+        const url = process.env.VITE_DEV_SERVER_URL
+            ? `${process.env.VITE_DEV_SERVER_URL}?view=chat&sessionId=${sessionId}&remoteId=${remoteId}`
+            : `file://${require('path').join(app.getAppPath(), 'dist/index.html')}?view=chat&sessionId=${sessionId}&remoteId=${remoteId}`;
+
+        chatWin.loadURL(url);
+
+        chatWin.on('closed', () => {
+            chatWindows.delete(sessionId);
+        });
+    });
+
+    ipcMain.handle('chat-notify-received', (event, sessionId: string, message: any) => {
+        const win = chatWindows.get(sessionId);
+        if (win) {
+            win.webContents.send('chat-message-received', message);
+        }
+    });
+
+    ipcMain.handle('chat-send-from-window', (event, sessionId: string, message: any) => {
+        const mainWin = getMainWindow();
+        if (mainWin) {
+            mainWin.webContents.send('chat-message-outgoing', sessionId, message);
         }
     });
 }
