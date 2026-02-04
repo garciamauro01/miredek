@@ -162,8 +162,10 @@ export function useRemoteSession({
             // Também adicionada verificação de autenticação por segurança
             const currentSession = sessionsRef.current.find(s => s.id === sessionId);
             if (currentSession?.isIncoming && ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(data.type)) {
-                console.log(`[Input-Host] Evento ${data.type} recebido. Autenticado: ${currentSession.isAuthenticated}`);
                 if (currentSession.isAuthenticated) {
+                    if (data.type !== 'mousemove') {
+                        console.log(`[Input-Host] Evento ${data.type} recebido.`);
+                    }
                     if (window.electronAPI) {
                         const activeSource = sourcesRef.current.find(s => s.id === currentSourceIdRef.current);
                         const bounds = activeSource?.bounds;

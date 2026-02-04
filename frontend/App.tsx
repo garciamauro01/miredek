@@ -252,7 +252,7 @@ function App() {
     const activeSession = sessions.find(s => s.id === activeSessionId);
     if (!activeSession) return;
 
-    // Throttle apenas para movimento de mouse (16ms = ~60fps)
+    // Throttle apenas para movimento de mouse (8ms = ~125fps)
     if (type === 'mousemove') {
       const now = Date.now();
       if (now - lastMouseMoveRef.current < 8) return;
