@@ -4,13 +4,27 @@ export const getRelativeMousePos = (
     viewMode: 'fit' | 'original' | 'stretch' = 'fit'
 ) => {
     const video = videoElement;
-    if (!video || video.videoWidth === 0) return null;
+    if (!video) return null;
+
+    // Se o vídeo ainda não carregou as dimensões, tenta usar as dimensões do elemento
+    // mas loga para sabermos que a precisão pode ser afetada.
+    if (video.videoWidth === 0) {
+        if (video.clientWidth > 0) {
+            console.log('[mouseUtils] videoWidth é 0, mas clientWidth > 0. Tentando fallback...');
+        } else {
+            // Silencioso se o elemento também estiver zerado (provavelmente oculto)
+            return null;
+        }
+    }
 
     const rect = video.getBoundingClientRect();
     let clientX, clientY;
 
     if ('touches' in e) {
-        if (e.touches.length === 0) return null;
+        if (e.touches.length === 0) {
+            console.warn('[mouseUtils] Toque vazio');
+            return null;
+        }
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
     } else {
@@ -21,15 +35,18 @@ export const getRelativeMousePos = (
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    let finalX = 0;
-    let finalY = 0;
-
     const cw = video.clientWidth;
     const ch = video.clientHeight;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
+    // Fallback para dimensões do componente se o stream não estiver pronto
+    const vw = video.videoWidth || cw || 1;
+    const vh = video.videoHeight || ch || 1;
 
-    if (viewMode === 'stretch') {
+    let finalX = 0;
+    let finalY = 0;
+    let actualWidth = cw, actualHeight = ch, offsetX = 0, offsetY = 0;
+
+    if (viewMode === 'stretch' || (video.videoWidth === 0 && viewMode === 'fit')) {
+        // Se não temos as dimensões do vídeo, usamos o elemento todo
         finalX = x / cw;
         finalY = y / ch;
     } else if (viewMode === 'original') {
@@ -40,7 +57,7 @@ export const getRelativeMousePos = (
         const videoRatio = vw / vh;
         const elementRatio = cw / ch;
 
-        let actualWidth, actualHeight, offsetX, offsetY;
+        // let actualWidth = cw, actualHeight = ch, offsetX = 0, offsetY = 0; // This line is now redundant and removed
 
         if (elementRatio > videoRatio) {
             // Pillarbox
@@ -60,6 +77,25 @@ export const getRelativeMousePos = (
         finalY = (y - offsetY) / actualHeight;
     }
 
-    if (finalX < 0 || finalX > 1 || finalY < 0 || finalY > 1) return null;
+    const epsilon = 0.001;
+    if (finalX < -epsilon || finalX > 1 + epsilon || finalY < -epsilon || finalY > 1 + epsilon) {
+        // Log apenas se estiver muito longe de ser um arredondamento (ex: movimentando fora da janela)
+        // Se estiver perto, clampamos
+        if (finalX >= -epsilon && finalX <= 1 + epsilon && finalY >= -epsilon && finalY <= 1 + epsilon) {
+            finalX = Math.max(0, Math.min(1, finalX));
+            finalY = Math.max(0, Math.min(1, finalY));
+        } else {
+            // Se falhou e está razoavelmente perto do vídeo, loga para debug
+            if (finalX > -0.2 && finalX < 1.2 && finalY > -0.2 && finalY < 1.2) {
+                console.log(`[mouseUtils] Fora dos limites: finalX=${finalX.toFixed(3)}, finalY=${finalY.toFixed(3)} (videoWidth=${video.videoWidth}, cw=${cw}, offsetX=${(offsetX || 0).toFixed(0)})`);
+            }
+            return null;
+        }
+    }
+
+    // Clamp final para garantir [0, 1]
+    finalX = Math.max(0, Math.min(1, finalX));
+    finalY = Math.max(0, Math.min(1, finalY));
+
     return { x: finalX, y: finalY };
 };

@@ -51,7 +51,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
 
         peer.on('open', () => {
             onLog(sessionId, `Canal de dados aberto para autenticação`);
-            const conn = peer.connect(remoteId);
+            const conn = peer.connect(remoteId, { reliable: false });
             conn.on('open', () => {
                 onSessionUpdate(sessionId, { dataConnection: conn });
             });
@@ -170,7 +170,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 onSessionUpdate(sessionId, { connected: false, isConnecting: false });
             });
 
-            const conn = peer.connect(remoteId);
+            const conn = peer.connect(remoteId, { reliable: false });
             conn.on('open', () => {
                 connectedFlag = true;
                 clearTimeout(timeout);

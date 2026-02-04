@@ -2,6 +2,7 @@ import { app, ipcMain, BrowserWindow, clipboard, desktopCapturer } from 'electro
 import { logToFile } from '../utils/logger';
 
 const chatWindows = new Map<string, BrowserWindow>();
+let debugWindow: BrowserWindow | null = null;
 
 export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, preloadPath: string) {
     // --- IPC Handlers DevTools ---
@@ -194,6 +195,44 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
         const mainWin = getMainWindow();
         if (mainWin) {
             mainWin.webContents.send('chat-message-outgoing', sessionId, message);
+        }
+    });
+
+    // --- DEBUG ---
+    ipcMain.handle('open-debug-window', () => {
+        if (debugWindow) {
+            debugWindow.show();
+            debugWindow.focus();
+            return;
+        }
+
+        debugWindow = new BrowserWindow({
+            width: 500,
+            height: 400,
+            frame: false,
+            titleBarStyle: 'hidden',
+            backgroundColor: '#1e1e1e',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: preloadPath,
+            },
+        });
+
+        const url = process.env.VITE_DEV_SERVER_URL
+            ? `${process.env.VITE_DEV_SERVER_URL}?view=debug`
+            : `file://${require('path').join(app.getAppPath(), 'dist/index.html')}?view=debug`;
+
+        debugWindow.loadURL(url);
+
+        debugWindow.on('closed', () => {
+            debugWindow = null;
+        });
+    });
+
+    ipcMain.handle('debug-notify-event', (event, data: any) => {
+        if (debugWindow) {
+            debugWindow.webContents.send('debug-event-received', data);
         }
     });
 }

@@ -166,7 +166,10 @@ export function useRemoteSession({
                 if (currentSession.isAuthenticated) {
                     if (window.electronAPI) {
                         const activeSource = sourcesRef.current.find(s => s.id === currentSourceIdRef.current);
-                        window.electronAPI.executeInput({ ...data, activeSourceBounds: activeSource?.bounds });
+                        const bounds = activeSource?.bounds;
+
+                        window.electronAPI.notifyDebugEvent(data);
+                        window.electronAPI.executeInput({ ...data, activeSourceBounds: bounds });
                     }
                 } else {
                     console.warn(`[Input-Host] Comando ${data.type} bloqueado: Sessão não autenticada.`);

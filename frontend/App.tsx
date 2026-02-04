@@ -35,18 +35,26 @@ if (typeof window !== 'undefined') {
 }
 
 import { Chat } from './components/Chat'
+import { DebugView } from './components/DebugView'
 
-function ChatOnly() {
+function ViewManager() {
   const params = new URLSearchParams(window.location.search);
+  const view = params.get('view');
   const sessionId = params.get('sessionId') || '';
   const remoteId = params.get('remoteId') || '';
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    return window.electronAPI.onChatMessageReceived((msg) => {
-      setMessages(prev => [...prev, msg]);
-    });
-  }, []);
+    if (view === 'chat') {
+      return window.electronAPI.onChatMessageReceived((msg) => {
+        setMessages(prev => [...prev, msg]);
+      });
+    }
+  }, [view]);
+
+  if (view === 'debug') {
+    return <DebugView />;
+  }
 
   const handleSend = (text: string) => {
     const msg = { sender: 'me' as const, text, timestamp: Date.now() };
@@ -236,10 +244,20 @@ function App() {
   }, [sessions]);
 
 
+  // Ref para throttle de mouse (limita envios para evitar flood na rede)
+  const lastMouseMoveRef = useRef<number>(0);
+
   // Helper para Inputs
   const handleInput = (type: string, e: any) => {
     const activeSession = sessions.find(s => s.id === activeSessionId);
     if (!activeSession) return;
+
+    // Throttle apenas para movimento de mouse (16ms = ~60fps)
+    if (type === 'mousemove') {
+      const now = Date.now();
+      if (now - lastMouseMoveRef.current < 8) return;
+      lastMouseMoveRef.current = now;
+    }
 
     if (activeSession.dataConnection?.open && videoRefsMap.current.get(activeSessionId!)?.remote.current) {
       const videoEl = videoRefsMap.current.get(activeSessionId!)!.remote.current!;
@@ -250,19 +268,21 @@ function App() {
         if ('button' in e) data.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
         if ('key' in e) data.key = e.key;
 
-        console.log(`[Input-Client] Enviando ${type}:`, data);
+        // Log apenas para cliques e teclas (evita poluir console com mousemove)
+        if (type !== 'mousemove') {
+          console.log(`[Input-Client] Enviando ${type}:`, data);
+        }
+
         activeSession.dataConnection.send(data);
-      } else {
-        console.warn(`[Input-Client] Falha ao calcular posição relativa para ${type}`);
       }
     } else {
       console.warn(`[Input-Client] Não foi possível enviar ${type}: Conexão aberta? ${activeSession.dataConnection?.open}, VideoRef disponível? ${!!videoRefsMap.current.get(activeSessionId!)?.remote.current}`);
     }
   };
 
-  const isChatView = new URLSearchParams(window.location.search).get('view') === 'chat';
+  const isSpecialView = !!new URLSearchParams(window.location.search).get('view');
 
-  if (isChatView) return <ChatOnly />;
+  if (isSpecialView) return <ViewManager />;
 
   // Render
   return (

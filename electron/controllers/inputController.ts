@@ -7,45 +7,54 @@ const require = createRequire(import.meta.url);
 let robot: any = null;
 
 try {
-    // Tenta carregar @jitsi/robotjs APENAS se estiver disponível (compilado corretamente)
-    // Usa require dinâmico para evitar crash se a lib nativa falhar
     robot = require('@jitsi/robotjs');
-    // Ajusta delay do mouse para 0 para ser mais fluido
-    if (robot) robot.setMouseDelay(0);
+    if (robot) {
+        robot.setMouseDelay(0);
+        const { width, height } = robot.getScreenSize();
+        logToFile(`[Input] RobotJS carregado com sucesso (${width}x${height}).`);
+    }
 } catch (e) {
-    logToFile(`[Input] ERRO: Falha ao carregar @jitsi/robotjs. Controle remoto não funcionará. ${e}`);
+    logToFile(`[Input] ERRO: Falha ao carregar @jitsi/robotjs: ${e}`);
 }
 
 export function setupInputHandlers() {
-    ipcMain.handle('execute-input', async (event, data) => {
-        if (!robot) {
-            console.error('[Input-Electron] ERRO: RobotJS não está disponível!');
-            return;
-        }
+    ipcMain.on('execute-input', (event, data) => {
+        if (!robot) return;
 
         try {
             const { type } = data;
             const primaryDisplay = screen.getPrimaryDisplay();
-            // Usa os bounds fornecidos ou cai de volta para a tela principal
             const bounds = data.activeSourceBounds || primaryDisplay.bounds;
 
             switch (type) {
                 case 'mousemove':
                     const x = Math.round(bounds.x + (data.x * bounds.width));
                     const y = Math.round(bounds.y + (data.y * bounds.height));
-                    // console.log(`[Input-Electron] Movendo mouse para: ${x}, ${y} (Bounds: ${bounds.width}x${bounds.height})`);
-                    robot.moveMouse(x, y);
+
+                    if (isNaN(x) || isNaN(y)) return;
+
+                    try {
+                        robot.moveMouse(x, y);
+                    } catch (err) { }
                     break;
 
-                case 'mousedown':
-                    console.log(`[Input] Click DOWN em: ${data.x.toFixed(2)}, ${data.y.toFixed(2)} (Tela: ${bounds.x},${bounds.y})`);
+                case 'mousedown': {
+                    const x = Math.round(bounds.x + (data.x * bounds.width));
+                    const y = Math.round(bounds.y + (data.y * bounds.height));
+                    logToFile(`[Input] Click DOWN em: ${x}, ${y}`);
+                    robot.moveMouse(x, y);
                     robot.mouseToggle('down', data.button);
                     break;
+                }
 
-                case 'mouseup':
-                    console.log(`[Input] Click UP em: ${data.x.toFixed(2)}, ${data.y.toFixed(2)}`);
+                case 'mouseup': {
+                    const x = Math.round(bounds.x + (data.x * bounds.width));
+                    const y = Math.round(bounds.y + (data.y * bounds.height));
+                    logToFile(`[Input] Click UP em: ${x}, ${y}`);
+                    robot.moveMouse(x, y);
                     robot.mouseToggle('up', data.button);
                     break;
+                }
 
                 case 'keydown':
                     try {

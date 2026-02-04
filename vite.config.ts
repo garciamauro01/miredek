@@ -24,7 +24,7 @@ export default defineConfig({
               formats: ['cjs'],
             },
             rollupOptions: {
-              external: ['electron', 'robotjs', 'path', 'fs', 'url', 'module'],
+              external: ['electron', '@jitsi/robotjs', 'path', 'fs', 'url', 'module'],
               output: {
                 format: 'cjs',
               },

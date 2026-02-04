@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
     getSources: () => ipcRenderer.invoke('get-sources'),
-    executeInput: (data: any) => ipcRenderer.invoke('execute-input', data),
+    executeInput: (data: any) => ipcRenderer.send('execute-input', data),
     getAutostartStatus: () => ipcRenderer.invoke('get-autostart-status'),
     setAutostart: (value: boolean) => ipcRenderer.invoke('set-autostart', value),
     showWindow: () => ipcRenderer.invoke('show-window'),
@@ -39,5 +39,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (_event: any, sessionId: string, message: any) => callback(sessionId, message);
         ipcRenderer.on('chat-message-outgoing', listener);
         return () => ipcRenderer.removeListener('chat-message-outgoing', listener);
+    },
+    // --- DEBUG WINDOW ---
+    openDebugWindow: () => ipcRenderer.invoke('open-debug-window'),
+    notifyDebugEvent: (event: any) => ipcRenderer.invoke('debug-notify-event', event),
+    onDebugEvent: (callback: (event: any) => void) => {
+        const listener = (_event: any, eventData: any) => callback(eventData);
+        ipcRenderer.on('debug-event-received', listener);
+        return () => ipcRenderer.removeListener('debug-event-received', listener);
     }
 });

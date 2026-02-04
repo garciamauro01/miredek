@@ -134,7 +134,7 @@ export function Dashboard({
                 <div className="sidebar-footer">
                     <img src="./splash.png" alt="Mire-Desk" className="splash-img" />
                     <div className="version-text">Miré-Desk v{appVersion}</div>
-                    <div onClick={() => window.electronAPI?.openDevTools?.()} className="debug-btn" title="Abrir DevTools (Debug)">
+                    <div onClick={() => window.electronAPI?.openDebugWindow?.()} className="debug-btn" title="Monitorar Comandos (Debug)">
                         <Bug size={12} />
                         <span>Debug</span>
                     </div>

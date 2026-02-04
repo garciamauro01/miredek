@@ -28,6 +28,11 @@ export interface ElectronAPI {
     onChatMessageReceived: (callback: (message: any) => void) => () => void;
     sendChatMessageFromWindow: (sessionId: string, message: any) => Promise<void>;
     onChatMessageOutgoing: (callback: (sessionId: string, message: any) => void) => () => void;
+
+    // Debug Window
+    openDebugWindow: () => Promise<void>;
+    notifyDebugEvent: (event: any) => Promise<void>;
+    onDebugEvent: (callback: (event: any) => void) => () => void;
 }
 
 declare global {

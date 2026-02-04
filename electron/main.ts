@@ -179,10 +179,10 @@ if (!gotTheLock) {
     setupIpcHandlers(() => mainWindow, join(__dirname, 'preload.js'));
 
     try {
-      const robot = require('robotjs');
-      logToFile(`[Main] Sistema de input carregado com sucesso. RobotJS disponível: ${!!robot}`);
+      const robot = require('@jitsi/robotjs');
+      logToFile(`[Main] RobotJS (@jitsi/robotjs) disponível: ${!!robot}`);
     } catch (e) {
-      logToFile(`[Main] ERRO: Falha ao carregar RobotJS no processo principal: ${e}`);
+      logToFile(`[Main] ERRO: Falha ao carregar @jitsi/robotjs no processo principal: ${e}`);
     }
   });
 
