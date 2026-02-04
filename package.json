@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.118",
+  "version": "1.0.121",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
@@ -13,7 +13,7 @@
     "server:peer": "peerjs --port 9000 --path /peerjs --allow_discovery true",
     "dist": "npm run build && electron-builder",
     "test": "vitest",
-    "postinstall": "npx @electron/rebuild -v 28.2.0 -f -m . -w @jitsi/robotjs"
+    "postinstall": "cd node_modules/@jitsi/robotjs && npx node-gyp rebuild --target=28.2.0 --arch=x64 --dist-url=https://electronjs.org/headers"
   },
   "dependencies": {
     "@jitsi/robotjs": "^0.6.21",

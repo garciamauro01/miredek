@@ -8,9 +8,11 @@ echo ========================================
 cd /d "%~dp0"
 echo Diretorio de trabalho: %CD%
 
-:: Forca o uso do compilador padrão do Visual Studio 2022
-set GYP_MSVS_VERSION=2022
-set npm_config_msvs_version=2022
+:: Forca o uso do compilador padrão do Visual Studio 2019
+set GYP_MSVS_VERSION=2019
+set npm_config_msvs_version=2019
+set npm_config_msbuild_path=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe
+set MSBUILD_PATH=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe
 
 echo.
 echo 1. Matando processos que podem travar o node_modules...
@@ -37,8 +39,10 @@ call npm install
 echo.
 echo 5. Verificando se o @jitsi/robotjs foi compilado...
 if not exist node_modules\@jitsi\robotjs\build\Release\robotjs.node (
-    echo [AVISO] @jitsi/robotjs nao compilou no install. Tentando forcar agora...
-    call npx @electron/rebuild -v 28.2.0 -f -m . -w @jitsi/robotjs
+    echo [AVISO] @jitsi/robotjs nao compilou no install. Tentando forcar via node-gyp...
+    cd node_modules\@jitsi\robotjs
+    call npx node-gyp rebuild --target=28.2.0 --arch=x64 --dist-url=https://electronjs.org/headers
+    cd ..\..\
 )
 
 echo.

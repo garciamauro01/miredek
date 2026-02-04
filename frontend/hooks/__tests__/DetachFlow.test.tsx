@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePeerConnection } from '../usePeerConnection';
 import { useRemoteSession } from '../useRemoteSession';
-import React from 'react';
+
 
 // --- MOCKS ---
 
@@ -123,7 +123,7 @@ describe('Detach Flow & Handover Tests', () => {
                 return false;
             };
 
-            const { result } = renderHook(() => usePeerConnection(
+            renderHook(() => usePeerConnection(
                 'localhost', setSessions, videoRefsMap, vi.fn(), onShowRequest, onHandoverCheck
             ));
 
@@ -187,7 +187,7 @@ describe('Detach Flow & Handover Tests', () => {
                 customId
             ));
 
-            const regs = (window as any)._peerRegistries;
+
             // O PeerJS (mock) deve ter sido instanciado com o customId
             // Verificamos o primeiro argumento do construtor vi.mocked(Peer)
             const PeerConstructor = require('peerjs').default;

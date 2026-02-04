@@ -24,6 +24,19 @@ services:
       - "5175:80"
     depends_on:
       - peerjs
+
+  # Servidor de Atualização e Sinalização Adicional
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: miredesk-server
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - UPDATE_TOKEN=miredesk-secret-token
   # Opcional: Adicione um container para o Banco de Dados se for persistir contatos futuramente
   # db:
   #   image: postgres:alpine
