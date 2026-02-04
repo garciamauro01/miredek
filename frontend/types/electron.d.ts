@@ -22,6 +22,9 @@ export interface ElectronAPI {
     onUpdateProgress: (callback: (progress: number) => void) => () => void;
     openDevTools: () => Promise<void>;
 
+    // Sessions Multi-window
+    openSessionWindow: (sessionId: string, remoteId: string) => Promise<void>;
+
     // Chat Multi-window
     openChatWindow: (sessionId: string, remoteId: string) => Promise<void>;
     notifyChatMessageReceived: (sessionId: string, message: any) => Promise<void>;

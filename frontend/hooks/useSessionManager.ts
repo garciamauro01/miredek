@@ -103,8 +103,8 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         });
     }, [onLog, onSessionUpdate]);
 
-    const connectToRemote = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream) => {
-        onLog(sessionId, `Conectando ao ID: ${remoteId}`);
+    const connectToRemote = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream, metadata?: any) => {
+        onLog(sessionId, `Conectando ao ID: ${remoteId}${metadata ? ' (Handover)' : ''}`);
         onSessionUpdate(sessionId, { isConnecting: true });
 
         const uniquePeerId = `${sessionId}-${Date.now()}`;
@@ -123,7 +123,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
 
         peer.on('open', () => {
             onLog(sessionId, `Peer criado: ${uniquePeerId}`);
-            const call = peer.call(remoteId, localStream);
+            const call = peer.call(remoteId, localStream, { metadata });
 
             if (!call) {
                 console.error('[SessionManager] Falha ao criar chamada');

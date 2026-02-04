@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus, Maximize, Shrink, StretchHorizontal } from 'lucide-react';
+import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus, Maximize, Shrink, StretchHorizontal, ExternalLink } from 'lucide-react';
 
 interface Tab {
     id: string;
@@ -35,6 +35,7 @@ interface CustomTitleBarProps {
     onUpdateClick?: () => void;
     currentViewMode?: 'fit' | 'original' | 'stretch';
     onViewModeSelect?: (mode: 'fit' | 'original' | 'stretch') => void;
+    onTabDetach?: (id: string, remoteId: string) => void;
 }
 
 export function CustomTitleBar({
@@ -56,7 +57,8 @@ export function CustomTitleBar({
     onTabClose,
     onNewTab,
     currentViewMode = 'fit',
-    onViewModeSelect
+    onViewModeSelect,
+    onTabDetach
 }: CustomTitleBarProps) {
     const [showDisplayMenu, setShowDisplayMenu] = useState(false);
 
@@ -96,6 +98,17 @@ export function CustomTitleBar({
                     {tabs.map(tab => (
                         <div
                             key={tab.id}
+                            draggable={!tab.isDashboard}
+                            onDragEnd={(e) => {
+                                if (tab.isDashboard) return;
+                                // Se o arraste terminou fora da área da janela (heuristicamente)
+                                // Ou apenas se o usuário arrastou o suficiente para cima/fora.
+                                // Em Electron, podemos checar e.screenY.
+                                const threshold = 100; // pixels fora da barra
+                                if (Math.abs(e.clientY) > threshold || Math.abs(e.clientX) > 2000) {
+                                    onTabDetach?.(tab.id, tab.remoteId);
+                                }
+                            }}
                             onClick={() => onTabClick?.(tab.id)}
                             style={{
                                 display: 'flex',
@@ -114,7 +127,8 @@ export function CustomTitleBar({
                                 marginLeft: tab.isDashboard ? '0' : '0',
                                 marginBottom: '-1px',
                                 fontSize: '12px',
-                                fontWeight: activeTabId === tab.id ? 600 : 400
+                                fontWeight: activeTabId === tab.id ? 600 : 400,
+                                position: 'relative'
                             } as any}
                         >
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -131,17 +145,31 @@ export function CustomTitleBar({
                             }}>{tab.isDashboard ? 'Início' : tab.remoteId}</span>
 
                             {!tab.isDashboard && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onTabClose?.(tab.id); }}
-                                    style={{
-                                        background: 'none', border: 'none', padding: '2px', display: 'flex',
-                                        color: '#999', cursor: 'pointer', marginLeft: 'auto'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#333'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#999'}
-                                >
-                                    <X size={12} />
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onTabDetach?.(tab.id, tab.remoteId); }}
+                                        title="Destacar"
+                                        style={{
+                                            background: 'none', border: 'none', padding: '2px', display: 'flex',
+                                            color: '#bbb', cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#333'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#bbb'}
+                                    >
+                                        <ExternalLink size={12} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onTabClose?.(tab.id); }}
+                                        style={{
+                                            background: 'none', border: 'none', padding: '2px', display: 'flex',
+                                            color: '#bbb', cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#333'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#bbb'}
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
                             )}
                         </div>
                     ))}

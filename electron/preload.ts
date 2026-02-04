@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('update-progress', listener);
     },
     openDevTools: () => ipcRenderer.invoke('open-devtools'),
+    openSessionWindow: (sessionId: string, remoteId: string) => ipcRenderer.invoke('open-session-window', sessionId, remoteId),
     openChatWindow: (sessionId: string, remoteId: string) => ipcRenderer.invoke('open-chat-window', sessionId, remoteId),
     notifyChatMessageReceived: (sessionId: string, message: any) => ipcRenderer.invoke('chat-notify-received', sessionId, message),
     onChatMessageReceived: (callback: (message: any) => void) => {

@@ -8,7 +8,9 @@ export function usePeerConnection(
     setSessions: React.Dispatch<React.SetStateAction<Session[]>>,
     videoRefsMap: React.MutableRefObject<Map<string, { remote: React.RefObject<HTMLVideoElement | null> }>>,
     _setupDataListeners: (sessionId: string, conn: any, isIncoming: boolean) => void,
-    onShowRequest: () => void
+    onShowRequest: () => void,
+    onHandoverCheck?: (metadata: any) => boolean,
+    customPeerId?: string
 ) {
     const [myId, setMyId] = useState('');
     const [peerStatus, setPeerStatus] = useState<'online' | 'offline' | 'connecting'>('connecting');
@@ -16,10 +18,10 @@ export function usePeerConnection(
     const mainPeerRef = useRef<Peer | null>(null);
 
     useEffect(() => {
-        let fixedId = localStorage.getItem('anydesk_clone_id');
+        let fixedId = customPeerId || localStorage.getItem('anydesk_clone_id');
         if (!fixedId) {
             fixedId = Math.floor(100000000 + Math.random() * 900000000).toString();
-            localStorage.setItem('anydesk_clone_id', fixedId);
+            if (!customPeerId) localStorage.setItem('anydesk_clone_id', fixedId);
         }
 
         const peerConfig = serverIp === 'cloud' ? {
@@ -102,14 +104,17 @@ export function usePeerConnection(
         });
 
         peer.on('call', (call) => {
-            console.log('[Peer] Call Recebido de:', call.peer);
+            console.log('[Peer] Call Recebido de:', call.peer, 'Metadata:', call.metadata);
+
+            const isHandover = onHandoverCheck ? onHandoverCheck(call.metadata) : false;
+            if (isHandover) console.log('[Peer] 🚀 Handover detectado! Pré-autenticando sessão.');
 
             setSessions(prev => {
                 const existing = prev.find(s => s.remoteId === call.peer);
                 const sessionId = existing ? existing.id : `session-${Date.now()}`;
 
                 if (existing) {
-                    return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true } : s);
+                    return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
                 }
 
                 // [FIX] Silência verificações de status em chamadas (raro mas possível)
@@ -120,11 +125,13 @@ export function usePeerConnection(
 
                 const newSession = createSession(sessionId, call.peer, true);
                 newSession.incomingCall = call;
+                if (isHandover) newSession.isAuthenticated = true;
+
                 if (!videoRefsMap.current.has(sessionId)) {
                     videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                 }
-                console.log('[Peer] Ativando janela para nova conexão CALL');
-                onShowRequest(); // Notifica para abrir janela/focar
+                console.log('[Peer] Ativando janela para nova conexão CALL. Handover:', isHandover);
+                if (!isHandover) onShowRequest(); // Notifica para abrir janela/focar apenas se não for handover interno
                 return [...prev, newSession];
             });
         });
@@ -134,7 +141,7 @@ export function usePeerConnection(
             setPeerInstance(null);
         };
 
-    }, [serverIp, setSessions, onShowRequest]);
+    }, [serverIp, setSessions, onShowRequest, onHandoverCheck, customPeerId]);
 
     return { myId, peerStatus, peerInstance, mainPeerRef };
 }

@@ -18,12 +18,13 @@ interface UseRemoteSessionProps {
     currentSourceId: string;
     selectSource: (sourceId: string) => Promise<void>;
     onFileMessage: (data: any) => void;
+    disableAutoReconnect?: boolean;
 }
 
 export function useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword, localStream, sources, currentSourceId,
-    selectSource, onFileMessage
+    selectSource, onFileMessage, disableAutoReconnect
 }: UseRemoteSessionProps) {
 
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -43,6 +44,7 @@ export function useRemoteSession({
     const videoRefsMap = useRef<Map<string, { remote: React.RefObject<HTMLVideoElement | null> }>>(new Map());
     const answeredCallsRef = useRef<Set<string>>(new Set());
     const attachedConnectionsRef = useRef<WeakSet<any>>(new WeakSet());
+    const handoverTokensRef = useRef<Set<string>>(new Set());
 
     // Update refs
     useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
@@ -105,6 +107,38 @@ export function useRemoteSession({
     // which depends on sessionManager (via setupDataListeners).
     // Solution: storing sessionManager in a Ref so onSessionUpdate can be stable.
     const sessionManagerFnRef = useRef<any>(null); // Will hold the sessionManager object
+
+    const sessionManager = useSessionManager({
+        serverIp,
+        onSessionUpdate: useCallback((sessionId, updates) => {
+            setSessions(prev => {
+                const newSessions = prev.map(s => {
+                    if (s.id === sessionId) {
+                        const updated = { ...s, ...updates };
+                        if (updates.connected) updated.isAuthenticating = false;
+                        return updated;
+                    }
+                    return s;
+                });
+                return newSessions;
+            });
+
+            if (updates.connected) {
+                const session = sessionsRef.current.find(s => s.id === sessionId);
+                if (session && !session.isIncoming) {
+                    setPendingSessionId(null);
+                    setActiveSessionId(sessionId);
+                }
+            }
+        }, []),
+        onSessionClose: handleSessionClose,
+        onLog: (id, msg) => console.log(`[${id}] ${msg}`)
+    });
+
+    // Update ref whenever sessionManager changes
+    useEffect(() => {
+        sessionManagerFnRef.current = sessionManager;
+    }, [sessionManager]);
 
     const setupDataListeners = useCallback((sessionId: string, conn: any, isIncoming: boolean) => {
         if (!conn) return;
@@ -216,6 +250,14 @@ export function useRemoteSession({
                 return;
             }
 
+            if (data.type === 'HANDOVER_PREPARATION' && data.token) {
+                console.log(`[Handover] Token de handover recebido para sessão ${sessionId}: ${data.token}`);
+                handoverTokensRef.current.add(data.token);
+                // Expira o token após 30 segundos por segurança
+                setTimeout(() => handoverTokensRef.current.delete(data.token), 30000);
+                return;
+            }
+
             // LOGIC
             setSessions(prev => {
                 const session = prev.find(s => s.id === sessionId);
@@ -232,8 +274,6 @@ export function useRemoteSession({
                         const isCorrect = data.password === sessionPasswordRef.current ||
                             (unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
                         conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
-
-
 
                         return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: !!isCorrect } : s);
                     }
@@ -259,13 +299,6 @@ export function useRemoteSession({
                                     return upd;
                                 });
                             }
-                            // Start Video Call if needed
-                            // [FIX] Removed redundant startVideoCall. 
-                            // The initial connectTo already initiates the call. 
-                            // Authenticating shouldn't restart it, just allow the stream to be viewed on Host side if blocked (or Host auto-answers).
-                            // if (localStream && sessionManagerFnRef.current) {
-                            //    sessionManagerFnRef.current.startVideoCall(sessionId, session.remoteId, localStream);
-                            // }
                             return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false, status: 'connected' } : s);
                         } else {
                             alert('Senha incorreta.');
@@ -283,7 +316,7 @@ export function useRemoteSession({
             });
         });
 
-    }, [onFileMessage, handleSessionClose, setContacts, setSessions]);
+    }, [contacts, localStream, setContacts, setRecentSessions]);
 
     // [FIX] Automated Listener Attachment
     // Ensures every dataConnection gets listeners regardless of when it was added to state
@@ -314,54 +347,11 @@ export function useRemoteSession({
         });
     }, [sessions, localStream]);
 
-
-    const sessionManager = useSessionManager({
-        serverIp,
-        onSessionUpdate: useCallback((sessionId, updates) => {
-            setSessions(prev => {
-                const newSessions = prev.map(s => {
-                    if (s.id === sessionId) {
-                        const updated = { ...s, ...updates };
-                        if (updates.connected) updated.isAuthenticating = false;
-                        return updated;
-                    }
-                    return s;
-                });
-
-                if (updates.connected) {
-                    const session = newSessions.find(s => s.id === sessionId);
-                    if (session && !session.isIncoming) {
-                        // These side-effects on state setters are fine here as they schedule updates
-                        // But ideal to do outside mapper? 
-                        // Logic suggests we want to switch view if connected.
-                    }
-                }
-                return newSessions;
-            });
-
-            if (updates.connected) {
-                // We can't check 'session.isIncoming' easily here without looking up again.
-                // Let's use Ref.
-                const session = sessionsRef.current.find(s => s.id === sessionId);
-                if (session && !session.isIncoming) {
-                    setPendingSessionId(null);
-                    setActiveSessionId(sessionId);
-                }
-            }
-        }, [setupDataListeners]),
-        onSessionClose: handleSessionClose,
-        onLog: (id, msg) => console.log(`[${id}] ${msg}`)
-    });
-
-    // Update ref whenever sessionManager changes
-    useEffect(() => {
-        sessionManagerFnRef.current = sessionManager;
-    }, [sessionManager]);
-
     // Public API
-    const connectTo = useCallback((remoteId: string) => {
+    const connectTo = useCallback((remoteId: string, metadata?: any) => {
         if (sessionsRef.current.some(s => s.remoteId === remoteId && !s.isIncoming)) {
-            alert('Sessão já existe'); return;
+            // Already exists, just return quietly instead of alerting
+            return;
         }
 
         const sessionId = `session-${Date.now()}`;
@@ -380,13 +370,10 @@ export function useRemoteSession({
         setSessions(prev => [...prev, newSession]);
 
         if (localStream) {
-            console.log('[Client] Iniciando chamada de vídeo para:', remoteId);
-            sessionManager.connectToRemote(sessionId, remoteId, localStream);
+            console.log('[Client] Iniciando chamada de vídeo para:', remoteId, 'Metadata:', metadata);
+            sessionManager.connectToRemote(sessionId, remoteId, localStream, metadata);
         } else {
             console.warn('[Client] AVISO: localStream é NULL. conectando apenas dados (Host não verá modal de aceite de vídeo!)');
-            // Mesmo sem vídeo, deveríamos tentar conectar dados? 
-            // O SessionManager.connectToRemote exige stream.
-            // Se não tiver stream, talvez devêssemos forçar init?
         }
         setPendingSessionId(sessionId);
 
@@ -489,7 +476,7 @@ export function useRemoteSession({
 
     // 3. Auto-Reconnect on Startup
     useEffect(() => {
-        if (hasAttemptedStartupReconnect.current) return;
+        if (hasAttemptedStartupReconnect.current || disableAutoReconnect) return;
 
         const lastRemote = localStorage.getItem('miré_desk_last_active_remote');
         if (lastRemote && sessions.length === 0) {
@@ -512,6 +499,7 @@ export function useRemoteSession({
         handleSessionClose,
         setupDataListeners,
         sendMessage,
-        toggleChat
+        toggleChat,
+        handoverTokensRef
     };
 }

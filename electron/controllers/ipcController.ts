@@ -2,6 +2,7 @@ import { app, ipcMain, BrowserWindow, clipboard, desktopCapturer } from 'electro
 import { logToFile } from '../utils/logger';
 
 const chatWindows = new Map<string, BrowserWindow>();
+const sessionWindows = new Map<string, BrowserWindow>();
 let debugWindow: BrowserWindow | null = null;
 
 export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, preloadPath: string) {
@@ -147,6 +148,41 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
             logToFile(`[Main] Erro fatal ao capturar fontes: ${error}`);
             return [];
         }
+    });
+
+    // --- MULTI-WINDOW SESSION ---
+    ipcMain.handle('open-session-window', (event, sessionId: string, remoteId: string) => {
+        if (sessionWindows.has(sessionId)) {
+            const win = sessionWindows.get(sessionId);
+            win?.show();
+            win?.focus();
+            return;
+        }
+
+        const sessionWin = new BrowserWindow({
+            width: 1000,
+            height: 800,
+            frame: false,
+            titleBarStyle: 'hidden',
+            backgroundColor: '#000000',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: preloadPath,
+            },
+        });
+
+        sessionWindows.set(sessionId, sessionWin);
+
+        const url = process.env.VITE_DEV_SERVER_URL
+            ? `${process.env.VITE_DEV_SERVER_URL}?view=session&sessionId=${sessionId}&remoteId=${remoteId}`
+            : `file://${require('path').join(app.getAppPath(), 'dist/index.html')}?view=session&sessionId=${sessionId}&remoteId=${remoteId}`;
+
+        sessionWin.loadURL(url);
+
+        sessionWin.on('closed', () => {
+            sessionWindows.delete(sessionId);
+        });
     });
 
     // --- MULTI-WINDOW CHAT ---

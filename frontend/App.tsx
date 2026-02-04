@@ -37,6 +37,142 @@ if (typeof window !== 'undefined') {
 import { Chat } from './components/Chat'
 import { DebugView } from './components/DebugView'
 
+function SessionIsolatedView() {
+  const params = new URLSearchParams(window.location.search);
+  const remoteId = params.get('remoteId') || '';
+  const handoverToken = params.get('handoverToken');
+
+  const [serverIp] = useState<string>(() =>
+    localStorage.getItem('miré_desk_server_ip') || import.meta.env.VITE_SERVER_IP || window.location.hostname || '167.234.241.147'
+  );
+
+  const [unattendedPassword] = useState<string>(() =>
+    localStorage.getItem('miré_desk_unattended_pw') || ''
+  );
+
+  const { transfers, sendFile, handleFileMessage } = useFileTransfer();
+
+  const {
+    sessions, setSessions,
+    activeSessionId,
+    pendingSessionId,
+    videoRefsMap,
+    connectTo,
+    toggleChat,
+    sendMessage
+  } = useRemoteSession({
+    serverIp, contacts: [], setContacts: () => { }, setRecentSessions: () => { },
+    sessionPassword: '', unattendedPassword,
+    localStream: null,
+    sources: [], currentSourceId: '',
+    selectSource: async () => { },
+    myId: '',
+    onFileMessage: handleFileMessage,
+    disableAutoReconnect: true
+  });
+
+  usePeerConnection(
+    serverIp, setSessions, videoRefsMap,
+    () => { },
+    () => { },
+    () => false, // Client doesn't need handover check usually
+    `client-${remoteId}-${Date.now()}` // Unique ID for the detached window!
+  );
+
+  // Persist localStream for the isolated session
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(setLocalStream)
+      .catch(err => {
+        console.warn('Could not get local stream for isolated view', err);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (localStream && remoteId) {
+      // Passa o token de handover para evitar que o Host peça permissão novamente
+      const metadata = handoverToken ? { handoverToken } : undefined;
+      connectTo(remoteId, metadata);
+    }
+  }, [localStream, remoteId, connectTo, handoverToken]);
+
+  const activeSession = sessions.find(s => s.id === activeSessionId || s.id === pendingSessionId);
+
+  // Throttle for isolated view
+  const lastMouseMoveRef = useRef<number>(0);
+  const handleInput = (type: string, e: any) => {
+    if (!activeSession) return;
+    if (type === 'mousemove') {
+      const now = Date.now();
+      if (now - lastMouseMoveRef.current < 8) return;
+      lastMouseMoveRef.current = now;
+    }
+
+    if (activeSession.dataConnection?.open && videoRefsMap.current.get(activeSession.id)?.remote.current) {
+      const videoEl = videoRefsMap.current.get(activeSession.id)!.remote.current!;
+      const pos = getRelativeMousePos(e, videoEl, activeSession.viewMode);
+      if (pos) {
+        const data: any = { type, x: pos.x, y: pos.y };
+        if ('button' in e) data.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+        if ('key' in e) data.key = e.key;
+        activeSession.dataConnection.send(data);
+      }
+    }
+  };
+
+  if (!activeSession) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="reconnecting-spinner"></div>
+          <p>Iniciando sessão isolada para {remoteId}...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000' }}>
+      <CustomTitleBar
+        title={`Sessão: ${remoteId}`}
+        isSessionActive={true}
+        sessionRemoteId={remoteId}
+        onChatToggle={() => toggleChat(activeSession.id)}
+        currentViewMode={activeSession.viewMode}
+        onViewModeSelect={(mode) => setSessions(prev => prev.map(s => ({ ...s, viewMode: mode })))}
+        remoteSources={activeSession.remoteSources}
+        activeSourceId={activeSession.activeSourceId}
+        onSourceSelect={(sid) => activeSession.dataConnection?.send({ type: 'SWITCH_MONITOR', sourceId: sid })}
+      />
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <SessionView
+          connected={activeSession.connected}
+          remoteVideoRef={videoRefsMap.current.get(activeSession.id)!.remote}
+          remoteStream={activeSession.remoteStream || null}
+          incomingCall={null} onAnswer={() => { }} onReject={() => { }}
+          remoteId={activeSession.remoteId}
+          viewMode={activeSession.viewMode || 'fit'}
+          isChatOpen={activeSession.isChatOpen}
+          chatMessages={activeSession.messages || []}
+          onSendMessage={(txt: string) => sendMessage(activeSession.id, txt)}
+          onToggleChat={() => toggleChat(activeSession.id)}
+          status={activeSession.status}
+          onFileDrop={(p, x, y) => activeSession.dataConnection && sendFile(activeSession.dataConnection, p, x, y)}
+          transferProgress={Object.values(transfers).find(t => t.status === 'sending' || t.status === 'receiving') || null}
+          onHookMethods={{
+            handleMouseMove: (e) => handleInput('mousemove', e),
+            handleMouseDown: (e) => handleInput('mousedown', e),
+            handleMouseUp: (e) => handleInput('mouseup', e),
+            handleKeyDown: (e) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keydown', key: e.key }) },
+            handleKeyUp: (e) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keyup', key: e.key }) }
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ViewManager() {
   const params = new URLSearchParams(window.location.search);
   const view = params.get('view');
@@ -54,6 +190,10 @@ function ViewManager() {
 
   if (view === 'debug') {
     return <DebugView />;
+  }
+
+  if (view === 'session') {
+    return <SessionIsolatedView />;
   }
 
   const handleSend = (text: string) => {
@@ -156,7 +296,8 @@ function App() {
     handleSessionClose,
     setupDataListeners,
     sendMessage,
-    toggleChat
+    toggleChat,
+    handoverTokensRef
   } = useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword,
@@ -164,7 +305,8 @@ function App() {
     sources, currentSourceId,
     selectSource,
     myId: '',
-    onFileMessage: handleFileMessage
+    onFileMessage: handleFileMessage,
+    disableAutoReconnect: false
   });
 
   // Atualiza ref do sessionManager
@@ -194,10 +336,20 @@ function App() {
   // Depende para `send`.
   // Vou usar o hook aqui.
 
+  const onHandoverCheck = useCallback((metadata: any) => {
+    if (metadata?.handoverToken && handoverTokensRef.current.has(metadata.handoverToken)) {
+      console.log('[App-Host] ✅ Token de handover validado!');
+      handoverTokensRef.current.delete(metadata.handoverToken);
+      return true;
+    }
+    return false;
+  }, []); // handoverTokensRef is stable
+
   const { myId, peerStatus, peerInstance } = usePeerConnection(
     serverIp, setSessions, videoRefsMap,
     setupDataListeners,
-    handleShowWindow
+    handleShowWindow,
+    onHandoverCheck
   );
 
   // 5. Peer Status Check (verifica se peers estão online)
@@ -315,6 +467,17 @@ function App() {
           if (s) {
             setSessions(prev => prev.map(x => x.id === s.id ? { ...x, viewMode: mode } : x));
           }
+        }}
+        onTabDetach={(id, remoteId) => {
+          const token = Math.random().toString(36).substring(2, 15);
+          const s = sessions.find(x => x.id === id);
+          if (s?.dataConnection?.open) {
+            console.log(`[App] Iniciando handover para ${remoteId} com token: ${token}`);
+            s.dataConnection.send({ type: 'HANDOVER_PREPARATION', token });
+          }
+          window.electronAPI.openSessionWindow(id, remoteId + `&handoverToken=${token}`);
+          // Pequeno delay para garantir que o sinal de handover chegue antes da desconexão
+          setTimeout(() => handleSessionClose(id, 'Detached to new window'), 500);
         }}
         remoteSources={sessions.find(s => s.id === activeSessionId)?.remoteSources}
         activeSourceId={sessions.find(s => s.id === activeSessionId)?.activeSourceId}
