@@ -8,11 +8,12 @@ COPY package*.json ./
 
 # Remove dependências nativas/desktop que não são necessárias para o web client
 # Isso evita falhas de compilação do robotjs que não seria usado no browser anyway
-RUN npm pkg delete dependencies.robotjs && \
-    npm pkg delete devDependencies.electron && \
-    npm pkg delete devDependencies.electron-builder && \
-    npm pkg delete devDependencies.vite-plugin-electron && \
-    npm pkg delete devDependencies.vite-plugin-electron-renderer
+RUN npm pkg delete "dependencies.@jitsi/robotjs" && \
+    npm pkg delete "devDependencies.electron" && \
+    npm pkg delete "devDependencies.electron-builder" && \
+    npm pkg delete "devDependencies.vite-plugin-electron" && \
+    npm pkg delete "devDependencies.vite-plugin-electron-renderer" && \
+    npm pkg delete "scripts.postinstall"
 
 # Instala todas as dependências (apenas as necessárias para a web)
 # Agora sem python/make/g++ pois o robotjs foi removido e não há outros módulos nativos
