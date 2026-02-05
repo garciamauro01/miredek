@@ -46,18 +46,36 @@ export function usePeerConnection(
         });
 
         peer.on('disconnected', () => {
+            console.warn('[Peer] ⚠️ Desconectado do servidor. Tentando reconectar...');
             setPeerStatus('connecting');
-            peer.reconnect();
+            // Pequeno delay para evitar loop frenético se o servidor estiver instável
+            setTimeout(() => {
+                if (!peer.destroyed && !peer.disconnected) return; // Se já reconectou ou destruiu, ignora
+                peer.reconnect();
+            }, 3000);
         });
 
-        peer.on('close', () => setPeerStatus('offline'));
+        peer.on('close', () => {
+            console.error('[Peer] 🛑 Conexão encerrada permanentemente.');
+            setPeerStatus('offline');
+        });
+
         peer.on('error', (err) => {
-            console.error('[Peer] Error:', err);
+            console.error(`[Peer] ❌ Erro do tipo "${err.type}":`, err);
+
             if (err.type === 'network' || err.type === 'server-error') {
                 setPeerStatus('offline');
-                setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 5000);
+                // Tenta reconectar após erro de rede
+                setTimeout(() => {
+                    if (!peer.destroyed) {
+                        console.log('[Peer] Tentando recuperar após erro de rede...');
+                        peer.reconnect();
+                    }
+                }, 5000);
             }
+
             if (err.type === 'unavailable-id') {
+                console.error('[Peer] ID indisponível no servidor. Resetando ID...');
                 localStorage.removeItem('anydesk_clone_id');
                 setTimeout(() => window.location.reload(), 1000);
             }

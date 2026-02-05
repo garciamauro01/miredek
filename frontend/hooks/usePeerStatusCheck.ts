@@ -23,20 +23,11 @@ export function usePeerStatusCheck(
         }
 
         const checkStatus = async () => {
-            if (checkingRef.current) return; // Evita verificações concorrentes
+            if (checkingRef.current) return;
             checkingRef.current = true;
 
-            // Marca todos como "checking"
-            setStatusMap(prev => {
-                const newMap: typeof prev = {};
-                peerIds.forEach(id => {
-                    newMap[id] = 'checking';
-                });
-                return newMap;
-            });
-
-            // Verifica cada peer
-            const results: { [id: string]: 'online' | 'offline' } = {};
+            // NÃO resetamos tudo para "checking" de uma vez para evitar pisca-pisca visual.
+            // Apenas iniciamos a verificação individual de cada um.
 
             for (const peerId of peerIds) {
                 try {
@@ -59,19 +50,24 @@ export function usePeerStatusCheck(
                             resolve(true);
                         });
 
-                        testConn.on('error', () => {
+                        testConn.on('error', (err) => {
+                            console.warn(`[StatusCheck] Erro ao verificar ${peerId}:`, err);
                             clearTimeout(timeout);
                             resolve(false);
                         });
                     });
 
-                    results[peerId] = isOnline ? 'online' : 'offline';
+                    // Atualiza o status apenas deste peer individualmente
+                    setStatusMap(prev => ({
+                        ...prev,
+                        [peerId]: isOnline ? 'online' : 'offline'
+                    }));
                 } catch (error) {
-                    results[peerId] = 'offline';
+                    console.error(`[StatusCheck] Falha crítica ao verificar ${peerId}:`, error);
+                    setStatusMap(prev => ({ ...prev, [peerId]: 'offline' }));
                 }
             }
 
-            setStatusMap(results);
             checkingRef.current = false;
         };
 
