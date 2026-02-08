@@ -48,6 +48,7 @@ export function Dashboard({
     const [appVersion, setAppVersion] = useState('');
     const [showSettings, setShowSettings] = useState(false);
     const [tempServerIp, setTempServerIp] = useState(serverIp);
+    const [iAmAdmin, setIAmAdmin] = useState(false);
 
     useEffect(() => {
         setTempServerIp(serverIp);
@@ -56,6 +57,8 @@ export function Dashboard({
     useEffect(() => {
         if (window.electronAPI) {
             window.electronAPI.getAppVersion().then(setAppVersion);
+            // @ts-ignore
+            window.electronAPI.isAdmin?.().then(setIAmAdmin);
         }
     }, []);
 
@@ -134,6 +137,30 @@ export function Dashboard({
                 <div className="sidebar-footer">
                     <img src="./splash.png" alt="Mire-Desk" className="splash-img" />
                     <div className="version-text">Miré-Desk v{appVersion}</div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: '#6b7280' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <ShieldCheck size={12} color={iAmAdmin ? '#10b981' : '#9ca3af'} />
+                            <span>{iAmAdmin ? 'Admin' : 'Usuário'}</span>
+                        </div>
+                        {!iAmAdmin && (
+                            <button
+                                onClick={() => window.electronAPI?.requestElevation?.()}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#3b82f6',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    textDecoration: 'underline'
+                                }}
+                                title="Reiniciar com privilégios de Admin"
+                            >
+                                Elevar
+                            </button>
+                        )}
+                    </div>
+
                     <div onClick={() => window.electronAPI?.openDebugWindow?.()} className="debug-btn" title="Monitorar Comandos (Debug)">
                         <Bug size={12} />
                         <span>Debug</span>

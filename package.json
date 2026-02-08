@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.125",
+  "version": "1.0.142",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
@@ -18,11 +18,13 @@
   "dependencies": {
     "@jitsi/robotjs": "^0.6.21",
     "axios": "^1.13.3",
+    "is-admin": "^4.0.0",
     "lucide-react": "^0.562.0",
     "nan": "^2.25.0",
     "peerjs": "^1.5.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sudo-prompt": "^9.2.1"
   },
   "overrides": {
     "nan": "^2.25.0"

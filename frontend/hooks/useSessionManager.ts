@@ -170,7 +170,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 onSessionUpdate(sessionId, { connected: false, isConnecting: false });
             });
 
-            const conn = peer.connect(remoteId, { reliable: false });
+            const conn = peer.connect(remoteId, { reliable: false, metadata });
             conn.on('open', () => {
                 connectedFlag = true;
                 clearTimeout(timeout);

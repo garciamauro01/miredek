@@ -20,7 +20,15 @@ export interface ElectronAPI {
     getLocalIp: () => Promise<string>;
     resetInput: () => Promise<void>;
     onUpdateProgress: (callback: (progress: number) => void) => () => void;
-    openDevTools: () => Promise<void>;
+    isAdmin: () => Promise<boolean>;
+    requestElevation: (remoteId?: string) => Promise<boolean>;
+    getCommandLineArgs: () => Promise<string[]>;
+    getMachineId: () => Promise<string>;
+
+    // --- DEBUG WINDOW ---
+    openDebugWindow: () => Promise<void>;
+    notifyDebugEvent: (event: any) => Promise<void>;
+    onDebugEvent: (callback: (event: any) => void) => () => void;
 
     // Sessions Multi-window
     openSessionWindow: (sessionId: string, remoteId: string) => Promise<void>;

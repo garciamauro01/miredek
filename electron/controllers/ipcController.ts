@@ -12,12 +12,13 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
     });
 
     // --- IPC Handlers para Controles da Janela ---
-    ipcMain.handle('window-minimize', () => {
-        getMainWindow()?.minimize();
+    ipcMain.handle('window-minimize', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.minimize();
     });
 
-    ipcMain.handle('window-maximize', () => {
-        const win = getMainWindow();
+    ipcMain.handle('window-maximize', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
         if (win?.isMaximized()) {
             win.unmaximize();
         } else {
@@ -25,8 +26,9 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
         }
     });
 
-    ipcMain.handle('window-close', () => {
-        getMainWindow()?.close();
+    ipcMain.handle('window-close', (event) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        win?.close();
     });
 
     ipcMain.handle('show-window', () => {
@@ -75,6 +77,85 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
         const settings = app.getLoginItemSettings();
         logToFile(`[Main] Status final do auto-início: ${settings.openAtLogin}`);
         return settings.openAtLogin;
+    });
+
+    // --- ADMIN / ELEVATION ---
+    ipcMain.handle('is-admin', async () => {
+        try {
+            const isAdmin = require('is-admin');
+            return await isAdmin();
+        } catch (e) {
+            console.error('Falha ao verificar admin:', e);
+            return false;
+        }
+    });
+
+    ipcMain.handle('request-elevation', async (event, remoteId?: string) => {
+        const sudo = require('sudo-prompt');
+        const options = {
+            name: 'MireDesk'
+        };
+        const exe = app.getPath('exe');
+
+        // Se houver remoteId, passamos como flag para a nova instância auto-aceitar
+        const args = remoteId ? `--accept-from=${remoteId}` : '';
+
+        // No Windows, usar 'start' via cmd garante que o comando sudo retorne imediatamente
+        // permitindo que o processo atual feche e libere o lock.
+        const command = `cmd /c start "" "${exe}" ${args}`;
+
+        logToFile(`[Elevation] Solicitando elevação: ${command}`);
+
+        return new Promise((resolve, reject) => {
+            // Libera o lock de instância única para que a nova instância (elevada) 
+            // consiga iniciar mesmo que esta ainda não tenha terminado de fechar.
+            try {
+                app.releaseSingleInstanceLock();
+            } catch (e) { }
+
+            sudo.exec(command, options, (error: any) => {
+                if (error) {
+                    logToFile(`[Elevation] Erro: ${error}`);
+                    // Tenta reaquistar o lock se deu erro na elevação (opcional)
+                    app.requestSingleInstanceLock();
+                    reject(error);
+                } else {
+                    logToFile(`[Elevation] Sucesso no comando. Encerrando instância atual.`);
+                    // Sair o mais rápido possível para garantir que o lock seja liberado no SO
+                    app.exit(0);
+                    resolve(true);
+                }
+            });
+        });
+    });
+
+    ipcMain.handle('get-command-line-args', () => {
+        return process.argv;
+    });
+
+    ipcMain.handle('get-machine-id', async () => {
+        const idPath = require('path').join(app.getPath('userData'), 'peer-id.txt');
+        const fs = require('fs');
+
+        try {
+            if (fs.existsSync(idPath)) {
+                const id = fs.readFileSync(idPath, 'utf8').trim();
+                if (id && id.length === 9) return id;
+            }
+        } catch (e) {
+            logToFile(`[ID] Erro ao ler ID persistente: ${e}`);
+        }
+
+        // Se não existir ou for inválido, gera um novo
+        const newId = Math.floor(100000000 + Math.random() * 900000000).toString();
+        try {
+            fs.writeFileSync(idPath, newId, 'utf8');
+            logToFile(`[ID] Novo ID gerado e persistido: ${newId}`);
+        } catch (e) {
+            logToFile(`[ID] Erro ao salvar novo ID: ${e}`);
+        }
+
+        return newId;
     });
 
     // Novo: Verifica se o app está instalado (NSIS) ou rodando como Portátil
@@ -271,4 +352,10 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
             debugWindow.webContents.send('debug-event-received', data);
         }
     });
+}
+
+export function sendToDebugWindow(data: any) {
+    if (debugWindow) {
+        debugWindow.webContents.send('debug-event-received', data);
+    }
 }

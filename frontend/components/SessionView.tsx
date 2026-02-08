@@ -83,6 +83,14 @@ export function SessionView({
         onHookMethods.handleMouseMove(e);
     };
 
+    const [iAmAdmin, setIAmAdmin] = useState(false);
+    useEffect(() => {
+        if (window.electronAPI) {
+            // @ts-ignore
+            window.electronAPI.isAdmin?.().then(setIAmAdmin);
+        }
+    }, []);
+
     if (isOnlyModal) {
         return incomingCall ? (
             <div className="incoming-modal-overlay">
@@ -94,8 +102,23 @@ export function SessionView({
 
                     <div className="incoming-buttons">
                         <button onClick={onAnswer} className="btn-accept">ACEITAR</button>
+                        {!iAmAdmin && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('O aplicativo será reiniciado como Administrador para permitir o controle total.\n\nA conexão será estabelecida automaticamente após o reinício.\n\nDeseja continuar?')) {
+                                        // @ts-ignore
+                                        window.electronAPI?.requestElevation?.(incomingCall.peer);
+                                    }
+                                }}
+                                className="btn-accept"
+                                style={{ background: '#059669', display: 'flex', alignItems: 'center', gap: '5px' }}
+                            >
+                                ACEITAR COM ADMIN 🛡️
+                            </button>
+                        )}
                         <button onClick={onReject} className="btn-reject">REJEITAR</button>
                     </div>
+
                     <div style={{ marginTop: '20px', fontSize: '12px', color: '#777' }}>
                         Isso permitirá que vejam sua tela e usem o mouse.
                     </div>

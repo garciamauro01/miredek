@@ -16,6 +16,7 @@ const LOG_FILE = join(app.getPath('userData'), 'mire_desk_logs.txt');
 
 logToFile(`[Main] === INICIANDO APP (Packaged: ${app.isPackaged}) ===`);
 logToFile(`[Main] Executável: ${app.getPath('exe')}`);
+logToFile(`[Main] Argumentos: ${process.argv.join(' ')}`);
 
 // --- BLOQUEIO DE ÚNICA INSTÂNCIA ---
 const gotTheLock = app.requestSingleInstanceLock();

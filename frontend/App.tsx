@@ -79,23 +79,16 @@ function SessionIsolatedView() {
     `client-${remoteId}-${Date.now()}` // Unique ID for the detached window!
   );
 
-  // Persist localStream for the isolated session
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(setLocalStream)
-      .catch(err => {
-        console.warn('Could not get local stream for isolated view', err);
-      });
-  }, []);
+  // No need for localStream state here, connectTo in useRemoteSession will handle it.
 
   useEffect(() => {
-    if (localStream && remoteId) {
+    if (remoteId) {
       // Passa o token de handover para evitar que o Host peça permissão novamente
       const metadata = handoverToken ? { handoverToken } : undefined;
+      // Conecta ao peer remoto (useRemoteSession já lida com localStream null se necessário)
       connectTo(remoteId, metadata);
     }
-  }, [localStream, remoteId, connectTo, handoverToken]);
+  }, [remoteId, connectTo, handoverToken]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId || s.id === pendingSessionId);
 
@@ -257,6 +250,14 @@ function App() {
     window.electronAPI?.writeLog(msg);
   }, []);
 
+  const [autoAcceptFrom, setAutoAcceptFrom] = useState<string | null>(null);
+
+
+
+
+
+
+
   useEffect(() => {
     const newPass = Math.random().toString(36).substring(2, 8);
     setSessionPassword(newPass);
@@ -339,7 +340,8 @@ function App() {
   const onHandoverCheck = useCallback((metadata: any) => {
     if (metadata?.handoverToken && handoverTokensRef.current.has(metadata.handoverToken)) {
       console.log('[App-Host] ✅ Token de handover validado!');
-      handoverTokensRef.current.delete(metadata.handoverToken);
+      // Delay removal to allow both Data and Media connections to validate
+      setTimeout(() => handoverTokensRef.current.delete(metadata.handoverToken), 2000);
       return true;
     }
     return false;
@@ -394,6 +396,45 @@ function App() {
     });
     return () => timeouts.forEach(t => clearTimeout(t));
   }, [sessions]);
+
+  // --- AUTO-ACCEPT LOGIC ---
+  useEffect(() => {
+    if (window.electronAPI?.getCommandLineArgs) {
+      window.electronAPI.getCommandLineArgs().then((args: string[]) => {
+        addLog(`Argumentos recebidos: ${args.join(' ')}`);
+        const flag = args.find(a => a.startsWith('--accept-from='));
+        if (flag) {
+          const id = flag.split('=')[1];
+          if (id) {
+            addLog(`🚀 Auto-aceite detectado para: ${id}`);
+            setAutoAcceptFrom(id);
+          }
+        }
+      });
+    }
+  }, [addLog]);
+
+  useEffect(() => {
+    if (!autoAcceptFrom) return;
+
+    const sessionToAutoAccept = sessions.find(s => s.remoteId === autoAcceptFrom && s.incomingCall && !s.isAuthenticated);
+
+    if (sessionToAutoAccept) {
+      addLog(`[Auto-Accept] Iniciando atendimento automático para ${autoAcceptFrom}...`);
+
+      const timer = setTimeout(() => {
+        if (localStreamRef.current) {
+          sessionManager.answerCall(sessionToAutoAccept.id, sessionToAutoAccept.incomingCall, localStreamRef.current);
+          addLog(`[Auto-Accept] Chamada atendida com sucesso.`);
+          setAutoAcceptFrom(null);
+        } else {
+          addLog(`[Auto-Accept] ERRO: Stream local não disponível.`);
+        }
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [sessions, autoAcceptFrom, sessionManager, addLog, localStreamRef]);
 
 
   // Ref para throttle de mouse (limita envios para evitar flood na rede)
@@ -476,8 +517,8 @@ function App() {
             s.dataConnection.send({ type: 'HANDOVER_PREPARATION', token });
           }
           window.electronAPI.openSessionWindow(id, remoteId + `&handoverToken=${token}`);
-          // Pequeno delay para garantir que o sinal de handover chegue antes da desconexão
-          setTimeout(() => handleSessionClose(id, 'Detached to new window'), 500);
+          // Aumentamos o delay para 1s para garantir entrega do HANDOVER_PREPARATION
+          setTimeout(() => handleSessionClose(id, 'Detached to new window'), 1000);
         }}
         remoteSources={sessions.find(s => s.id === activeSessionId)?.remoteSources}
         activeSourceId={sessions.find(s => s.id === activeSessionId)?.activeSourceId}
@@ -537,18 +578,18 @@ function App() {
         )}
 
         {/* INCOMING MODAL */}
-        {sessions.find(s => s.incomingCall && !s.isAuthenticated) && (
+        {sessions.filter(s => s.incomingCall && !s.isAuthenticated && s.remoteId !== autoAcceptFrom).map(s => (
           <SessionView
-            key="incoming" connected={false} remoteVideoRef={incomingModalVideoRef} remoteStream={null} isOnlyModal={true}
-            incomingCall={sessions.find(s => s.incomingCall && !s.isAuthenticated)!.incomingCall}
-            onAnswer={() => sessionManager.answerCall(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id, sessions.find(s => s.incomingCall && !s.isAuthenticated)!.incomingCall, localStreamRef.current!)}
-            onReject={() => handleSessionClose(sessions.find(s => s.incomingCall && !s.isAuthenticated)!.id, 'Rejected')}
-            remoteId={sessions.find(s => s.incomingCall && !s.isAuthenticated)!.remoteId}
+            key={`incoming-${s.id}`} connected={false} remoteVideoRef={incomingModalVideoRef} remoteStream={null} isOnlyModal={true}
+            incomingCall={s.incomingCall}
+            onAnswer={() => sessionManager.answerCall(s.id, s.incomingCall, localStreamRef.current!)}
+            onReject={() => handleSessionClose(s.id, 'Rejected')}
+            remoteId={s.remoteId}
             onHookMethods={{
               handleMouseMove: () => { }, handleMouseDown: () => { }, handleMouseUp: () => { }, handleKeyDown: () => { }, handleKeyUp: () => { }
             }}
           />
-        )}
+        ))}
 
         {/* UPDATE NOTIFICATION */}
         {showUpdate && updateAvailable && (
@@ -562,11 +603,12 @@ function App() {
             remoteId={sessions.find(s => s.id === pendingSessionId)!.remoteId}
             isConnecting={sessions.find(s => s.id === pendingSessionId)!.isAuthenticating}
             initialPassword={sessions.find(s => s.id === pendingSessionId)!.pendingPassword}
+            error={sessions.find(s => s.id === pendingSessionId)!.authError}
             onCancel={() => handleSessionClose(pendingSessionId!, 'Cancel password')}
             onConnectWithPassword={(pw, rem) => {
               const s = sessions.find(x => x.id === pendingSessionId);
               if (s && s.dataConnection) {
-                setSessions(prev => prev.map(x => x.id === pendingSessionId ? { ...x, isAuthenticating: true, pendingPassword: pw, shouldRememberPassword: rem } : x));
+                setSessions(prev => prev.map(x => x.id === pendingSessionId ? { ...x, isAuthenticating: true, pendingPassword: pw, shouldRememberPassword: rem, authError: undefined } : x));
                 s.dataConnection.send({ type: 'AUTH', password: pw });
               }
             }}

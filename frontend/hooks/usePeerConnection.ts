@@ -18,145 +18,123 @@ export function usePeerConnection(
     const mainPeerRef = useRef<Peer | null>(null);
 
     useEffect(() => {
-        let fixedId = customPeerId || localStorage.getItem('anydesk_clone_id');
-        if (!fixedId) {
-            fixedId = Math.floor(100000000 + Math.random() * 900000000).toString();
-            if (!customPeerId) localStorage.setItem('anydesk_clone_id', fixedId);
-        }
+        const initPeer = async () => {
+            let fixedId = customPeerId;
 
-        const peerConfig = serverIp === 'cloud' ? {
-            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-        } : {
-            host: serverIp,
-            port: 9000,
-            path: '/peerjs',
-            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            if (!fixedId && window.electronAPI?.getMachineId) {
+                fixedId = await window.electronAPI.getMachineId();
+            }
+
+            if (!fixedId) {
+                // Fallback de segurança se falhar o IPC
+                fixedId = Math.floor(100000000 + Math.random() * 900000000).toString();
+            }
+
+            const peerConfig = serverIp === 'cloud' ? {
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            } : {
+                host: serverIp,
+                port: 9000,
+                path: '/peerjs',
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            };
+
+            console.log('[Peer] Iniciando com ID:', fixedId, 'Config:', peerConfig);
+            const peer = new Peer(fixedId, peerConfig);
+            mainPeerRef.current = peer;
+            setPeerInstance(peer);
+            setPeerStatus('connecting');
+
+            peer.on('open', (id) => {
+                console.log('[Peer] ✅ Conectado com sucesso! Meu ID:', id);
+                setMyId(id);
+                setPeerStatus('online');
+            });
+
+            // ... (restante dos listeners de erro, conexão, call permanecem iguais)
+            setupListeners(peer);
         };
 
-        console.log('[Peer] Iniciando com config:', peerConfig);
-        const peer = new Peer(fixedId, peerConfig);
-        mainPeerRef.current = peer;
-        setPeerInstance(peer);
-        setPeerStatus('connecting');
-
-        peer.on('open', (id) => {
-            console.log('[Peer] ✅ Conectado com sucesso! Meu ID:', id);
-            setMyId(id);
-            setPeerStatus('online');
-        });
-
-        peer.on('disconnected', () => {
-            console.warn('[Peer] ⚠️ Desconectado do servidor. Tentando reconectar...');
-            setPeerStatus('connecting');
-            // Pequeno delay para evitar loop frenético se o servidor estiver instável
-            setTimeout(() => {
-                if (!peer.destroyed && !peer.disconnected) return; // Se já reconectou ou destruiu, ignora
-                peer.reconnect();
-            }, 3000);
-        });
-
-        peer.on('close', () => {
-            console.error('[Peer] 🛑 Conexão encerrada permanentemente.');
-            setPeerStatus('offline');
-        });
-
-        peer.on('error', (err) => {
-            console.error(`[Peer] ❌ Erro do tipo "${err.type}":`, err);
-
-            if (err.type === 'network' || err.type === 'server-error') {
-                setPeerStatus('offline');
-                // Tenta reconectar após erro de rede
+        const setupListeners = (peer: Peer) => {
+            peer.on('disconnected', () => {
+                console.warn('[Peer] ⚠️ Desconectado do servidor. Tentando reconectar...');
+                setPeerStatus('connecting');
                 setTimeout(() => {
-                    if (!peer.destroyed) {
-                        console.log('[Peer] Tentando recuperar após erro de rede...');
-                        peer.reconnect();
+                    if (!peer.destroyed && !peer.disconnected) return;
+                    peer.reconnect();
+                }, 3000);
+            });
+
+            peer.on('close', () => {
+                console.error('[Peer] 🛑 Conexão encerrada permanentemente.');
+                setPeerStatus('offline');
+            });
+
+            peer.on('error', (err) => {
+                console.error(`[Peer] ❌ Erro do tipo "${err.type}":`, err);
+                if (err.type === 'network' || err.type === 'server-error') {
+                    setPeerStatus('offline');
+                    setTimeout(() => {
+                        if (!peer.destroyed) peer.reconnect();
+                    }, 5000);
+                }
+                if (err.type === 'unavailable-id') {
+                    console.error('[Peer] ID indisponível no servidor.');
+                    // Aqui não apagamos mais do localStorage, deixamos o backend lidar se for o caso
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                console.log('[Peer] ✅ Conexão DATA recebida de:', conn.peer);
+                const isHandover = onHandoverCheck ? onHandoverCheck(conn.metadata) : false;
+
+                setSessions(prev => {
+                    const existing = prev.find(s => s.remoteId === conn.peer);
+                    const sessionId = existing ? existing.id : `session-${Date.now()}`;
+                    if (existing) {
+                        return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
+                    } else {
+                        if (conn.metadata?.type === 'status-check') return prev;
+                        const newSession = createSession(sessionId, conn.peer, true);
+                        newSession.dataConnection = conn;
+                        if (isHandover) newSession.isAuthenticated = true;
+                        if (!videoRefsMap.current.has(sessionId)) {
+                            videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
+                        }
+                        if (!isHandover) onShowRequest();
+                        return [...prev, newSession];
                     }
-                }, 5000);
-            }
+                });
+            });
 
-            if (err.type === 'unavailable-id') {
-                console.error('[Peer] ID indisponível no servidor. Resetando ID...');
-                localStorage.removeItem('anydesk_clone_id');
-                setTimeout(() => window.location.reload(), 1000);
-            }
-        });
-
-        peer.on('connection', (conn) => {
-            console.log('[Peer] ✅ Conexão DATA recebida de:', conn.peer);
-            setSessions(prev => {
-                const existing = prev.find(s => s.remoteId === conn.peer);
-                const sessionId = existing ? existing.id : `session-${Date.now()}`;
-
-                if (existing) {
-                    return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true } : s);
-                } else {
-                    // [FIX] Silência verificações de status
-                    if (conn.metadata?.type === 'status-check') {
-                        console.log('[Peer] Check de status recebido (Silencioso)');
-                        return prev;
+            peer.on('call', (call) => {
+                console.log('[Peer] Call Recebido de:', call.peer);
+                const isHandover = onHandoverCheck ? onHandoverCheck(call.metadata) : false;
+                setSessions(prev => {
+                    const existing = prev.find(s => s.remoteId === call.peer);
+                    const sessionId = existing ? existing.id : `session-${Date.now()}`;
+                    if (existing) {
+                        return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
                     }
-
-                    const newSession = createSession(sessionId, conn.peer, true);
-                    newSession.dataConnection = conn;
+                    const newSession = createSession(sessionId, call.peer, true);
+                    newSession.incomingCall = call;
+                    if (isHandover) newSession.isAuthenticated = true;
                     if (!videoRefsMap.current.has(sessionId)) {
                         videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                     }
-                    console.log('[Peer] Ativando janela para nova conexão DATA');
-                    onShowRequest();
+                    if (!isHandover) onShowRequest();
                     return [...prev, newSession];
-                }
+                });
             });
-            // Precisamos do sessionId aqui. 
-            // Como setSessions é async, e nós geramos o ID, podemos usar o ID gerado.
-            // Mas cuidado com concorrência.
-            // O ideal é setupDataListeners ser chamado APÓS o estado atualizar, ou passar o ID certo.
-            // Setup imediato é melhor para não perder mensagens.
-            // Mas setupDataListeners precisa do ID para callbacks de fechar.
-            // Vamos assumir que conseguimos recuperar o ID correto ou usar o timestamp.
-            // Simplificação: recalculamos ID ou usamos lógica determinística se possível.
-            // Mas aqui estamos usando Date.now().
-            // Solução: Fazer o setup dentro do useEffect em RemoteSession/App monitorando sessions?
-            // NÃO, setupDataListeners adiciona listeners no objeto conn. Feito uma vez.
-            // Vamos fazer aqui mesmo.
-            // Deixa para o App lidar com isso via `useEffect` ou passar callback que retorna ID.
-        });
+        };
 
-        peer.on('call', (call) => {
-            console.log('[Peer] Call Recebido de:', call.peer, 'Metadata:', call.metadata);
-
-            const isHandover = onHandoverCheck ? onHandoverCheck(call.metadata) : false;
-            if (isHandover) console.log('[Peer] 🚀 Handover detectado! Pré-autenticando sessão.');
-
-            setSessions(prev => {
-                const existing = prev.find(s => s.remoteId === call.peer);
-                const sessionId = existing ? existing.id : `session-${Date.now()}`;
-
-                if (existing) {
-                    return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
-                }
-
-                // [FIX] Silência verificações de status em chamadas (raro mas possível)
-                if (call.metadata?.type === 'status-check') {
-                    console.log('[Peer] Check de status em CALL recebido (Silencioso)');
-                    return prev;
-                }
-
-                const newSession = createSession(sessionId, call.peer, true);
-                newSession.incomingCall = call;
-                if (isHandover) newSession.isAuthenticated = true;
-
-                if (!videoRefsMap.current.has(sessionId)) {
-                    videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
-                }
-                console.log('[Peer] Ativando janela para nova conexão CALL. Handover:', isHandover);
-                if (!isHandover) onShowRequest(); // Notifica para abrir janela/focar apenas se não for handover interno
-                return [...prev, newSession];
-            });
-        });
+        initPeer();
 
         return () => {
-            peer.destroy();
-            setPeerInstance(null);
+            if (mainPeerRef.current) {
+                mainPeerRef.current.destroy();
+                setPeerInstance(null);
+            }
         };
 
     }, [serverIp, setSessions, onShowRequest, onHandoverCheck, customPeerId]);

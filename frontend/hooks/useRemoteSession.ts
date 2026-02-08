@@ -258,62 +258,62 @@ export function useRemoteSession({
                 return;
             }
 
-            // LOGIC
-            setSessions(prev => {
-                const session = prev.find(s => s.id === sessionId);
-                if (!session) return prev;
+            // PROCESS LOGIC DATA TYPES (REFACTORED OUT OF SETSESSIONS)
+            if (data.type === 'CALL_REJECTED' || data.type === 'CALL_CANCELLED') {
+                handleSessionClose(sessionId, 'Chamada rejeitada/cancelada');
+                return;
+            }
 
-                if (data.type === 'CALL_REJECTED' || data.type === 'CALL_CANCELLED') {
-                    handleSessionClose(sessionId, 'Chamada rejeitada/cancelada');
-                    return prev.filter(s => s.id !== sessionId);
+            if (currentSession?.isIncoming) {
+                // HOST LOGIC (Apenas processamento de estado aqui)
+                if (data.type === 'AUTH') {
+                    const isCorrect = data.password === sessionPasswordRef.current ||
+                        (unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
+                    conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
+
+                    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: !!isCorrect } : s));
+                    return;
                 }
 
-                if (session.isIncoming) {
-                    // HOST LOGIC (Apenas processamento de estado aqui)
-                    if (data.type === 'AUTH') {
-                        const isCorrect = data.password === sessionPasswordRef.current ||
-                            (unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
-                        conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
+                if (data.type === 'SWITCH_MONITOR') {
+                    console.log(`[Host] Solicitação de troca de monitor recebida: ${data.sourceId}`);
+                    selectSource(data.sourceId).then(() => {
+                        conn.send({ type: 'MONITOR_CHANGED', activeSourceId: data.sourceId });
+                    }).catch(err => {
+                        console.error('[Host] Falha ao trocar monitor:', err);
+                    });
+                    return;
+                }
+            } else {
+                // CLIENT LOGIC
+                if (data.type === 'AUTH_STATUS') {
+                    if (data.status === 'OK') {
+                        const savedPw = currentSession?.pendingPassword;
+                        const shouldRemember = currentSession?.shouldRememberPassword;
 
-                        return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: !!isCorrect } : s);
-                    }
-
-                    if (data.type === 'SWITCH_MONITOR') {
-                        console.log(`[Host] Solicitação de troca de monitor recebida: ${data.sourceId}`);
-                        selectSource(data.sourceId).then(() => {
-                            // Opcional: Notificar todos os clientes que o monitor mudou
-                            conn.send({ type: 'MONITOR_CHANGED', activeSourceId: data.sourceId });
-                        }).catch(err => {
-                            console.error('[Host] Falha ao trocar monitor:', err);
-                        });
-                        return prev;
-                    }
-                } else {
-                    // CLIENT LOGIC
-                    if (data.type === 'AUTH_STATUS') {
-                        if (data.status === 'OK') {
-                            if (session.shouldRememberPassword && session.pendingPassword) {
-                                setContacts(curr => {
-                                    const upd = curr.map(c => c.id === session.remoteId ? { ...c, savedPassword: session.pendingPassword } : c);
-                                    localStorage.setItem('miré_desk_contacts', JSON.stringify(upd));
-                                    return upd;
-                                });
-                            }
-                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false, status: 'connected' } : s);
-                        } else {
-                            alert('Senha incorreta.');
-                            return prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, pendingPassword: undefined, status: 'disconnected' } : s);
+                        if (shouldRemember && savedPw) {
+                            setContacts(curr => {
+                                const upd = curr.map(c => c.id === currentSession!.remoteId ? { ...c, savedPassword: savedPw } : c);
+                                localStorage.setItem('miré_desk_contacts', JSON.stringify(upd));
+                                return upd;
+                            });
                         }
+                        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false, status: 'connected' } : s));
+                    } else {
+                        // SET ERROR INSTEAD OF BLOCKING ALERT
+                        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, status: 'disconnected', authError: 'Senha incorreta. Verifique e tente novamente.' } : s));
                     }
-                    else if (data.type === 'SOURCES_LIST') {
-                        return prev.map(s => s.id === sessionId ? { ...s, remoteSources: data.sources, activeSourceId: data.activeSourceId } : s);
-                    }
-                    else if (data.type === 'MONITOR_CHANGED') {
-                        return prev.map(s => s.id === sessionId ? { ...s, activeSourceId: data.activeSourceId } : s);
-                    }
+                    return;
                 }
-                return prev;
-            });
+                else if (data.type === 'SOURCES_LIST') {
+                    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, remoteSources: data.sources, activeSourceId: data.activeSourceId } : s));
+                    return;
+                }
+                else if (data.type === 'MONITOR_CHANGED') {
+                    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, activeSourceId: data.activeSourceId } : s));
+                    return;
+                }
+            }
         });
 
     }, [contacts, localStream, setContacts, setRecentSessions]);
@@ -334,7 +334,7 @@ export function useRemoteSession({
     // Monitors sessions for the condition: Authenticated AND Incoming Call AND Not Connected
     useEffect(() => {
         sessions.forEach(session => {
-            if (session.isIncoming && session.isAuthenticated && session.incomingCall && !session.connected) {
+            if (session.isIncoming && session.isAuthenticated && session.incomingCall && !session.remoteStream) {
                 // Prevent duplicate answers
                 if (answeredCallsRef.current.has(session.id)) return;
 

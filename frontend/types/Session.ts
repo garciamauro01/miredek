@@ -23,6 +23,7 @@ export interface Session {
     hasNewMessage?: boolean;
     status?: 'connected' | 'disconnected' | 'reconnecting';
     lastHeartbeat?: number;
+    authError?: string;
 }
 
 export function createSession(id: string, remoteId: string = '', isIncoming: boolean = false): Session {

@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isAppInstalled: () => ipcRenderer.invoke('is-app-installed'),
     getLocalIp: () => ipcRenderer.invoke('get-local-ip'),
     resetInput: () => ipcRenderer.invoke('reset-input'),
+    isAdmin: () => ipcRenderer.invoke('is-admin'),
+    requestElevation: (remoteId?: string) => ipcRenderer.invoke('request-elevation', remoteId),
+    getCommandLineArgs: () => ipcRenderer.invoke('get-command-line-args'),
+    getMachineId: () => ipcRenderer.invoke('get-machine-id'),
     onUpdateProgress: (callback: (progress: number) => void) => {
         const listener = (_event: any, progress: number) => callback(progress);
         ipcRenderer.on('update-progress', listener);

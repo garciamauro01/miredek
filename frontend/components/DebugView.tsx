@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MousePointer2, Keyboard, Trash2, X, Bug } from 'lucide-react';
+import { MousePointer2, Keyboard, Trash2, X, Bug, FolderSearch, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export function DebugView() {
     const [events, setEvents] = useState<any[]>([]);
@@ -16,6 +16,26 @@ export function DebugView() {
     }, []);
 
     const clearLogs = () => setEvents([]);
+
+    const getIcon = (type: string) => {
+        if (type.startsWith('mouse')) return <MousePointer2 size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        if (type.startsWith('key')) return <Keyboard size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        if (type === 'DROP_SUCCESS') return <CheckCircle size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        if (type === 'DROP_WARNING') return <AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        if (type === 'DROP_ERROR') return <X size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        if (type === 'DROP_DEBUG') return <FolderSearch size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+        return <Bug size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />;
+    };
+
+    const getColor = (type: string) => {
+        if (type.startsWith('mouse')) return '#60a5fa';
+        if (type.startsWith('key')) return '#c084fc';
+        if (type === 'DROP_SUCCESS') return '#4ade80';
+        if (type === 'DROP_WARNING') return '#facc15';
+        if (type === 'DROP_ERROR') return '#f87171';
+        if (type === 'DROP_DEBUG') return '#94a3b8';
+        return '#e0e0e0';
+    };
 
     return (
         <div style={{
@@ -39,7 +59,7 @@ export function DebugView() {
             } as React.CSSProperties}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                     <Bug size={14} color="#f87171" />
-                    <span>Mouse Debug (Host)</span>
+                    <span>Mouse & File Debug (Host)</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
                     <button onClick={clearLogs} style={{ background: 'transparent', border: 'none', color: '#999', cursor: 'pointer' }} title="Limpar">
@@ -54,7 +74,7 @@ export function DebugView() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '10px', fontSize: '12px' }}>
                 {events.length === 0 ? (
                     <div style={{ color: '#666', textAlign: 'center', marginTop: '50px' }}>
-                        Aguardando comandos do cliente...
+                        Aguardando eventos...
                     </div>
                 ) : (
                     events.map(ev => (
@@ -65,14 +85,18 @@ export function DebugView() {
                             gap: '10px'
                         }}>
                             <span style={{ color: '#666' }}>[{ev.timestamp}]</span>
-                            <span style={{ color: ev.type.startsWith('mouse') ? '#60a5fa' : '#c084fc', width: '80px', flexShrink: 0 }}>
-                                {ev.type.startsWith('mouse') ? <MousePointer2 size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> : <Keyboard size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />}
+                            <span style={{ color: getColor(ev.type), width: '120px', flexShrink: 0, fontWeight: 'bold' }}>
+                                {getIcon(ev.type)}
                                 {ev.type}
                             </span>
-                            <span style={{ color: '#fbbf24' }}>
-                                {ev.x !== undefined ? `x:${ev.x.toFixed(3)} y:${ev.y.toFixed(3)}` : ''}
-                                {ev.key ? ` key: ${ev.key}` : ''}
-                                {ev.button ? ` btn: ${ev.button}` : ''}
+                            <span style={{ color: '#e0e0e0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                                {ev.message || (
+                                    <>
+                                        {ev.x !== undefined ? `x:${ev.x.toFixed(3)} y:${ev.y.toFixed(3)}` : ''}
+                                        {ev.key ? ` key: ${ev.key}` : ''}
+                                        {ev.button ? ` btn: ${ev.button}` : ''}
+                                    </>
+                                )}
                             </span>
                         </div>
                     ))

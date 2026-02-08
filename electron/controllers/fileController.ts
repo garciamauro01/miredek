@@ -37,16 +37,13 @@ export function setupFileHandlers() {
 
     ipcMain.handle('finalize-file', async (event, transferId: string, fileName: string, x?: number, y?: number) => {
         try {
+            const { sendToDebugWindow } = require('./ipcController');
             let targetDir = join(app.getPath('downloads'), 'MiréDesk');
 
+            sendToDebugWindow({ type: 'DROP_DEBUG', message: `Iniciando finalização de arquivo: ${fileName}`, x, y });
+
             // Se houver coordenadas, tentamos encontrar a pasta do Explorer sob o mouse
-            // ==================================================================================
-            // ⚠️ CRITICAL - DO NOT CHANGE THIS BEHAVIOR ⚠️
-            // O usuário requer que o arquivo seja salvo EXATAMENTE onde foi solto (Desktop, Pasta, etc).
-            // Esta lógica usa PowerShell para detectar a janela sob o mouse.
-            // Se falhar, usa o Desktop/Downloads como fallback, mas a TENTATIVA é obrigatória.
-            // NÃO REMOVA OU SIMPLIFIQUE ESTA LÓGICA DE DETECÇÃO.
-            // ==================================================================================
+            // ... (keep comments)
             try {
                 const { screen } = require('electron');
                 const primaryDisplay = screen.getPrimaryDisplay();
@@ -55,6 +52,7 @@ export function setupFileHandlers() {
                 const py = Math.floor((y || 0) * primaryDisplay.bounds.height);
 
                 logToFile(`[Main] Detectando drop. Norm: (${(x || 0).toFixed(2)}, ${(y || 0).toFixed(2)}) -> Px: (${px}, ${py})`);
+                sendToDebugWindow({ type: 'DROP_DEBUG', message: `Calculado Pixels: (${px}, ${py})` });
 
                 const psScript = `
           $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -96,22 +94,28 @@ export function setupFileHandlers() {
                 // Adiciona timeout para não travar
                 let detectedPath = "";
                 try {
+                    sendToDebugWindow({ type: 'DROP_DEBUG', message: `Executando PowerShell para detectar janela sob o mouse...` });
                     detectedPath = execSync(`powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\"')}"`, { timeout: 10000, encoding: 'utf-8' }).toString().trim();
                     logToFile(`[Main] PowerShell detectou: "${detectedPath}"`);
+                    sendToDebugWindow({ type: 'DROP_DEBUG', message: `PowerShell retornou: "${detectedPath}"` });
                 } catch (psError: any) {
                     logToFile(`[Main] Erro na execução do PowerShell: ${psError.message}`);
                     if (psError.stderr) logToFile(`[Main] PowerShell STDERR: ${psError.stderr}`);
+                    sendToDebugWindow({ type: 'DROP_ERROR', message: `Erro PowerShell: ${psError.message}` });
                 }
 
                 logToFile(`[Main] Caminho final detectado: ${detectedPath}`);
 
                 if (detectedPath && fs.existsSync(detectedPath)) {
                     targetDir = detectedPath;
+                    sendToDebugWindow({ type: 'DROP_SUCCESS', message: `Diretório alvo definido: ${targetDir}` });
                 } else {
                     logToFile(`[Main] Caminho detectado falhou ("${detectedPath}"). Usando fallback seguro: Downloads/MiréDesk`);
+                    sendToDebugWindow({ type: 'DROP_WARNING', message: `Falha na detecção ou caminho inválido. Usando Fallback: ${targetDir}` });
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Falha ao detectar contexto de drop (usando fallback):', e);
+                sendToDebugWindow({ type: 'DROP_ERROR', message: `Exceção na detecção: ${e.message}` });
             }
 
             if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
