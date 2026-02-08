@@ -1,6 +1,13 @@
 {
+<<<<<<< Updated upstream
     "version": "1.0.142",
     "critical": false,
     "downloadUrl": "/MireDesk-Setup.exe",
     "releaseNotes": "Versao 1.0.142 (Instalador NSIS) gerada em 06/02/2026 15:37:42,62"
+=======
+    "version": "1.0.128",
+    "critical": false,
+    "downloadUrl": "/MireDesk-Setup.exe",
+    "releaseNotes": "Versao 1.0.128 (Instalador NSIS) gerada em 08/02/2026 11:13:23,33"
+>>>>>>> Stashed changes
 }

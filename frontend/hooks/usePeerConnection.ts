@@ -97,7 +97,14 @@ export function usePeerConnection(
                         if (conn.metadata?.type === 'status-check') return prev;
                         const newSession = createSession(sessionId, conn.peer, true);
                         newSession.dataConnection = conn;
-                        if (isHandover) newSession.isAuthenticated = true;
+
+                        // [FIX] Handover Check for Data Connection
+                        if (isHandover) {
+                            console.log('[Peer] 🚀 Handover VALIDADO na conexão de DADOS via Metadata!');
+                            newSession.isAuthenticated = true;
+                            newSession.isAuthenticating = false;
+                            newSession.status = 'connected';
+                        }
                         if (!videoRefsMap.current.has(sessionId)) {
                             videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                         }
