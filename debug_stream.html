@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MireDesk Stream Debug</title>
+    <style>
+        body {
+            background: #333;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        img {
+            border: 2px solid red;
+            max-width: 80%;
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>MireDesk MJPEG Debug</h1>
+    <p>Trying to load: http://localhost:9876/stream.mjpeg</p>
+    <div>
+        <img id="stream" src="http://localhost:9876/stream.mjpeg" alt="Waiting for stream..." />
+    </div>
+    <p>Status: <span id="status">Loading...</span></p>
+
+    <script>
+        const img = document.getElementById('stream');
+        img.onload = () => {
+            document.getElementById('status').innerText = 'Connected / Receiving Frames';
+            img.style.borderColor = 'green';
+        };
+        img.onerror = (e) => {
+            document.getElementById('status').innerText = 'Error loading stream';
+            console.error(e);
+        };
+    </script>
+</body>
+
+</html>

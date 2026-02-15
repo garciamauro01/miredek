@@ -38,7 +38,9 @@ export function Dashboard({
     peerStatus = 'offline',
     contacts = [],
     onUpdateContact,
-    onRemoveContact
+    onRemoveContact,
+    sessions = [],
+    onCloseSession
 }: DashboardProps) {
 
     const [activeTab, setActiveTab] = useState<'recent' | 'favorites' | 'address' | 'transfers'>('recent');
@@ -50,17 +52,37 @@ export function Dashboard({
     const [tempServerIp, setTempServerIp] = useState(serverIp);
     const [iAmAdmin, setIAmAdmin] = useState(false);
 
+    const [serviceStatus, setServiceStatus] = useState<'running' | 'stopped' | 'not-installed'>('not-installed');
+
     useEffect(() => {
         setTempServerIp(serverIp);
     }, [serverIp]);
 
     useEffect(() => {
-        if (window.electronAPI) {
-            window.electronAPI.getAppVersion().then(setAppVersion);
-            // @ts-ignore
-            window.electronAPI.isAdmin?.().then(setIAmAdmin);
-        }
+        const init = async () => {
+            if (window.electronAPI) {
+                window.electronAPI.getAppVersion().then(setAppVersion);
+                // @ts-ignore
+                window.electronAPI.isAdmin?.().then(setIAmAdmin);
+
+                const srvStatus = await window.electronAPI.getServiceStatus?.();
+                if (srvStatus) setServiceStatus(srvStatus);
+            }
+        };
+        init();
+
+        // Polling status for service
+        const interval = setInterval(async () => {
+            if (window.electronAPI && window.electronAPI.getServiceStatus) {
+                const srvStatus = await window.electronAPI.getServiceStatus();
+                setServiceStatus(srvStatus);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, []);
+
+
 
     return (
         <div className="dashboard-container">
@@ -71,6 +93,61 @@ export function Dashboard({
                     <p className="sidebar-desc">
                         Seu computador pode ser acessado com este ID e senha.
                     </p>
+
+                    {/* CONNECTION INDICATOR BANNER */}
+                    {sessions && sessions.filter(s => s.isIncoming && s.connected).length > 0 && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+                            color: 'white',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+                            animation: 'pulse 2s ease-in-out infinite'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    animation: 'blink 1s ease-in-out infinite'
+                                }} />
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                                        🔴 Conexão Remota Ativa
+                                    </div>
+                                    <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                                        {sessions.filter(s => s.isIncoming && s.connected).map(s => s.remoteId).join(', ')} está controlando esta máquina
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const incomingSessions = sessions.filter(s => s.isIncoming && s.connected);
+                                    incomingSessions.forEach(s => onCloseSession?.(s.id));
+                                }}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                                    color: 'white',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                            >
+                                Desconectar
+                            </button>
+                        </div>
+                    )}
 
                     {/* ID Card */}
                     <div className="id-card">
@@ -121,6 +198,25 @@ export function Dashboard({
                                 />
                                 <ShieldCheck size={16} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#10b981' }} />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Service Status Monitoring (Managed by Installer) */}
+                    <div className="password-section" style={{ marginTop: '20px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '15px' }}>
+                        <h3 className="section-title">Serviço de Acesso</h3>
+                        <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+                            O acesso remoto via boot é gerenciado automaticamente pelo instalador.
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: serviceStatus === 'running' ? '#10b981' : (serviceStatus === 'stopped' ? '#f59e0b' : '#9ca3af')
+                            }}></div>
+                            <span style={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>
+                                {serviceStatus === 'running' ? 'Serviço Ativo' : (serviceStatus === 'stopped' ? 'Serviço Parado' : 'Serviço não instalado')}
+                            </span>
                         </div>
                     </div>
 

@@ -492,3 +492,22 @@
     cursor: pointer;
     font-weight: 600;
 }
+
+/* CONNECTION INDICATOR ANIMATIONS */
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.6);
+    }
+}
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}

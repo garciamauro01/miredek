@@ -1,0 +1,5 @@
+WEBVIEW2_LOADER RCDATA "WebView2Loader.dll"
+SK4D_DLL RCDATA "sk4d.dll"
+BRIDGE_HTML RCDATA "bridge.html"
+LOGO_MIREDESK RCDATA "logo_miredesk.png"
+SPLASH_MIREDESK RCDATA "splash.svg"

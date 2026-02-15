@@ -1,0 +1,283 @@
+unit MainForm;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Edge, Vcl.StdCtrls, Vcl.ExtCtrls,
+  PeerJSBridge, InputUtils, Styles, UIParts, ServiceUtils, System.JSON, System.Skia, Vcl.Skia,
+  Vcl.Clipbrd, System.Types, System.UITypes;
+
+type
+  TFormMain = class(TForm)
+    EdgeBrowser: TEdgeBrowser;
+    PanelSidebar: TPanel;
+    btnConnect: TButton;
+    editRemoteID: TEdit;
+    memoLog: TMemo;
+    lblMyID: TLabel;
+    TimerPulse: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure EdgeBrowserCreateWebViewCompleted(Sender: TCustomEdgeBrowser;
+      AResult: HRESULT);
+    procedure FormPaint(Sender: TObject);
+    procedure TimerPulseTimer(Sender: TObject);
+    procedure FormMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+  private
+    FBridge: TMirePeerBridge;
+    FPeerID: string;
+    FPulseScale: Single;
+    FIsConnected: Boolean;
+    FIncomingPeerID: string;
+    FShowAcceptanceModal: Boolean;
+    procedure SetupModernUI;
+    procedure OnBridgeReady(Sender: TObject);
+    procedure OnPeerOpen(Sender: TObject; const PeerID: string);
+    procedure OnPeerConnection(Sender: TObject; const RemoteID: string);
+    procedure OnDataReceived(Sender: TObject; const RemoteID: string; Data: TJSONValue);
+    procedure OnPeerError(Sender: TObject; const ErrorMsg: string);
+  public
+    { Public declarations }
+  end;
+
+var
+  FormMain: TFormMain;
+
+implementation
+
+{$R *.dfm}
+
+function AlphaToVcl(AColor: TAlphaColor): TColor;
+begin
+  Result := RGB(TAlphaColorRec(AColor).R, TAlphaColorRec(AColor).G, TAlphaColorRec(AColor).B);
+end;
+
+procedure TFormMain.FormCreate(Sender: TObject);
+var
+  BridgeHTML: string;
+begin
+  SetupModernUI;
+  FPulseScale := 0;
+  FIsConnected := False;
+  FShowAcceptanceModal := False;
+  
+  FBridge := TMirePeerBridge.Create(EdgeBrowser);
+  FBridge.OnBridgeReady := OnBridgeReady;
+  // ... rest of event assignments
+
+  { Load the bridge HTML }
+  BridgeHTML := ExtractFilePath(ParamStr(0)) + 'bridge.html';
+  if FileExists(BridgeHTML) then
+    EdgeBrowser.Navigate('file://' + BridgeHTML)
+  else
+    memoLog.Lines.Add('Error: bridge.html not found at ' + BridgeHTML);
+end;
+
+procedure TFormMain.SetupModernUI;
+begin
+  // Set form properties for a clean look
+  Caption := 'MireDesk Native';
+  Color := AlphaToVcl(skBackground);
+  Font.Name := 'Segoe UI';
+  Font.Size := 10;
+  
+  // In a real scenario, you would drag Skia components here in the IDE
+  // For now, we update the labels/panels we have
+  PanelSidebar.Color := AlphaToVcl(skSecondary);
+  memoLog.Color := AlphaToVcl(skCardBG);
+  memoLog.BorderStyle := bsNone;
+  
+  if Assigned(lblMyID) then
+  begin
+    lblMyID.Font.Color := AlphaToVcl(skPrimary);
+    lblMyID.Font.Style := [fsBold];
+  end;
+end;
+
+procedure TFormMain.FormPaint(Sender: TObject);
+var
+  LCanvas: ISkCanvas;
+  LPaint: ISkPaint;
+  CardRect: TRectF;
+  BtnRect: TRectF;
+  StatusColor: TAlphaColor;
+begin
+  // In Delphi 12, if Skia is enabled in Project Options, 
+  // you access it directly via the Canvas property.
+  LCanvas := Canvas.Skia;
+  if not Assigned(LCanvas) then Exit;
+  
+  // Draw Background
+  LCanvas.Clear(skBackground);
+
+  // Draw a beautiful Card for the Peer ID
+  CardRect := RectF(20, 20, Width - 20, 140);
+  TSkUIDrawer.DrawCard(LCanvas, CardRect, skCardBG);
+  
+  // Draw "Your Device ID" Header inside card
+  TSkUIDrawer.DrawHeader(LCanvas, RectF(20, 20, Width - 20, 50), 'MireDesk Host');
+
+  if FIsConnected then StatusColor := skSuccess else StatusColor := skDanger;
+  TSkUIDrawer.DrawStatusPulse(LCanvas, PointF(Width - 45, 35), StatusColor, FPulseScale);
+
+  // Draw the real Peer ID
+  if FPeerID <> '' then
+  begin
+    TSkUIDrawer.DrawLabel(LCanvas, RectF(40, 65, Width - 40, 110), FPeerID, 22, skPrimary, True);
+    
+    // Draw "Copy ID" Button
+    BtnRect := RectF(40, 95, 140, 125);
+    TSkUIDrawer.DrawButton(LCanvas, BtnRect, 'Copy ID', False);
+  end
+  else
+  begin
+    TSkUIDrawer.DrawLabel(LCanvas, RectF(40, 65, Width - 40, 110), 'Connecting...', 18, skTextSecondary, False);
+  end;
+
+  // --- Service Management Section ---
+  CardRect := RectF(20, 160, Width - 20, 260);
+  TSkUIDrawer.DrawCard(LCanvas, CardRect, skCardBG);
+  TSkUIDrawer.DrawHeader(LCanvas, RectF(20, 160, Width - 20, 200), 'Windows Service');
+  
+  if GetMireDeskServiceStatus = ssRunning then
+  begin
+    TSkUIDrawer.DrawLabel(LCanvas, RectF(40, 210, 150, 230), 'Status: RUNNING', 12, skSuccess, True);
+    TSkUIDrawer.DrawButton(LCanvas, RectF(160, 210, 260, 240), 'Stop', False);
+  end
+  else
+  begin
+    TSkUIDrawer.DrawLabel(LCanvas, RectF(40, 210, 150, 230), 'Status: STOPPED', 12, skDanger, True);
+    TSkUIDrawer.DrawButton(LCanvas, RectF(160, 210, 260, 240), 'Start', False);
+  end;
+
+  // Draw Acceptance Modal Over everything
+  if FShowAcceptanceModal then
+  begin
+    // Dim background (30% black)
+    LPaint := TSkPaint.Create;
+    LPaint.Color := $4B000000;
+    LCanvas.DrawRect(RectF(0, 0, Width, Height), LPaint);
+    
+    CardRect := RectF(50, 100, Width - 50, 250);
+    TSkUIDrawer.DrawCard(LCanvas, CardRect, skCardBG);
+    TSkUIDrawer.DrawHeader(LCanvas, RectF(50, 100, Width - 50, 140), 'Incoming Connection');
+    TSkUIDrawer.DrawLabel(LCanvas, RectF(70, 150, Width - 70, 180), 'From: ' + FIncomingPeerID, 14, skTextMain, True);
+    
+    // Accept Button
+    TSkUIDrawer.DrawButton(LCanvas, RectF(70, 200, 170, 230), 'Accept', False);
+    // Reject Button
+    TSkUIDrawer.DrawButton(LCanvas, RectF(180, 200, 280, 230), 'Reject', False);
+  end;
+end;
+
+procedure TFormMain.FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if FShowAcceptanceModal then
+  begin
+    // Accept click
+    if (X >= 70) and (X <= 170) and (Y >= 200) and (Y <= 230) then
+    begin
+      FShowAcceptanceModal := False;
+      memoLog.Lines.Add('Connection accepted from ' + FIncomingPeerID);
+      // In a real flow, you'd send a "HANDSHAKE_OK" data message
+      FBridge.SendData(FIncomingPeerID, '{"type": "HANDSHAKE_OK"}');
+      Invalidate;
+    end
+    // Reject click
+    else if (X >= 180) and (X <= 280) and (Y >= 200) and (Y <= 230) then
+    begin
+      FShowAcceptanceModal := False;
+      memoLog.Lines.Add('Connection rejected from ' + FIncomingPeerID);
+      FBridge.SendData(FIncomingPeerID, '{"type": "HANDSHAKE_REJECT"}');
+      Invalidate;
+    end;
+    Exit;
+  end;
+
+  // Check if "Copy ID" button area was clicked
+  if (FPeerID <> '') and (X >= 40) and (X <= 140) and (Y >= 95) and (Y <= 125) then
+  begin
+    Clipboard.AsText := FPeerID;
+    ShowMessage('Peer ID copied to clipboard!');
+    Exit;
+  end;
+
+  // Check if Service Start/Stop button was clicked
+  if (X >= 160) and (X <= 260) and (Y >= 210) and (Y <= 240) then
+  begin
+    if GetMireDeskServiceStatus = ssRunning then
+      StopMireDeskService
+    else
+      StartMireDeskService;
+    Invalidate;
+    Exit;
+  end;
+end;
+
+procedure TFormMain.TimerPulseTimer(Sender: TObject);
+begin
+  FPulseScale := FPulseScale + 0.05;
+  if FPulseScale > 1 then FPulseScale := 0;
+  Invalidate;
+end;
+
+procedure TFormMain.EdgeBrowserCreateWebViewCompleted(Sender: TCustomEdgeBrowser; AResult: HRESULT);
+begin
+  if Succeeded(AResult) then
+    memoLog.Lines.Add('WebView2 Engine Ready')
+  else
+    memoLog.Lines.Add('Error: WebView2 Initialization Failed');
+end;
+
+procedure TFormMain.OnBridgeReady(Sender: TObject);
+begin
+  memoLog.Lines.Add('Bridge JS is ready. Handshaking...');
+  { Initialize with your server config }
+  FBridge.Initialize('167.234.241.147', 9000, '/peerjs');
+  
+  { Auto-start MJPEG capture (pointing to our Agent) }
+  FBridge.StartVideo('http://localhost:9876/stream.mjpeg');
+end;
+
+procedure TFormMain.OnPeerOpen(Sender: TObject; const PeerID: string);
+begin
+  FPeerID := PeerID;
+  FIsConnected := True;
+  lblMyID.Caption := 'Your ID: ' + PeerID;
+  memoLog.Lines.Add('Connected to PeerServer. My ID: ' + PeerID);
+  Invalidate; // Force repaint to show ID on Skia card
+end;
+
+procedure TFormMain.OnPeerConnection(Sender: TObject; const RemoteID: string);
+begin
+  memoLog.Lines.Add('Incoming connection intent from: ' + RemoteID);
+  FIncomingPeerID := RemoteID;
+  FShowAcceptanceModal := True;
+  Invalidate;
+end;
+
+procedure TFormMain.OnDataReceived(Sender: TObject; const RemoteID: string; Data: TJSONValue);
+var
+  JSONObj: TJSONObject;
+  MsgType: string;
+begin
+  memoLog.Lines.Add('Data from ' + RemoteID + ': ' + Data.ToJSON);
+  
+  if Data is TJSONObject then
+  begin
+    JSONObj := TJSONObject(Data);
+    if JSONObj.TryGetValue<string>('type', MsgType) then
+    begin
+      // Inject input directly!
+      HandleRemoteInput(MsgType, JSONObj);
+    end;
+  end;
+end;
+
+procedure TFormMain.OnPeerError(Sender: TObject; const ErrorMsg: string);
+begin
+  memoLog.Lines.Add('Peer Error: ' + ErrorMsg);
+end;
+
+end.

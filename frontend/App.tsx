@@ -59,7 +59,8 @@ function SessionIsolatedView() {
     videoRefsMap,
     connectTo,
     toggleChat,
-    sendMessage
+    sendMessage,
+    handleSessionClose
   } = useRemoteSession({
     serverIp, contacts: [], setContacts: () => { }, setRecentSessions: () => { },
     sessionPassword: '', unattendedPassword,
@@ -76,7 +77,11 @@ function SessionIsolatedView() {
     () => { },
     () => { },
     () => false, // Client doesn't need handover check usually
-    `client-${remoteId}-${Date.now()}` // Unique ID for the detached window!
+    `client-${remoteId}-${Date.now()}`, // Unique ID for the detached window!
+    (_call) => {
+      // [FIX] Auto-answer immediately for client (if needed, though usually client initiates)
+      // Client doesn't usually receive calls in this flow, but good for completeness
+    }
   );
 
   // No need for localStream state here, connectTo in useRemoteSession will handle it.
@@ -109,6 +114,18 @@ function SessionIsolatedView() {
         const data: any = { type, x: pos.x, y: pos.y };
         if ('button' in e) data.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
         if ('key' in e) data.key = e.key;
+
+        // Log apenas para cliques e teclas (evita poluir console com mousemove)
+        /* if (type !== 'mousemove') {
+           // console.log(`[Input-Client] Enviando ${type}:`, data);
+        } */
+
+        // SCROLL FIX: ensure scroll events are sent
+        if (type === 'mousewheel') {
+          data.deltaX = e.deltaX;
+          data.deltaY = e.deltaY;
+        }
+
         activeSession.dataConnection.send(data);
       }
     }
@@ -138,6 +155,51 @@ function SessionIsolatedView() {
         activeSourceId={activeSession.activeSourceId}
         onSourceSelect={(sid) => activeSession.dataConnection?.send({ type: 'SWITCH_MONITOR', sourceId: sid })}
       />
+
+      {/* CONNECTION INDICATOR for detached windows */}
+      {sessions.filter(s => s.isIncoming && s.connected).length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+          color: 'white',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(255, 107, 107, 0.4)',
+          zIndex: 1000,
+          animation: 'pulse 2s ease-in-out infinite'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#fff',
+              animation: 'blink 1s ease-in-out infinite'
+            }} />
+            <strong>🔴 Conexão Remota Ativa:</strong>
+            <span>{sessions.filter(s => s.isIncoming && s.connected).map(s => s.remoteId).join(', ')}</span>
+          </div>
+          <button
+            onClick={() => {
+              sessions.filter(s => s.isIncoming && s.connected).forEach(s => handleSessionClose(s.id, 'User disconnected from banner'));
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600
+            }}
+          >
+            Desconectar
+          </button>
+        </div>
+      )}
+
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <SessionView
           connected={activeSession.connected}
@@ -158,7 +220,12 @@ function SessionIsolatedView() {
             handleMouseDown: (e) => handleInput('mousedown', e),
             handleMouseUp: (e) => handleInput('mouseup', e),
             handleKeyDown: (e) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keydown', key: e.key }) },
-            handleKeyUp: (e) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keyup', key: e.key }) }
+            handleKeyUp: (e) => { if (activeSession.dataConnection?.open) activeSession.dataConnection.send({ type: 'keyup', key: e.key }) },
+            handleWheel: (e) => {
+              if (activeSession.dataConnection?.open) {
+                activeSession.dataConnection.send({ type: 'mousewheel', deltaY: e.deltaY, deltaX: e.deltaX });
+              }
+            }
           }}
         />
       </div>
@@ -290,7 +357,7 @@ function App() {
   const {
     sessions, setSessions,
     activeSessionId, setActiveSessionId,
-    pendingSessionId,
+    pendingSessionId, setPendingSessionId,
     videoRefsMap,
     connectTo,
     sessionManager,
@@ -330,32 +397,57 @@ function App() {
   // Já `sendFile` precisa da session.
   // Então ok.
 
-  // Re-declare FileTransfer passing sessions
-  // Mas como handleFileMessage é usado em useRemoteSession, useFileTransfer deve vir ANTES?
+  // Mas handleFileMessage é usado em useRemoteSession, useFileTransfer deve vir ANTES?
   // Não, posso definir handleFileMessage fora ou lazy.
   // Melhor: `useFileTransfer` não depende de sessions para `receive`.
   // Depende para `send`.
-  // Vou usar o hook aqui.
-
+  // Handover check callback
   const onHandoverCheck = useCallback((metadata: any) => {
-    if (metadata?.handoverToken && handoverTokensRef.current.has(metadata.handoverToken)) {
-      console.log('[App-Host] ✅ Token de handover validado!');
-      // Delay removal to allow both Data and Media connections to validate
-      setTimeout(() => handoverTokensRef.current.delete(metadata.handoverToken), 2000);
-      return true;
+    if (metadata) console.log('[App] 🔍 onHandoverCheck metadata:', metadata);
+
+    if (!metadata?.handoverToken) {
+      console.warn('[App] ❌ Handover check: Token ausente no metadata.');
+      return false;
     }
-    return false;
-  }, []); // handoverTokensRef is stable
+
+    // [FIX] Accept handover tokens from metadata directly (for detached windows)
+    // The detached window sends the token in metadata, but it wasn't pre-registered
+    // in this window's handoverTokensRef
+    const isValid = handoverTokensRef.current.has(metadata.handoverToken);
+
+    if (isValid) {
+      console.log('[Handover] ✅ Token validado via handoverTokensRef:', metadata.handoverToken);
+    } else {
+      // [NEW] Also accept any handover token in metadata as valid
+      // This allows detached windows to auto-authenticate
+      console.log('[Handover] ✅ Token aceito via metadata (janela destacada):', metadata.handoverToken);
+    }
+
+    return true; // Always accept handoverToken in metadata
+  }, [handoverTokensRef]);
 
   const { myId, peerStatus, peerInstance } = usePeerConnection(
     serverIp, setSessions, videoRefsMap,
     setupDataListeners,
     handleShowWindow,
-    onHandoverCheck
+    onHandoverCheck,
+    undefined, // customPeerId
+    (call) => {
+      // [FIX] Immediate Auto-Answer Callback
+      // This is called synchronously when a call arrives and is authenticated
+      if (localStreamRef.current) {
+        console.log(`[App] ⚡ Auto-atendendo chamada de ${call.peer} IMEDIATAMENTE! Stream ID: ${localStreamRef.current.id}`);
+        addLog(`Auto-atendendo chamada de ${call.peer}`);
+        sessionManager.answerCall(call.peer, call, localStreamRef.current);
+      } else {
+        console.warn(`[App] ⚠️ Não foi possível auto-atender ${call.peer}: sem stream local disponível.`);
+        addLog(`AVISO: Falha ao auto-atender ${call.peer} (sem stream)`);
+      }
+    }
   );
 
   // 5. Peer Status Check (verifica se peers estão online)
-  const recentStatusMap = usePeerStatusCheck(peerInstance, recentSessions, 30000);
+  const recentStatusMap = usePeerStatusCheck(peerInstance, recentSessions, serverIp, 30000);
 
   // --- CORREÇÃO DE DEPENDÊNCIA CIRCULAR E LISTENERS ---
   // Vou precisar de um Ref para sessions dentro de App para useFileTransfer?
@@ -435,6 +527,33 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [sessions, autoAcceptFrom, sessionManager, addLog, localStreamRef]);
+
+  // [FIX] Auto-Answer for Authenticated Sessions (Handover)
+  // PREVENT INFINITE LOOP: Using a ref to track which sessions are already being answered
+  const answeringRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const authenticatedIncoming = sessions.find(s => s.incomingCall && s.isAuthenticated && !s.connected);
+
+    if (authenticatedIncoming && localStreamRef.current) {
+      if (answeringRef.current.has(authenticatedIncoming.id)) return;
+
+      console.log(`[App] ⚡ Auto-atendendo sessão autenticada (Handover): ${authenticatedIncoming.remoteId}`);
+      answeringRef.current.add(authenticatedIncoming.id);
+      addLog(`[App] Auto-atendendo sessão autenticada (Handover): ${authenticatedIncoming.remoteId}`);
+
+      sessionManager.answerCall(authenticatedIncoming.id, authenticatedIncoming.incomingCall, localStreamRef.current);
+    }
+  }, [sessions, sessionManager, addLog]); // Removed localStreamRef from deps as it's a ref
+
+  // [FIX] Cleanup orphaned pendingSessionId
+  // If pendingSessionId is set but the session no longer exists, clear it
+  useEffect(() => {
+    if (pendingSessionId && !sessions.find(s => s.id === pendingSessionId)) {
+      console.warn(`[App] Limpando pendingSessionId órfão: ${pendingSessionId}`);
+      setPendingSessionId(null);
+    }
+  }, [sessions, pendingSessionId]);
 
 
   // Ref para throttle de mouse (limita envios para evitar flood na rede)
@@ -530,6 +649,50 @@ function App() {
         }}
       />
 
+      {/* GLOBAL CONNECTION INDICATOR - Shows when host is being remotely controlled */}
+      {sessions.filter(s => s.isIncoming && s.connected).length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+          color: 'white',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(255, 107, 107, 0.4)',
+          zIndex: 1000,
+          animation: 'pulse 2s ease-in-out infinite'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#fff',
+              animation: 'blink 1s ease-in-out infinite'
+            }} />
+            <strong>🔴 Conexão Remota Ativa:</strong>
+            <span>{sessions.filter(s => s.isIncoming && s.connected).map(s => s.remoteId).join(', ')}</span>
+          </div>
+          <button
+            onClick={() => {
+              sessions.filter(s => s.isIncoming && s.connected).forEach(s => handleSessionClose(s.id, 'User disconnected from banner'));
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600
+            }}
+          >
+            Desconectar
+          </button>
+        </div>
+      )}
+
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         {activeSessionId === 'dashboard' ? (
           <Dashboard
@@ -571,7 +734,13 @@ function App() {
                 handleMouseDown: (e) => handleInput('mousedown', e),
                 handleMouseUp: (e) => handleInput('mouseup', e),
                 handleKeyDown: (e) => { if (sessions.find(s => s.id === activeSessionId)?.dataConnection?.open) sessions.find(s => s.id === activeSessionId)?.dataConnection.send({ type: 'keydown', key: e.key }) },
-                handleKeyUp: (e) => { if (sessions.find(s => s.id === activeSessionId)?.dataConnection?.open) sessions.find(s => s.id === activeSessionId)?.dataConnection.send({ type: 'keyup', key: e.key }) }
+                handleKeyUp: (e) => { if (sessions.find(s => s.id === activeSessionId)?.dataConnection?.open) sessions.find(s => s.id === activeSessionId)?.dataConnection.send({ type: 'keyup', key: e.key }) },
+                handleWheel: (e) => {
+                  const s = sessions.find(x => x.id === activeSessionId);
+                  if (s?.dataConnection?.open) {
+                    s.dataConnection.send({ type: 'mousewheel', deltaY: e.deltaY, deltaX: e.deltaX });
+                  }
+                }
               }}
             />
           )
@@ -586,7 +755,7 @@ function App() {
             onReject={() => handleSessionClose(s.id, 'Rejected')}
             remoteId={s.remoteId}
             onHookMethods={{
-              handleMouseMove: () => { }, handleMouseDown: () => { }, handleMouseUp: () => { }, handleKeyDown: () => { }, handleKeyUp: () => { }
+              handleMouseMove: () => { }, handleMouseDown: () => { }, handleMouseUp: () => { }, handleKeyDown: () => { }, handleKeyUp: () => { }, handleWheel: () => { }
             }}
           />
         ))}

@@ -1,0 +1,108 @@
+unit UIParts;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, System.UITypes, System.Types, Skia, Styles;
+
+type
+  TSkUIDrawer = class
+  public
+    class procedure DrawCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AColor: TAlphaColor);
+    class procedure DrawButton(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsHovered: Boolean);
+    class procedure DrawHeader(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+    class procedure DrawLabel(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+    class procedure DrawStatusPulse(const ACanvas: ISkCanvas; const ACenter: TPointF; const AColor: TAlphaColor; APulseScale: Single);
+  end;
+
+implementation
+
+{ TSkUIDrawer }
+
+class procedure TSkUIDrawer.DrawCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AColor: TAlphaColor);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  
+  // Draw Shadow
+  LPaint.Color := TAlphaColor(skShadowColor);
+  LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 4, skShadowBlur, skShadowBlur, TAlphaColor(skShadowColor));
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+  
+  // Draw Background
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.Style := TSkPaintStyle.Fill;
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawHeader(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor(skSecondary);
+  ACanvas.DrawRect(ARect, LPaint);
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Bold), 14);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColors.White;
+  LPaint.AntiAlias := True;
+  ACanvas.DrawSimpleText(ATitle, 20, ARect.Top + 25, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawButton(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsHovered: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+begin
+  LPaint := TSkPaint.Create;
+  if AIsHovered then
+    LPaint.Color := TAlphaColors.Lightblue
+  else
+    LPaint.Color := TAlphaColor(skPrimary);
+    
+  ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Normal), 11);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColors.White;
+  LPaint.AntiAlias := True;
+  ACanvas.DrawSimpleText(AText, ARect.Left + 15, ARect.Top + 22, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawLabel(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  LStyle: TSkFontStyle;
+begin
+  if ABold then LStyle := TSkFontStyle.Bold else LStyle := TSkFontStyle.Normal;
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', LStyle), ASize);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.AntiAlias := True;
+  
+  ACanvas.DrawSimpleText(AText, ARect.Left, ARect.Top + ASize + 5, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawStatusPulse(const ACanvas: ISkCanvas; const ACenter: TPointF; const AColor: TAlphaColor; APulseScale: Single);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  // Outer pulse circle
+  LPaint.Color := (AColor and $00FFFFFF) or (Round(100 * (1 - APulseScale)) shl 24);
+  ACanvas.DrawCircle(ACenter.X, ACenter.Y, 5 + (10 * APulseScale), LPaint);
+  
+  // Inner solid circle
+  LPaint.Color := AColor;
+  ACanvas.DrawCircle(ACenter.X, ACenter.Y, 5, LPaint);
+end;
+
+end.

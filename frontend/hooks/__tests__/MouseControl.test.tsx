@@ -15,7 +15,7 @@ describe('Mouse Control Tests', () => {
 
     describe('Event Type Validation', () => {
         it('should recognize mouse event types', () => {
-            const mouseEventTypes = ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'];
+            const mouseEventTypes = ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup', 'mousewheel'];
 
             mouseEventTypes.forEach(type => {
                 expect(mouseEventTypes.includes(type)).toBe(true);
@@ -37,6 +37,18 @@ describe('Mouse Control Tests', () => {
             expect(validMouseEvent.x).toBeLessThanOrEqual(1);
             expect(validMouseEvent.y).toBeGreaterThanOrEqual(0);
             expect(validMouseEvent.y).toBeLessThanOrEqual(1);
+        });
+
+        it('should validate scroll event structure', () => {
+            const validScrollEvent = {
+                type: 'mousewheel',
+                deltaX: 0,
+                deltaY: 100
+            };
+
+            expect(validScrollEvent).toHaveProperty('type');
+            expect(validScrollEvent.type).toBe('mousewheel');
+            expect(validScrollEvent).toHaveProperty('deltaY');
         });
     });
 
@@ -125,7 +137,7 @@ describe('Mouse Control Tests', () => {
 
             // Simulate the logic from useRemoteSession.ts line 129
             const shouldProcess = session.isIncoming &&
-                ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(mouseEvent.type);
+                ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup', 'mousewheel'].includes(mouseEvent.type);
 
             expect(shouldProcess).toBe(true);
 
@@ -134,6 +146,31 @@ describe('Mouse Control Tests', () => {
             }
 
             expect(mockExecuteInput).toHaveBeenCalledWith(mouseEvent);
+        });
+
+        it('should process scroll events for incoming authenticated sessions', () => {
+            const session = {
+                isIncoming: true,
+                isAuthenticated: true
+            };
+
+            const scrollEvent = {
+                type: 'mousewheel',
+                deltaX: 0,
+                deltaY: 120
+            };
+
+            // Simulate the logic from useRemoteSession.ts
+            const shouldProcess = session.isIncoming &&
+                ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup', 'mousewheel'].includes(scrollEvent.type);
+
+            expect(shouldProcess).toBe(true);
+
+            if (shouldProcess && window.electronAPI) {
+                window.electronAPI.executeInput(scrollEvent);
+            }
+
+            expect(mockExecuteInput).toHaveBeenCalledWith(scrollEvent);
         });
 
         it('should NOT process mouse events for outgoing sessions (client)', () => {

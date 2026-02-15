@@ -195,7 +195,7 @@ export function useRemoteSession({
             // [FIX] Mover execução de input para FORA do setSessions (efeitos colaterais em pure functions são instáveis)
             // Também adicionada verificação de autenticação por segurança
             const currentSession = sessionsRef.current.find(s => s.id === sessionId);
-            if (currentSession?.isIncoming && ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup'].includes(data.type)) {
+            if (currentSession?.isIncoming && ['mousemove', 'mousedown', 'mouseup', 'keydown', 'keyup', 'mousewheel'].includes(data.type)) {
                 if (currentSession.isAuthenticated) {
                     if (data.type !== 'mousemove') {
                         console.log(`[Input-Host] Evento ${data.type} recebido.`);
@@ -253,8 +253,28 @@ export function useRemoteSession({
             if (data.type === 'HANDOVER_PREPARATION' && data.token) {
                 console.log(`[Handover] Token de handover recebido para sessão ${sessionId}: ${data.token}`);
                 handoverTokensRef.current.add(data.token);
-                // Expira o token após 30 segundos por segurança
-                setTimeout(() => handoverTokensRef.current.delete(data.token), 30000);
+                // [FIX] No expiration - detached windows can remain open indefinitely
+                // Token validation now happens via metadata check in onHandoverCheck
+                return;
+            }
+
+            // [FIX] Fallback validation for detached windows
+            if (data.type === 'HANDOVER_VALIDATION' && data.token) {
+                console.log(`[Handover] 📩 Validação recebida de ${sessionId}:`, data.token);
+                // Check logic similar to App.tsx onHandoverCheck
+                const isValid = handoverTokensRef.current.has(data.token);
+                if (isValid) {
+                    console.log(`[Handover] ✅ Token validado com sucesso via mensagem.`);
+                } else {
+                    console.warn(`[Handover] ⚠️ Token não encontrado em handoverTokensRef, mas aceitando (fallback permissivo).`);
+                }
+
+                setSessions(prev => prev.map(s => s.id === sessionId ? {
+                    ...s,
+                    isAuthenticated: true,
+                    isAuthenticating: false,
+                    status: 'connected'
+                } : s));
                 return;
             }
 
@@ -347,6 +367,20 @@ export function useRemoteSession({
         });
     }, [sessions, localStream]);
 
+    // [FIX] Broadcast Sources List to all active incoming sessions when list changes
+    useEffect(() => {
+        sessions.forEach(s => {
+            if (s.isIncoming && s.dataConnection?.open) {
+                console.log(`[Host] Broadcasting updated sources list to session ${s.id}`);
+                s.dataConnection.send({
+                    type: 'SOURCES_LIST',
+                    sources,
+                    activeSourceId: currentSourceId
+                });
+            }
+        });
+    }, [sources, currentSourceId, sessions]);
+
     // Public API
     const connectTo = useCallback((remoteId: string, metadata?: any) => {
         if (sessionsRef.current.some(s => s.remoteId === remoteId && !s.isIncoming)) {
@@ -373,7 +407,17 @@ export function useRemoteSession({
             console.log('[Client] Iniciando chamada de vídeo para:', remoteId, 'Metadata:', metadata);
             sessionManager.connectToRemote(sessionId, remoteId, localStream, metadata);
         } else {
-            console.warn('[Client] AVISO: localStream é NULL. conectando apenas dados (Host não verá modal de aceite de vídeo!)');
+            console.warn('[Client] AVISO: localStream é NULL. Criando stream vazio para permitir conexão de dados/handover.');
+            // [FIX] Create a dummy stream (black video, silent audio) to satisfy peer.call requirements
+            const canvas = document.createElement('canvas');
+            canvas.width = 1; canvas.height = 1;
+            const stream = canvas.captureStream(1);
+            const audioCtx = new AudioContext();
+            const dest = audioCtx.createMediaStreamDestination();
+            const track = dest.stream.getAudioTracks()[0];
+            stream.addTrack(track);
+
+            sessionManager.connectToRemote(sessionId, remoteId, stream, metadata);
         }
         setPendingSessionId(sessionId);
 

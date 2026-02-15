@@ -27,11 +27,19 @@ if (!gotTheLock) {
 } else {
   let mainWindow: BrowserWindow | null = null;
 
-  app.on('second-instance', () => {
+  app.on('second-instance', (event, commandLine) => {
     if (mainWindow) {
+      logToFile(`[Main] Segunda instância detectada. Mostrando janela existente. Args: ${commandLine.join(' ')}`);
+
+      // Ensure window is no longer skipping taskbar
+      mainWindow.setSkipTaskbar(false);
+
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
       mainWindow.focus();
+
+      // If we don't have a tray (e.g. started as service), create it now
+      createTray(mainWindow, !app.isPackaged, process.resourcesPath);
     }
   });
 
@@ -50,6 +58,13 @@ if (!gotTheLock) {
   }
 
   function createWindow() {
+    const isService = process.argv.includes('--service');
+    const isHidden = process.argv.includes('--hidden');
+
+    if (isService) {
+      logToFile('[Main] Iniciando em modo SERVIÇO (Headless Window)');
+    }
+
     const iconPath = app.isPackaged
       ? join(process.resourcesPath, 'icon.png')
       : join(__dirname, '../public/icon.png');
@@ -66,6 +81,7 @@ if (!gotTheLock) {
       minimizable: true,
       maximizable: true,
       closable: true,
+      skipTaskbar: isService, // Hidden from taskbar if service
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -85,7 +101,7 @@ if (!gotTheLock) {
 
     console.log('Caminho do Preload:', join(__dirname, 'preload.js'));
 
-    if (!app.isPackaged) {
+    if (!app.isPackaged && !isService) {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
@@ -140,24 +156,28 @@ if (!gotTheLock) {
     });
 
     mainWindow.on('ready-to-show', () => {
-      const isHidden = process.argv.includes('--hidden');
-      logToFile(`[Main] Janela pronta. Iniciar oculta (--hidden): ${isHidden}`);
+      logToFile(`[Main] Janela pronta. Modos: --hidden=${isHidden}, --service=${isService}`);
 
-      if (!isHidden) {
+      if (!isHidden && !isService) {
         mainWindow?.show();
         mainWindow?.focus();
       } else {
-        logToFile('[Main] App iniciado no modo tray (oculto).');
+        logToFile('[Main] Janela mantida oculta (modo background).');
       }
     });
   }
 
   app.whenReady().then(() => {
     createWindow();
-    createTray(mainWindow, !app.isPackaged, process.resourcesPath);
+
+    // Tray is only for interactive sessions
+    const isService = process.argv.includes('--service');
+    if (!isService) {
+      createTray(mainWindow, !app.isPackaged, process.resourcesPath);
+    }
 
     // Configura auto-início na primeira execução
-    if (app.isPackaged) {
+    if (app.isPackaged && !isService) {
       try {
         const userDataPath = app.getPath('userData');
         const flagFile = join(userDataPath, '.first_run_done');

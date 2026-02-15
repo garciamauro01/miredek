@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>MireDesk PeerJS Bridge</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #1e1e1e;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .status {
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #log {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #0f0;
+            font-size: 10px;
+            overflow-y: auto;
+            padding: 5px;
+            pointer-events: none;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="status">MireDesk Bridge Active</div>
+    <div id="log"></div>
+    <video id="localVideo" style="display:none" autoplay muted></video>
+    <video id="remoteVideo" autoplay playsinline muted
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:100; background:black;"></video>
+    <canvas id="streamCanvas" style="position:fixed; top:0; left:0; pointer-events:none; opacity:0.01;"></canvas>
+    <img id="mjpegFrame" style="display:none" crossorigin="anonymous">
+
+    <script>
+        let peer = null;
+        let connections = {};
+        let activeCalls = {}; // { peerId: { call, stream } }
+        let currentCall = null; // The one currently displayed and receiving input
+        let streamInterval = null;
+
+        const canvas = document.getElementById('streamCanvas');
+        const ctx = canvas.getContext('2d');
+        const mjpegImg = document.getElementById('mjpegFrame');
+        const logDiv = document.getElementById('log');
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            const line = `[${time}] ${msg}`;
+            console.log(line);
+            if (logDiv) {
+                logDiv.innerHTML += line + '<br>';
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+            sendToDelphi('LOG', { message: msg });
+        }
+
+        // Helper to send messages back to Delphi
+        function sendToDelphi(type, data) {
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({ type: type, data: data });
+            } else {
+                console.log("Delphi Message:", type, data);
+            }
+        }
+
+        function startVideoLoop(sourceUrl) {
+            if (streamInterval) {
+                cancelAnimationFrame(streamInterval);
+                streamInterval = null;
+            }
+
+            const url = sourceUrl || 'http://127.0.0.1:9876/stream.mjpeg';
+            log(`Starting Video Loop for: ${url}`);
+
+            // Diagnostic fetch
+            fetch('http://127.0.0.1:9876/').then(r => log("Agent Health Check: OK")).catch(e => log(`Agent Connectivity Test FAILED: ${e.message}`));
+
+            mjpegImg.crossOrigin = 'anonymous';
+            mjpegImg.src = url;
+
+            mjpegImg.onload = () => log("MJPEG Image loaded successfully");
+            mjpegImg.onerror = (e) => log(`MJPEG Image Error: ${e.message || 'Check if Agent is running'}`);
+
+            let frameCount = 0;
+            let lastFlash = Date.now();
+
+            function render() {
+                frameCount++;
+                try {
+                    if (mjpegImg.naturalWidth > 0) {
+                        if (canvas.width !== mjpegImg.naturalWidth) {
+                            canvas.width = mjpegImg.naturalWidth;
+                            canvas.height = mjpegImg.naturalHeight;
+                            log(`Canvas initialized: ${canvas.width}x${canvas.height}`);
+                        }
+                        ctx.drawImage(mjpegImg, 0, 0);
+
+                        // Diagnostic Taint Check (once)
+                        if (!window.taintChecked && canvas.width > 0) {
+                            try {
+                                ctx.getImageData(0, 0, 1, 1);
+                                log("Canvas Integrity Check: PASSED (CORS OK)");
+                            } catch (e) {
+                                log("CANVAS TAINTED: Video stream will be black. Check CORS headers.");
+                            }
+                            window.taintChecked = true;
+                        }
+
+                        // Every 300 frames (~10s at 30fps), log health
+                        if (frameCount % 300 === 0) {
+                            log(`Loop Alive: frame=${frameCount}, dims=${canvas.width}x${canvas.height}`);
+                        }
+
+                    } else {
+                        // If no image, show a placeholder so we know requestAnimationFrame is running
+                        if (frameCount % 60 === 0) {
+                            ctx.fillStyle = "blue";
+                            ctx.fillRect(0, 0, 100, 100);
+                            if (frameCount % 300 === 0) log("Waiting for MJPEG data... (naturalWidth=0)");
+                        }
+                    }
+
+                    // RED FLASH: Every 5 seconds, paint a red square.
+                    // If the user sees this red square on the client, WebRTC is working but MJPEG is failing.
+                    if (Date.now() - lastFlash > 5000) {
+                        ctx.fillStyle = "red";
+                        ctx.fillRect(10, 10, 50, 50);
+                        if (Date.now() - lastFlash > 5200) lastFlash = Date.now();
+                    }
+
+                } catch (e) {
+                    log(`DRAW ERROR: ${e.message}`);
+                }
+                streamInterval = requestAnimationFrame(render);
+            }
+            render();
+        }
+
+        // Helper to switch active video stream
+        function switchVideoStream(peerId) {
+            const remoteVideo = document.getElementById('remoteVideo');
+
+            if (peerId === 'dashboard' || !peerId) {
+                remoteVideo.style.display = 'none';
+                remoteVideo.srcObject = null;
+                currentCall = null;
+                log("Switched to Dashboard (Video Hidden)");
+                return;
+            }
+
+            const session = activeCalls[peerId];
+            if (session && session.stream) {
+                remoteVideo.srcObject = session.stream;
+                remoteVideo.style.display = 'block';
+                currentCall = session.call;
+
+                remoteVideo.play()
+                    .then(() => log(`Switched video source to ${peerId}`))
+                    .catch(e => log(`Error playing switched video for ${peerId}: ${e.message}`));
+            } else {
+                log(`Cannot switch to ${peerId}: Session not found or no stream.`);
+            }
+        }
+
+        let lastInitParams = null;
+        let retryTimeout = null;
+
+        // Initialize PeerJS
+        function initPeer(id, host, port, path, key) {
+            lastInitParams = { id, host, port, path, key };
+
+            if (peer) {
+                log("Destroying existing peer instance before re-init");
+                peer.destroy();
+            }
+
+            const config = { debug: 3 };
+
+            if (host) {
+                config.host = host;
+                config.port = port || 9000;
+                config.path = path || '/peerjs';
+                config.secure = host.startsWith('https') || port === 443;
+            }
+
+            if (key) config.key = key;
+
+            log(`Initializing PeerJS: host=${config.host}, port=${config.port}, secure=${config.secure}`);
+
+            try {
+                peer = id ? new Peer(id, config) : new Peer(config);
+            } catch (e) {
+                log(`CRITICAL ERROR: Failed to create Peer instance: ${e.message}`);
+                scheduleRetry();
+                return;
+            }
+
+            if (!peer) {
+                log("ERROR: Peer object is null after creation attempt");
+                scheduleRetry();
+                return;
+            }
+
+            peer.on('open', (newId) => {
+                if (retryTimeout) {
+                    clearTimeout(retryTimeout);
+                    retryTimeout = null;
+                }
+                sendToDelphi('PEER_OPEN', { id: newId });
+            });
+
+            peer.on('call', (call) => {
+                log(`Incoming call from ${call.peer}`);
+                try {
+                    const stream = canvas.captureStream(25);
+                    try {
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        if (audioCtx.state === 'suspended') {
+                            log("AudioContext is suspended, attempting to resume...");
+                            audioCtx.resume();
+                        }
+                        const destination = audioCtx.createMediaStreamDestination();
+                        const silentTrack = destination.stream.getAudioTracks()[0];
+                        if (silentTrack) stream.addTrack(silentTrack);
+                    } catch (ae) {
+                        log("Could not add audio track: " + ae.message);
+                    }
+
+                    log(`Stream status: tracks=${stream.getTracks().length}`);
+                    call.answer(stream);
+                    currentCall = call;
+
+                    call.on('stream', (remoteStream) => {
+                        log(`Remote stream received! ID: ${remoteStream.id}, Tracks: ${remoteStream.getTracks().length}`);
+                        const remoteVideo = document.getElementById('remoteVideo');
+
+                        // Check tracks
+                        remoteStream.getTracks().forEach(track => {
+                            log(`Track [${track.kind}] state: ${track.readyState}, enabled: ${track.enabled}`);
+                        });
+
+                        // Update activeCalls
+                        if (activeCalls[call.peer]) {
+                            activeCalls[call.peer].stream = remoteStream;
+                            activeCalls[call.peer].call = call;
+                        } else {
+                            activeCalls[call.peer] = { call: call, stream: remoteStream };
+                        }
+
+                        // Only display if this is the active call (or if it's the first one)
+                        if (!currentCall || currentCall.peer === call.peer) {
+                            switchVideoStream(call.peer);
+                        } else {
+                            log(`Stream buffered for ${call.peer} (background)`);
+                        }
+
+                        sendToDelphi('VIDEO_STREAM_STARTED', { remoteId: call.peer });
+                    });
+
+                    log("Call answered with local stream");
+                    sendToDelphi('VIDEO_CALL_RECEIVED', { remoteId: call.peer });
+                } catch (e) {
+                    log(`ERROR answering call: ${e.message}`);
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                if (conn.label === 'status-check') {
+                    conn.on('open', () => {
+                        conn.close();
+                    });
+                    return;
+                }
+                setupConnection(conn);
+                sendToDelphi('PEER_CONNECTION', { remoteId: conn.peer });
+            });
+
+            peer.on('error', (err) => {
+                log(`PEER ERROR: ${err.type} - ${err.message}`);
+                sendToDelphi('PEER_ERROR', { error: err.message, type: err.type });
+                if (err.type === 'server-error' || err.type === 'network' || err.type === 'unavailable-id') {
+                    scheduleRetry();
+                }
+            });
+
+            peer.on('disconnected', () => {
+                log("Peer disconnected from server. Attempting to reconnect...");
+                sendToDelphi('PEER_DISCONNECTED', {});
+                peer.reconnect();
+            });
+        }
+
+        function scheduleRetry() {
+            if (retryTimeout) return;
+            log("Scheduling reconnection retry in 5 seconds...");
+            retryTimeout = setTimeout(() => {
+                retryTimeout = null;
+                if (lastInitParams) {
+                    initPeer(lastInitParams.id, lastInitParams.host, lastInitParams.port, lastInitParams.path, lastInitParams.key);
+                }
+            }, 5000);
+        }
+
+        function setupConnection(conn) {
+            connections[conn.peer] = conn;
+
+            conn.on('open', () => {
+                log(`DataChannel with ${conn.peer} is now OPEN. Ready for input.`);
+                sendToDelphi('CONN_OPEN', { remoteId: conn.peer });
+            });
+
+            conn.on('data', (data) => {
+                sendToDelphi('CONN_DATA', { remoteId: conn.peer, payload: data });
+            });
+
+            conn.on('close', () => {
+                delete connections[conn.peer];
+                sendToDelphi('CONN_CLOSE', { remoteId: conn.peer });
+            });
+        }
+
+        // Handle commands from Delphi
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener('message', event => {
+                const message = event.data;
+                const cmd = message.cmd;
+                const args = message.args || {};
+
+                switch (cmd) {
+                    case 'INIT':
+                        initPeer(args.id, args.host, args.port, args.path, args.key);
+                        break;
+                    case 'START_VIDEO':
+                        startVideoLoop(args.url);
+                        break;
+                    case 'SWITCH_TAB':
+                        log(`Command SWITCH_TAB received for: ${args.remoteId}`);
+                        switchVideoStream(args.remoteId);
+                        break;
+                    case 'CONNECT':
+                        const conn = peer.connect(args.remoteId, args.options);
+                        setupConnection(conn);
+                        break;
+                    case 'CALL':
+                        const stream = canvas.captureStream(25);
+                        // Add silent audio... (omitted for brevity, assume unchanged logic)
+                        try {
+                            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                            if (audioCtx.state === 'suspended') audioCtx.resume();
+                            const destination = audioCtx.createMediaStreamDestination();
+                            const silentTrack = destination.stream.getAudioTracks()[0];
+                            if (silentTrack) stream.addTrack(silentTrack);
+                        } catch (ae) { }
+
+                        log(`Initiating call to ${args.remoteId}...`);
+                        const call = peer.call(args.remoteId, stream);
+
+                        // Store in activeCalls immediately
+                        activeCalls[args.remoteId] = { call: call, stream: null };
+
+                        // Default to showing this call immediately (Delphi also switches tab)
+                        currentCall = call;
+
+                        call.on('stream', (remoteStream) => {
+                            log(`Remote stream received from ${call.peer}`);
+
+                            // Update storage
+                            if (activeCalls[call.peer]) {
+                                activeCalls[call.peer].stream = remoteStream;
+                                activeCalls[call.peer].call = call;
+                            } else {
+                                activeCalls[call.peer] = { call: call, stream: remoteStream };
+                            }
+
+                            // Only display if this is the active call (or if it's the first one)
+                            if (!currentCall || currentCall.peer === call.peer) {
+                                switchVideoStream(call.peer);
+                            } else {
+                                log(`Stream buffered for ${call.peer} (background)`);
+                            }
+
+                            sendToDelphi('VIDEO_STREAM_STARTED', { remoteId: args.remoteId });
+                        });
+
+                        call.on('error', (err) => {
+                            log(`Call Error with ${call.peer}: ${err.message}`);
+                            if (activeCalls[call.peer]) delete activeCalls[call.peer];
+                        });
+
+                        call.on('close', () => {
+                            log(`Call closed with ${call.peer}`);
+                            if (activeCalls[call.peer]) delete activeCalls[call.peer];
+                            if (currentCall && currentCall.peer === call.peer) {
+                                switchVideoStream(null); // Clear video
+                            }
+                        });
+                        break;
+
+                    case 'SEND':
+                        if (connections[args.remoteId] && connections[args.remoteId].open) {
+                            // Payload might be an object or string
+                            connections[args.remoteId].send(args.payload);
+                        } else {
+                            log(`Cannot send data to ${args.remoteId}: Connection not open`);
+                        }
+                        break;
+
+                    case 'AUTH_STATUS':
+                        if (connections[args.remoteId] && connections[args.remoteId].open) {
+                            connections[args.remoteId].send({
+                                type: 'AUTH_STATUS',
+                                status: args.status
+                            });
+                        } else {
+                            log(`Cannot send AUTH_STATUS to ${args.remoteId}: Connection not open`);
+                        }
+                        break;
+
+                    case 'REMOVE_CONN':
+                        log(`Delphi requested REMOVE_CONN for ${args.remoteId}`);
+                        if (connections[args.remoteId]) {
+                            connections[args.remoteId].close();
+                            delete connections[args.remoteId];
+                        }
+
+                        // Handle Call Removal
+                        if (activeCalls[args.remoteId]) {
+                            const session = activeCalls[args.remoteId];
+                            if (session.call) session.call.close();
+                            delete activeCalls[args.remoteId];
+                        }
+
+                        if (currentCall && currentCall.peer === args.remoteId) {
+                            switchVideoStream(null);
+                        }
+                        break;
+
+                    case 'CHECK_ONLINE':
+                        const idsToCheck = Array.isArray(args.remoteId) ? args.remoteId : [args.remoteId];
+
+                        idsToCheck.forEach(id => {
+                            // 1. Quick check for active connections
+                            if (connections[id] && connections[id].open) {
+                                sendToDelphi('ONLINE_STATUS', { id: id, status: true });
+                                return;
+                            }
+
+                            // 2. Silent ping
+                            const checkConn = peer.connect(id, { label: 'status-check' });
+                            let resolved = false;
+
+                            const checkTimeout = setTimeout(() => {
+                                if (!resolved) {
+                                    sendToDelphi('ONLINE_STATUS', { id: id, status: false });
+                                    checkConn.close();
+                                }
+                            }, 5000);
+
+                            checkConn.on('open', () => {
+                                resolved = true;
+                                clearTimeout(checkTimeout);
+                                sendToDelphi('ONLINE_STATUS', { id: id, status: true });
+                                setTimeout(() => checkConn.close(), 500);
+                            });
+
+                            checkConn.on('error', (err) => {
+                                resolved = true;
+                                clearTimeout(checkTimeout);
+                                sendToDelphi('ONLINE_STATUS', { id: id, status: false });
+                            });
+                        });
+                        break;
+                }
+            });
+        }
+
+        // --- Handshake Handlers called from Delphi ---
+        function acceptConnection(remoteID) {
+            log(`Delphi: Connection accepted for ${remoteID}`);
+            const conn = connections[remoteID];
+            if (conn && conn.open) {
+                // In a password-protected setup, we don't send HANDSHAKE_OK immediately
+                // if we are waiting for an AUTH message. 
+                // However, for legacy compatibility with current Web Client:
+                conn.send({ type: 'HANDSHAKE_OK' });
+            }
+        }
+
+        function rejectConnection(remoteID) {
+            log(`Delphi: Connection rejected for ${remoteID}`);
+            const conn = connections[remoteID];
+            if (conn && conn.open) {
+                conn.send({ type: 'HANDSHAKE_REJECT', reason: 'User declined' });
+                setTimeout(() => conn.close(), 500);
+            }
+        }
+
+        const remoteVideo = document.getElementById('remoteVideo');
+
+        // --- INPUT HANDLING (Viewer Mode) ---
+        let lastMove = 0;
+        function sendInput(type, e) {
+            if (!currentCall || !connections[currentCall.peer]) {
+                if (type === 'mousedown') log(`Input failed: No active call or connection missing for ${currentCall ? currentCall.peer : 'null'}`);
+                return;
+            }
+            const conn = connections[currentCall.peer];
+            if (!conn.open) {
+                if (type === 'mousedown') log(`Input failed: Data channel with ${currentCall.peer} is closed`);
+                return;
+            }
+
+            if (type === 'mousemove') {
+                const now = Date.now();
+                if (now - lastMove < 8) return;
+                lastMove = now;
+            }
+
+            const rect = remoteVideo.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+
+            const payload = {
+                type: type,
+                x: x,
+                y: y
+            };
+
+            if (e.button !== undefined) {
+                payload.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
+            }
+            if (e.key) payload.key = e.key;
+            if (type === 'mousewheel') {
+                payload.deltaX = e.deltaX;
+                payload.deltaY = e.deltaY;
+            }
+
+            conn.send(payload);
+        }
+
+        remoteVideo.addEventListener('mousemove', (e) => sendInput('mousemove', e));
+        remoteVideo.addEventListener('mousedown', (e) => sendInput('mousedown', e));
+        remoteVideo.addEventListener('mouseup', (e) => sendInput('mouseup', e));
+        remoteVideo.addEventListener('contextmenu', (e) => e.preventDefault());
+        window.addEventListener('keydown', (e) => {
+            if (remoteVideo.style.display === 'block') {
+                sendInput('keydown', e);
+                // e.preventDefault(); // Might block F12/etc
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (remoteVideo.style.display === 'block') {
+                sendInput('keyup', e);
+            }
+        });
+        remoteVideo.addEventListener('wheel', (e) => {
+            sendInput('mousewheel', e);
+            e.preventDefault();
+        }, { passive: false });
+
+        sendToDelphi('BRIDGE_READY', {});
+    </script>
+</body>
+
+</html>

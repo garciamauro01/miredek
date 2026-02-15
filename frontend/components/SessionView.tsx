@@ -15,6 +15,7 @@ interface SessionViewProps {
         handleMouseUp: (e: React.MouseEvent | React.TouchEvent) => void;
         handleKeyDown: (e: React.KeyboardEvent) => void;
         handleKeyUp: (e: React.KeyboardEvent) => void;
+        handleWheel: (e: React.WheelEvent) => void;
     };
     remoteId: string;
     isOnlyModal?: boolean;
@@ -150,6 +151,7 @@ export function SessionView({
                     onMouseMove={handleInternalMouseMove}
                     onMouseDown={onHookMethods.handleMouseDown}
                     onMouseUp={onHookMethods.handleMouseUp}
+                    onWheel={onHookMethods.handleWheel}
                     tabIndex={0}
                     onKeyDown={onHookMethods.handleKeyDown}
                     onKeyUp={onHookMethods.handleKeyUp}

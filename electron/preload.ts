@@ -52,5 +52,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (_event: any, eventData: any) => callback(eventData);
         ipcRenderer.on('debug-event-received', listener);
         return () => ipcRenderer.removeListener('debug-event-received', listener);
-    }
+    },
+    // --- HTTP PROXY ---
+    checkServerPeers: (url: string) => ipcRenderer.invoke('check-server-peers', url),
+    // --- SERVICE MANAGEMENT ---
+    installService: () => ipcRenderer.invoke('install-service'),
+    uninstallService: () => ipcRenderer.invoke('uninstall-service'),
+    getServiceStatus: () => ipcRenderer.invoke('get-service-status')
 });

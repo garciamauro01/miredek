@@ -1,7 +1,7 @@
 {
   "name": "mire-desk",
   "private": true,
-  "version": "1.0.142",
+  "version": "1.0.157",
   "description": "Miré-Desk Remote Control Solution",
   "author": "Mauro Garcia",
   "main": "dist-electron/main.js",
@@ -79,6 +79,14 @@
       {
         "from": "public/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "native_service",
+        "to": "bin",
+        "filter": [
+          "MireDeskService.exe",
+          "MireDeskAgent.exe"
+        ]
       }
     ],
     "win": {
@@ -98,7 +106,8 @@
       "shortcutName": "Miré-Desk",
       "uninstallDisplayName": "Miré-Desk (Desinstalar)",
       "artifactName": "MireDesk-Setup-${version}.${ext}",
-      "installerHeaderIcon": "public/icon.png"
+      "installerHeaderIcon": "public/icon.png",
+      "include": "build/installer.nsh"
     },
     "npmRebuild": true
   }

@@ -15,7 +15,33 @@ set /p UPDATE_TOKEN="Digite o Token de Upload (deixe em branco para o padrao): "
 if "!UPDATE_TOKEN!"=="" set UPDATE_TOKEN=miredesk-secret-token
 
 echo.
-echo 1. Incrementando versao e instalando dependencias...
+echo 1. Compilando Componentes Nativos (Delphi)...
+set "DCC_PATH=C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\dcc64.exe"
+
+if exist "!DCC_PATH!" (
+    echo [Build] Compilando MireDeskService...
+    "!DCC_PATH!" -Q -B -E"native_service" "native_service\MireDeskService.dpr"
+    if errorlevel 1 (
+        echo [ERRO] Falha ao compilar MireDeskService. Verifique o Delphi.
+        pause
+        exit /b 1
+    )
+    
+    echo [Build] Compilando MireDeskAgent...
+    "!DCC_PATH!" -Q -B -E"native_service" "native_service\MireDeskAgent.dpr"
+    if errorlevel 1 (
+        echo [ERRO] Falha ao compilar MireDeskAgent. Verifique o Delphi.
+        pause
+        exit /b 1
+    )
+    echo [OK] Binarios nativos atualizados.
+) else (
+    echo [AVISO] Compilador Delphi nao encontrado em: !DCC_PATH!
+    echo Usando binarios existentes em native_service.
+)
+
+echo.
+echo 2. Incrementando versao e instalando dependencias...
 :: Incrementa automagicamente a versao (patch: 1.0.0 -> 1.0.1)
 call npm version patch --no-git-tag-version
 call npm install

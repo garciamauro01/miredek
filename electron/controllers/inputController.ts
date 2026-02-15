@@ -81,6 +81,35 @@ export function setupInputHandlers() {
                         robot.keyToggle(key, 'up');
                     } catch (e) { }
                     break;
+
+                case 'mousewheel': {
+                    // Scroll do mouse (roda)
+                    // deltaY > 0 = scroll para baixo, deltaY < 0 = scroll para cima
+                    // deltaX > 0 = scroll para direita, deltaX < 0 = scroll para esquerda
+                    try {
+                        const rawDeltaY = data.deltaY;
+                        const scrollAmount = Math.round(data.deltaY / 2); // Ajustar sensibilidade (Menor divisor = Mais rápido)
+                        const direction = scrollAmount > 0 ? 'down' : 'up';
+                        const magnitude = Math.abs(scrollAmount);
+
+                        if (magnitude === 0) {
+                            // [FIX] Força scroll mínimo de 1 se houver movimento (para touchpads precisos)
+                            if (Math.abs(rawDeltaY) > 0) {
+                                const minScroll = rawDeltaY > 0 ? 1 : -1;
+                                robot.scrollMouse(0, minScroll > 0 ? 1 : -1);
+                                break;
+                            }
+                        }
+
+                        // robotjs.scrollMouse(x, y) onde y é a quantidade de scroll vertical
+                        robot.scrollMouse(0, scrollAmount > 0 ? magnitude : -magnitude);
+
+                        logToFile(`[Input] Scroll ${direction} magnitude: ${magnitude}`);
+                    } catch (err) {
+                        console.error('Erro ao executar scroll:', err);
+                    }
+                    break;
+                }
             }
         } catch (error) {
             console.error('Erro ao executar input remoto:', error);

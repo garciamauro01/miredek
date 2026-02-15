@@ -105,6 +105,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
 
     const connectToRemote = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream, metadata?: any) => {
         onLog(sessionId, `Conectando ao ID: ${remoteId}${metadata ? ' (Handover)' : ''}`);
+        if (metadata) console.log('[SessionManager] 🚀 METADATA Recebido em connectToRemote:', metadata);
         onSessionUpdate(sessionId, { isConnecting: true });
 
         const uniquePeerId = `${sessionId}-${Date.now()}`;
@@ -114,12 +115,13 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         let connectedFlag = false;
         const timeout = setTimeout(() => {
             if (!connectedFlag) {
-                onLog(sessionId, 'Tempo de conexão esgotado.');
+                onLog(sessionId, 'Tempo de conexão esgotado (30s). Cancelando tentativa.');
+                console.warn(`[SessionManager] Timeout de conexão para ${sessionId}. Destruindo peer.`);
                 onSessionUpdate(sessionId, { connected: false, isConnecting: false });
                 onSessionClose?.(sessionId, 'Não foi possível conectar: Tempo de conexão esgotado.');
                 peer.destroy();
             }
-        }, 15000);
+        }, 30000);
 
         peer.on('open', () => {
             onLog(sessionId, `Peer criado: ${uniquePeerId}`);
@@ -138,11 +140,13 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 connectedFlag = true;
                 clearTimeout(timeout);
                 streamsMap.current.set(sessionId, remoteStream);
+                console.log('[SessionManager] Stream de vídeo estabelecido. Autenticado?', metadata ? 'Sim (Handover)' : 'Não');
                 onSessionUpdate(sessionId, {
                     connected: true,
                     isConnecting: false,
                     remoteStream,
-                    status: 'connected'
+                    status: 'connected',
+                    isAuthenticated: !!metadata // [FIX] Assume autenticado se for handover e o stream abriu
                 });
 
                 if (call.peerConnection) {
@@ -175,6 +179,12 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 connectedFlag = true;
                 clearTimeout(timeout);
                 onSessionUpdate(sessionId, { dataConnection: conn });
+
+                // [FIX] Send HANDOVER_VALIDATION immediately if token is present
+                if (metadata?.handoverToken) {
+                    console.log(`[SessionManager] 🚀 Enviando validação de HANDOVER para ${sessionId}`);
+                    conn.send({ type: 'HANDOVER_VALIDATION', token: metadata.handoverToken });
+                }
             });
 
             conn.on('close', () => {

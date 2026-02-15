@@ -1,5 +1,8 @@
 import { app, ipcMain, BrowserWindow, clipboard, desktopCapturer } from 'electron';
 import { logToFile } from '../utils/logger';
+import { join } from 'path';
+import { exec } from 'child_process';
+import { existsSync } from 'fs';
 
 const chatWindows = new Map<string, BrowserWindow>();
 const sessionWindows = new Map<string, BrowserWindow>();
@@ -82,7 +85,9 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
     // --- ADMIN / ELEVATION ---
     ipcMain.handle('is-admin', async () => {
         try {
-            const isAdmin = require('is-admin');
+            // [FIX] is-admin is ESM, use dynamic import
+            // @ts-ignore
+            const { default: isAdmin } = await import('is-admin');
             return await isAdmin();
         } catch (e) {
             console.error('Falha ao verificar admin:', e);
@@ -351,6 +356,98 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
         if (debugWindow) {
             debugWindow.webContents.send('debug-event-received', data);
         }
+    });
+
+    // --- HTTP PROXY (Bypass CORS) ---
+    ipcMain.handle('check-server-peers', async (event, url: string) => {
+        try {
+            console.log(`[HTTP Proxy] Fetching: ${url}`);
+            const response = await fetch(url);
+            console.log(`[HTTP Proxy] Response status: ${response.status}`);
+            if (response.ok) {
+                const json = await response.json();
+                console.log(`[HTTP Proxy] Success. Peers count: ${json.length}`);
+                return json; // Return the array
+            }
+            return null;
+        } catch (e) {
+            console.error(`[HTTP Proxy] Error fetching ${url}:`, e);
+            logToFile(`[HTTP Proxy] Falha ao consultar peers em ${url}: ${e}`);
+            return null;
+        }
+    });
+
+    // --- SERVICE MANAGEMENT ---
+    const getServicePath = () => {
+        const binName = 'MireDeskService.exe';
+        if (app.isPackaged) {
+            // In production, binaries are in 'resources/bin' due to extraResources config
+            return join(process.resourcesPath, 'bin', binName);
+        } else {
+            // In development, they are in the source directory (root of native_service)
+            return join(app.getAppPath(), 'native_service', binName);
+        }
+    };
+
+    ipcMain.handle('install-service', async () => {
+        const servicePath = getServicePath();
+        logToFile(`[Service] Instalando serviço de: ${servicePath}`);
+
+        if (!existsSync(servicePath)) {
+            const err = `Binário do serviço não encontrado em: ${servicePath}`;
+            logToFile(`[Service] Erro: ${err}`);
+            throw new Error(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            exec(`"${servicePath}" /install`, (error, stdout, stderr) => {
+                if (error) {
+                    logToFile(`[Service] Erro ao instalar: ${error.message}`);
+                    reject(error);
+                } else {
+                    logToFile(`[Service] Instalação concluída: ${stdout}`);
+                    // Start service after installation
+                    exec(`net start MireDeskService`, (e) => {
+                        if (e) logToFile(`[Service] Aviso ao iniciar: ${e.message}`);
+                        resolve(true);
+                    });
+                }
+            });
+        });
+    });
+
+    ipcMain.handle('uninstall-service', async () => {
+        const servicePath = getServicePath();
+        logToFile(`[Service] Desinstalando serviço...`);
+
+        return new Promise((resolve, reject) => {
+            // Try to stop first
+            exec(`net stop MireDeskService`, () => {
+                exec(`"${servicePath}" /uninstall`, (error, stdout, stderr) => {
+                    if (error) {
+                        logToFile(`[Service] Erro ao desinstalar: ${error.message}`);
+                        reject(error);
+                    } else {
+                        logToFile(`[Service] Desinstalação concluída: ${stdout}`);
+                        resolve(true);
+                    }
+                });
+            });
+        });
+    });
+
+    ipcMain.handle('get-service-status', async () => {
+        return new Promise((resolve) => {
+            exec('sc query MireDeskService', (error, stdout) => {
+                if (error || stdout.includes('1  STOPPED') || stdout.includes('1060')) {
+                    resolve('stopped');
+                } else if (stdout.includes('4  RUNNING')) {
+                    resolve('running');
+                } else {
+                    resolve('not-installed');
+                }
+            });
+        });
     });
 }
 

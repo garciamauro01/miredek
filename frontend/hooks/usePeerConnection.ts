@@ -10,7 +10,8 @@ export function usePeerConnection(
     _setupDataListeners: (sessionId: string, conn: any, isIncoming: boolean) => void,
     onShowRequest: () => void,
     onHandoverCheck?: (metadata: any) => boolean,
-    customPeerId?: string
+    customPeerId?: string,
+    onAutoAnswer?: (call: any) => void
 ) {
     const [myId, setMyId] = useState('');
     const [peerStatus, setPeerStatus] = useState<'online' | 'offline' | 'connecting'>('connecting');
@@ -86,6 +87,7 @@ export function usePeerConnection(
 
             peer.on('connection', (conn) => {
                 console.log('[Peer] ✅ Conexão DATA recebida de:', conn.peer);
+                console.log('[Peer] 🔍 Metadata recebido:', conn.metadata);
                 const isHandover = onHandoverCheck ? onHandoverCheck(conn.metadata) : false;
 
                 setSessions(prev => {
@@ -95,6 +97,8 @@ export function usePeerConnection(
                         return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
                     } else {
                         if (conn.metadata?.type === 'status-check') return prev;
+
+                        console.log('[Peer] ✨ Criando nova sessão para:', conn.peer);
                         const newSession = createSession(sessionId, conn.peer, true);
                         newSession.dataConnection = conn;
 
@@ -119,16 +123,41 @@ export function usePeerConnection(
                 const isHandover = onHandoverCheck ? onHandoverCheck(call.metadata) : false;
                 setSessions(prev => {
                     const existing = prev.find(s => s.remoteId === call.peer);
-                    const sessionId = existing ? existing.id : `session-${Date.now()}`;
+
                     if (existing) {
-                        return prev.map(s => s.id === sessionId ? { ...s, incomingCall: call, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
+                        console.log(`[Peer] Atualizando sessão existente para call de ${call.peer}. Auth atual: ${existing.isAuthenticated}, Handover: ${isHandover}`);
+                        // Se já estava autenticado ou é handover, preserva ou seta isAuthenticated
+                        // E IMPORTANTE: Se é handover, NÃO reseta para "precisa de aceite"
+                        const shouldBeAuth = isHandover || existing.isAuthenticated;
+
+                        // [FIX] Immediate Auto-Answer if authenticated
+                        if (shouldBeAuth && onAutoAnswer) {
+                            onAutoAnswer(call);
+                        }
+
+                        return prev.map(s => s.id === existing.id ? {
+                            ...s,
+                            incomingCall: call,
+                            isIncoming: true,
+                            isAuthenticated: shouldBeAuth
+                        } : s);
                     }
+
+                    console.log(`[Peer] Nova sessão via Call de ${call.peer}. Handover: ${isHandover}`);
+                    // Use ID based on remoteId to avoid duplicates if race condition
+                    const sessionId = `session-${call.peer}`;
                     const newSession = createSession(sessionId, call.peer, true);
                     newSession.incomingCall = call;
-                    if (isHandover) newSession.isAuthenticated = true;
+                    if (isHandover) {
+                        newSession.isAuthenticated = true;
+                        // [FIX] Immediate Auto-Answer
+                        if (onAutoAnswer) onAutoAnswer(call);
+                    }
+
                     if (!videoRefsMap.current.has(sessionId)) {
                         videoRefsMap.current.set(sessionId, { remote: React.createRef<HTMLVideoElement>() });
                     }
+
                     if (!isHandover) onShowRequest();
                     return [...prev, newSession];
                 });
@@ -138,6 +167,7 @@ export function usePeerConnection(
         initPeer();
 
         return () => {
+            console.log('[Peer] 🛑 Limpando efeito de usePeerConnection e destruindo peer...');
             if (mainPeerRef.current) {
                 mainPeerRef.current.destroy();
                 setPeerInstance(null);

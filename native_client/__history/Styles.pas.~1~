@@ -1,0 +1,28 @@
+unit Styles;
+
+interface
+
+uses
+  System.UITypes, System.UIConsts, Skia;
+
+const
+  // Skia Alpha Colors (ARGB)
+  skPrimary = $FF2563EB;     // Blue 600
+  skSecondary = $FF1E293B;   // Slate 800
+  skSuccess = $FF10B981;     // Emerald 500
+  skDanger = $FFEF4444;      // Red 500
+  skBackground = $FFF8FAFC;  // Slate 50
+  skCardBG = $FFFFFFFF;      // White
+  skTextMain = $FF0F172A;    // Slate 900
+  skTextSecondary = $FF64748B; // Slate 500
+  skBorder = $FFE2E8F0;      // Slate 200
+  
+  skShadowColor = $20000000;
+  skCornerRadius = 12.0;
+  skShadowBlur = 10.0;
+
+implementation
+
+end.
+
+end.

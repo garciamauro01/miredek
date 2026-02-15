@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNativeScreenCapture } from './useNativeScreenCapture';
 
 export function useDeviceSources(
     updateLocalStream: (stream: MediaStream) => void,
@@ -12,6 +13,9 @@ export function useDeviceSources(
     const localStreamRef = useRef<MediaStream | null>(null);
     const currentSourceIdRef = useRef(currentSourceId);
 
+    // Native Capture Hook
+    const { startNativeCapture, stopNativeCapture, nativeStream, isNativeActive } = useNativeScreenCapture();
+
     useEffect(() => {
         sourcesRef.current = sources;
     }, [sources]);
@@ -20,14 +24,45 @@ export function useDeviceSources(
         currentSourceIdRef.current = currentSourceId;
     }, [currentSourceId]);
 
+    // Update local stream when native stream becomes available
+    useEffect(() => {
+        if (isNativeActive && nativeStream) {
+            console.log('[Host] Native Stream Active, updating local stream...');
+            localStreamRef.current = nativeStream;
+            updateLocalStream(nativeStream);
+        }
+    }, [isNativeActive, nativeStream, updateLocalStream]);
+
     // [FIX] Auto-select first source on mount
     useEffect(() => {
         const init = async () => {
             if (window.electronAPI) {
                 const available = await window.electronAPI.getSources();
-                setSources(available);
-                if (available.length > 0) {
-                    selectSource(available[0].id);
+
+                // Add Native Options from Agent
+                try {
+                    const resp = await fetch('http://localhost:9876/monitors.json');
+                    const agentMonitors = await resp.json();
+                    console.log('[Host] Monitores nativos encontrados:', agentMonitors);
+
+                    const nativeSources = agentMonitors.map((m: any) => ({
+                        id: `native-${m.id}`,
+                        name: `Nativo: ${m.name} (${m.width}x${m.height})`,
+                        thumbnail: null
+                    }));
+
+                    const allSources = [...nativeSources, ...available];
+                    setSources(allSources);
+
+                    if (allSources.length > 0) {
+                        selectSource(allSources[0].id);
+                    }
+                } catch (e) {
+                    console.warn('[Host] Agente Delphi não disponível para listar monitores.');
+                    const nativeSource = { id: 'native-service', name: 'MireDesk Native (Login Screen)', thumbnail: null };
+                    const allSources = [nativeSource, ...available];
+                    setSources(allSources);
+                    selectSource(available[0]?.id || 'native-service');
                 }
             } else {
                 // Browser dev mode
@@ -40,6 +75,22 @@ export function useDeviceSources(
     const selectSource = async (sourceId: string) => {
         console.log('[Host] Selecionando fonte:', sourceId);
         try {
+            // Stop previous native capture if switching away
+            if (currentSourceId.startsWith('native-') && !sourceId.startsWith('native-')) {
+                stopNativeCapture();
+            }
+
+            if (sourceId.startsWith('native-')) {
+                const midStr = sourceId.replace('native-', '');
+                const monitorId = midStr === 'service' ? -1 : parseInt(midStr);
+
+                console.log('[Host] Iniciando captura NATIVA para monitor:', monitorId);
+                startNativeCapture(monitorId);
+                setCurrentSourceId(sourceId);
+                onSourceChanged(sourceId);
+                return;
+            }
+
             let stream: MediaStream;
             if (sourceId === 'browser' || !window.electronAPI) {
                 console.log('[Host] Usando getDisplayMedia (Navegador)');
@@ -52,7 +103,7 @@ export function useDeviceSources(
                 });
             } else {
                 console.log('[Host] Usando getUserMedia (Electron) para Source ID:', sourceId);
-                stream = await navigator.mediaDevices.getUserMedia({
+                const constraints: any = {
                     audio: false,
                     video: {
                         mandatory: {
@@ -64,20 +115,20 @@ export function useDeviceSources(
                             maxHeight: 2160
                         }
                     }
-                } as any);
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
             }
 
             console.log('[Host] Stream capturado com sucesso:', stream.id);
             localStreamRef.current = stream;
             setCurrentSourceId(sourceId);
-
-            // Notifica gerenciador e callback
             updateLocalStream(stream);
             onSourceChanged(sourceId);
 
         } catch (e) {
             console.error('Erro ao capturar tela:', e);
-            throw e; // Propaga erro para quem chamou poder tratar se quiser
+            // Fallback?
+            throw e;
         }
     };
 
