@@ -23,9 +23,9 @@ object FormPasswordDialog: TFormPasswordDialog
     Width = 450
     Height = 280
     Align = alClient
-    OnDraw = SkPaintBoxDraw
     OnMouseDown = FormMouseDown
     OnMouseMove = FormMouseMove
+    OnDraw = SkPaintBoxDraw
   end
   object editPassword: TEdit
     Left = 40

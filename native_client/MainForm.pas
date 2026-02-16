@@ -5,12 +5,12 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Edge, Vcl.StdCtrls, Vcl.ExtCtrls,
-  PeerJSBridge, InputUtils, Styles, UIParts, ServiceUtils, StorageUtils, Icons, PasswordDialog,
+  PeerJSBridge, InputUtils, Styles, UIParts, ServiceUtils, StorageUtils, Icons, PasswordDialog, FileTransfer, ConnectionRequestForm, SessionManager, PeerJSDispatcher, SkiaComponents, MireComponents, ResourceCache,
   System.JSON, System.Skia, Vcl.Skia, Vcl.Clipbrd, System.Types, System.UITypes,
   Winapi.WebView2, Winapi.ActiveX, System.IOUtils, System.Math, System.Generics.Collections, Vcl.Menus, System.IniFiles;
 
   type
-  TUIElement = (uiNone, uiConnectBtn, uiSessionCard, uiTab, uiTabClose, uiSidebarBtn, uiSidebarCopyID, uiSearchBar, uiSidebarRegenPass, uiActiveBannerBtn, uiChatBtn, uiMonitorBtn, uiActionsBtn, uiViewModeBtn, uiSidebarSettings, uiSettingsSaveBtn, uiSettingsCancelBtn, uiSettingsIPArea);
+  TUIElement = (uiNone, uiConnectBtn, uiSessionCard, uiTab, uiTabClose, uiSidebarBtn, uiSidebarCopyID, uiSearchBar, uiSidebarRegenPass, uiActiveBannerBtn, uiChatBtn, uiMonitorBtn, uiFileTransferBtn, uiActionsBtn, uiViewModeBtn, uiSidebarSettings, uiSettingsSaveBtn, uiSettingsCancelBtn, uiSettingsIPArea);
 
   TFormMain = class(TForm)
     EdgeBrowser: TEdgeBrowser;
@@ -36,19 +36,21 @@ uses
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     FBridge: TMirePeerBridge;
+    FFileTransferManager: TFileTransferManager;
+    FDispatcher: TMireDispatcher;
+    FDashboardComponents: TSkComponentGroup;
+    FTabComponents: TSkComponentGroup;
+    FSidebarComponents: TSkComponentGroup;
+    FToastComponents: TSkComponentGroup;
     FPeerID: string;
     FPulseScale: Single;
     FIsConnected: Boolean;
     FIncomingPeerID: string;
-    FShowAcceptanceModal: Boolean;
     FSessionPassword: string;
     FLastClipboardText: string;
     FServerConnected: Boolean;
     TimerClipboard: TTimer;
-    FStorage: TMireStorage;
-    FActiveTab: string; // 'recent', 'favorites' (Dashboard internal)
-    FActiveTabID: string; // 'dashboard' or session ID
-    FActiveSessions: TStringList; // List of remote IDs with active sessions
+    FSessionManager: TMireSessionManager;
     FLastPassword: string;
     FCurrentRemoteID: string;
     FScrollOffset: Single;
@@ -65,12 +67,14 @@ uses
     FIsChatOpen: Boolean;
     FShowSettingsModal: Boolean;
     FServerIP: string;
+    FViewMode: string; // 'fill' or 'contain'
     
     FOnlineMap: TDictionary<string, Boolean>;
     FStatusTick: Integer;
     
     FTrayIcon: TTrayIcon;
     FTrayMenu: TPopupMenu;
+    FViewModeMenu: TPopupMenu;
     FAppLogo: ISkImage;
     FAppSplash: ISkSVGDOM;
 
@@ -82,12 +86,14 @@ uses
     procedure OnMenuRename(Sender: TObject);
     procedure OnMenuFavorite(Sender: TObject);
     procedure OnMenuDelete(Sender: TObject);
+    procedure OnMenuViewModeSelect(Sender: TObject);
 
     function GetPersistentID: string;
     procedure LoadConfig;
     procedure SaveConfig;
     procedure SendSourcesList(const RemoteID: string);
     procedure SetupModernUI;
+    procedure ConnectToPeer(const RemoteID: string);
     procedure OnBridgeReady(Sender: TObject);
     procedure OnPeerOpen(Sender: TObject; const PeerID: string);
     procedure OnPeerConnection(Sender: TObject; const RemoteID: string);
@@ -96,15 +102,41 @@ uses
     procedure OnVideoStarted(Sender: TObject; const RemoteID: string);
     procedure OnDataReceived(Sender: TObject; const RemoteID: string; Data: TJSONValue);
 
+    procedure OnSessionManagerChange(Sender: TObject; ChangeType: TSessionChangeType; const SessionID: string);
+    procedure RebuildDashboardComponents;
+    procedure RebuildTabComponents;
+    procedure RebuildSidebarComponents;
+
+    // Dispatcher Events
+    procedure OnDispatcherAuthRequest(Sender: TObject; const RemoteID, Password: string);
+    procedure OnDispatcherAuthStatus(Sender: TObject; const RemoteID: string; Status: TAuthStatus);
+    procedure OnDispatcherClipboard(Sender: TObject; const RemoteID, Text: string);
+    procedure OnDispatcherSources(Sender: TObject; const RemoteID: string; Sources: TJSONArray);
+    procedure OnDispatcherMonitorChanged(Sender: TObject; const RemoteID, ActiveSourceID: string);
+    procedure OnDispatcherFileMessage(Sender: TObject; const RemoteID: string; Data: TJSONObject);
+    procedure OnDispatcherUnhandled(Sender: TObject; const RemoteID, MsgType: string; Data: TJSONObject);
+    
+    procedure OnComponentSessionClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure OnComponentFavoriteClick(Sender: TObject);
+    procedure OnComponentTabClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure OnComponentTabClose(Sender: TObject);
+    procedure OnComponentSidebarBtnClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure ShowToast(const AMessage: string; AType: TToastType );
+    procedure OnToastInvalidate(Sender: TObject);
     procedure OnPeerError(Sender: TObject; const ErrorMsg: string);
     procedure OnLog(Sender: TObject; const Msg: string);
     procedure TimerClipboardTimer(Sender: TObject);
+    procedure Log(const Msg: string); overload;
+    procedure Log(const Fmt: string; const Args: array of const); overload;
     procedure editRemoteIDKeyPress(Sender: TObject; var Key: Char);
     procedure editRemoteIDEnter(Sender: TObject);
     procedure SkPaintBoxMainMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure SkPaintBoxMainMouseLeave(Sender: TObject);
+    procedure SendTransferData(const RemoteID: string; Payload: TJSONObject);
+    procedure OnTransferProgress(Sender: TObject; Transfer: TFileTransfer);
+    procedure OnTransferComplete(Sender: TObject; Transfer: TFileTransfer);
+    procedure OnTransferRequest(Sender: TObject; const PeerID, FileName: string; FileSize: Int64; const TransferID: string);
   public
-    { Public declarations }
     { Public declarations }
     destructor Destroy; override;
   end;
@@ -122,11 +154,6 @@ begin
 end;
 
 
-
-
-
-
-
 procedure TFormMain.FormCreate(Sender: TObject);
 var
   BridgeHTML: string;
@@ -137,6 +164,8 @@ begin
   
   FOnlineMap := TDictionary<string, Boolean>.Create;
   FStatusTick := 0;
+  
+  SkPaintBoxMain.Align := alClient;
 
   
   // Fix WebView2 initialization: Use a guaranteed writeable TEMP folder for user data
@@ -146,12 +175,12 @@ begin
     try
       TDirectory.CreateDirectory(EdgeBrowser.UserDataFolder);
     except
-      memoLog.Lines.Add('Warning: Could not create UserDataFolder at ' + EdgeBrowser.UserDataFolder);
+      Log('Warning: Could not create UserDataFolder at ' + EdgeBrowser.UserDataFolder);
     end;
 
-  memoLog.Lines.Add('Attempting WebView2 Initialization...');
-  memoLog.Lines.Add('DLL Found in App Folder: ' + BoolToStr(FileExists(ExtractFilePath(ParamStr(0)) + 'WebView2Loader.dll'), True));
-  memoLog.Lines.Add('User Data Path: ' + EdgeBrowser.UserDataFolder);
+  Log('Attempting WebView2 Initialization...');
+  Log('DLL Found in App Folder: ' + BoolToStr(FileExists(ExtractFilePath(ParamStr(0)) + 'WebView2Loader.dll'), True));
+  Log('User Data Path: ' + EdgeBrowser.UserDataFolder);
 
   SetupModernUI;
   // Hide legacy VCL UI components to let Skia take over
@@ -172,20 +201,26 @@ begin
   lblMyID.Visible := False;
   editRemoteID.Visible := True;
   
-  FPulseScale := 0;
-  FLastPassword := '123456';
+  FSessionManager := TMireSessionManager.Create;
+  FSessionManager.OnSessionChange := OnSessionManagerChange;
+  
+  FPulseScale := 1.0;
+  FLastPassword := '';
   FIsConnected := False;
   FServerConnected := False;
-  FShowAcceptanceModal := False;
   FLastClipboardText := '';
-  FActiveTab := 'recent';
+  
+  FDashboardComponents := TSkComponentGroup.Create;
+  FTabComponents := TSkComponentGroup.Create;
+  FSidebarComponents := TSkComponentGroup.Create;
+  FToastComponents := TSkComponentGroup.Create;
+  FToastComponents.Bounds := RectF(0, 0, SkPaintBoxMain.Width, SkPaintBoxMain.Height);
   
   try
-    FStorage := TMireStorage.Create;
-    FStorage.Load;
+    FSessionManager.Load;
   except
     on E: Exception do
-      memoLog.Lines.Add('Warning: Could not load storage: ' + E.Message);
+      Log('Warning: Could not load storage: ' + E.Message);
   end;
   
   FAppVersion := '1.0.8'; // Match Electron or detect automatically if possible
@@ -193,11 +228,7 @@ begin
   FIsChatOpen := False;
   FShowSettingsModal := False;
   FServerIP := 'cloud'; // Default
-  
-  FActiveSessions := TStringList.Create;
-  FActiveSessions.CaseSensitive := False;
-  FActiveSessions.Duplicates := dupIgnore;
-  FActiveTabID := 'dashboard';
+  FViewMode := 'fill';
   FScrollOffset := 0;
   FMaxScroll := 0;
   Self.OnMouseWheel := FormMouseWheel;
@@ -205,6 +236,11 @@ begin
   TimerClipboard.Interval := 1500;
   TimerClipboard.OnTimer := TimerClipboardTimer;
   TimerClipboard.Enabled := True;
+  
+  TimerPulse := TTimer.Create(Self);
+  TimerPulse.Interval := 30; // ~30 fps
+  TimerPulse.OnTimer := TimerPulseTimer;
+  TimerPulse.Enabled := True;
 
   // Optimize Skia caching
   SkPaintBoxMain.DrawCacheKind := TSkDrawCacheKind.Raster;
@@ -234,8 +270,8 @@ begin
   FTrayIcon.PopupMenu := FTrayMenu;
 
   // Initially hide to taskbar if requested
-  Application.ShowMainForm := False;
-  Self.Hide;
+//  Application.ShowMainForm := False;
+//  Self.Hide;
 
   // Load App Logo from Resource
   var LResStream := TResourceStream.Create(HInstance, 'LOGO_MIREDESK', RT_RCDATA);
@@ -244,6 +280,8 @@ begin
     SetLength(LBytes, LResStream.Size);
     LResStream.ReadBuffer(LBytes[0], LResStream.Size);
     FAppLogo := TSkImage.MakeFromEncoded(LBytes);
+    // Cache the logo for future use
+    TSkResourceCache.Instance.CacheImage('LOGO_MIREDESK', FAppLogo);
 
     // Load App Splash (SVG)
     var LSplashStream := TResourceStream.Create(HInstance, 'SPLASH_MIREDESK', RT_RCDATA);
@@ -252,6 +290,8 @@ begin
       try
         LSVGReader.CopyFrom(LSplashStream, LSplashStream.Size);
         FAppSplash := TSkSVGDOM.Make(LSVGReader.DataString);
+        // Cache the splash
+        TSkResourceCache.Instance.CacheSVG('SPLASH_MIREDESK', FAppSplash);
       finally
         LSVGReader.Free;
       end;
@@ -286,7 +326,7 @@ begin
   if FileExists(BridgeHTML) then
     EdgeBrowser.Navigate('file://' + BridgeHTML)
   else
-    memoLog.Lines.Add('Error: bridge.html not found');
+    Log('Error: bridge.html not found');
 
   // Manual initialization call (Navigate will also trigger it)
   // EdgeBrowser.CreateWebView; // Navigate usually handles this, let's see if one call is enough
@@ -312,6 +352,43 @@ begin
   LItem.OnClick := OnMenuDelete;
   FPopupMenu.Items.Add(LItem);
 
+  // Setup View Mode Menu
+  FViewModeMenu := TPopupMenu.Create(Self);
+  LItem := TMenuItem.Create(FViewModeMenu);
+  LItem.Caption := 'Ajustar à Tela';
+  LItem.Tag := 0; // 'contain'
+  LItem.OnClick := OnMenuViewModeSelect;
+  FViewModeMenu.Items.Add(LItem);
+
+  LItem := TMenuItem.Create(FViewModeMenu);
+  LItem.Caption := 'Esticar (Preencher)';
+  LItem.Tag := 1; // 'fill'
+  LItem.OnClick := OnMenuViewModeSelect;
+  FViewModeMenu.Items.Add(LItem);
+
+  LItem := TMenuItem.Create(FViewModeMenu);
+  LItem.Caption := 'Tamanho Original';
+  LItem.Tag := 2; // 'none'
+  LItem.OnClick := OnMenuViewModeSelect;
+  FViewModeMenu.Items.Add(LItem);
+
+  // Initialize File Transfer Manager
+  FFileTransferManager := TFileTransferManager.Create;
+  FFileTransferManager.SendDataCallback := SendTransferData;
+  FFileTransferManager.OnProgress := OnTransferProgress;
+  FFileTransferManager.OnComplete := OnTransferComplete;
+  FFileTransferManager.OnRequest := OnTransferRequest;
+
+  // Initialize Dispatcher
+  FDispatcher := TMireDispatcher.Create;
+  FDispatcher.OnAuthRequest := OnDispatcherAuthRequest;
+  FDispatcher.OnAuthStatus := OnDispatcherAuthStatus;
+  FDispatcher.OnClipboardReceived := OnDispatcherClipboard;
+  FDispatcher.OnSourcesReceived := OnDispatcherSources;
+  FDispatcher.OnMonitorChanged := OnDispatcherMonitorChanged;
+  FDispatcher.OnFileMessage := OnDispatcherFileMessage;
+  FDispatcher.OnUnhandledMessage := OnDispatcherUnhandled;
+
   FormResize(nil);
 end;
 
@@ -329,7 +406,49 @@ end;
 
 procedure TFormMain.OnTrayExit(Sender: TObject);
 begin
+  // Force exit even if sessions are active
+  FIsConnected := False;
+  FSessionManager.ActiveSessions.Clear;
   Application.Terminate;
+end;
+
+procedure TFormMain.FormResize(Sender: TObject);
+begin
+  // Align Edit comfortably over the Skia input box rect
+  // skSidebarWidth (260) + DrawConnectionArea.Left (20) + InputCard.Left (20) = 300
+  // Adding 10px padding for the cursor/text inside the card
+  editRemoteID.SetBounds(Trunc(skSidebarWidth) + 50, 108, 280, 24);
+  editRemoteID.BringToFront;
+  
+  // WebView sits below the top bar (40px)
+  if not FSessionManager.IsDashboard then
+  begin
+    EdgeBrowser.SetBounds(0, 40, Self.ClientWidth, Self.ClientHeight - 40 - memoLog.Height);
+    EdgeBrowser.Visible := True;
+    EdgeBrowser.BringToFront;
+  end
+  else
+  begin
+    EdgeBrowser.SetBounds(-2000, 0, 800, 600); // Off-screen
+    EdgeBrowser.Visible := False;
+  end;
+
+  FSidebarComponents.Bounds := RectF(0, 0, skSidebarWidth, SkPaintBoxMain.Height);
+  RebuildSidebarComponents;
+
+  if Assigned(FTabComponents) then
+  begin
+    FTabComponents.Bounds := RectF(skSidebarWidth, 0, SkPaintBoxMain.Width, 40);
+    RebuildTabComponents;
+  end;
+
+  if Assigned(FDashboardComponents) then
+  begin
+    FDashboardComponents.Bounds := RectF(skSidebarWidth, 0, SkPaintBoxMain.Width, SkPaintBoxMain.Height);
+    RebuildDashboardComponents;
+  end;
+  
+  SkPaintBoxMain.Redraw;
 end;
 
 destructor TFormMain.Destroy;
@@ -338,13 +457,43 @@ begin
     FOnlineMap.Free;
   if Assigned(FBridge) then
     FBridge.Free;
-  if Assigned(FStorage) then
-    FStorage.Save;
-  FreeAndNil(FStorage);
-  FActiveSessions.Free;
+  if Assigned(FDispatcher) then
+    FDispatcher.Free;
+  if Assigned(FDashboardComponents) then
+    FDashboardComponents.Free;
+  if Assigned(FTabComponents) then
+    FTabComponents.Free;
+  if Assigned(FSidebarComponents) then
+    FSidebarComponents.Free;
+  if Assigned(FSessionManager) then
+  begin
+    FSessionManager.Save;
+    FSessionManager.Free;
+  end;
+  FToastComponents.Free;
   inherited;
 end;
 
+procedure TFormMain.ShowToast(const AMessage: string; AType: TToastType);
+var
+  LToast: TSkToast;
+  LY: Single;
+begin
+  // Calculate Y position (stack toasts vertically)
+  LY := 20 + (FToastComponents.Children.Count * 70);
+  
+  LToast := TSkToast.Create(AMessage, AType);
+  LToast.Bounds := RectF(SkPaintBoxMain.Width - 320, LY, SkPaintBoxMain.Width - 20, LY + 60);
+  LToast.OnInvalidate := OnToastInvalidate;
+  FToastComponents.Add(LToast);
+  
+  SkPaintBoxMain.Redraw;
+end;
+
+procedure TFormMain.OnToastInvalidate(Sender: TObject);
+begin
+  SkPaintBoxMain.Redraw;
+end;
 
 procedure TFormMain.LoadConfig;
 var
@@ -459,44 +608,73 @@ begin
   editRemoteID.Font.Size := 14; // Slightly larger font
   editRemoteID.Color := AlphaToVcl(skCardBG);
   editRemoteID.TextHint := 'Insira o ID...';
-  editRemoteID.Visible := True;
   editRemoteID.BringToFront;
   
   memoLog.Visible := False; // Use internal log or show when needed
 end;
 
-procedure TFormMain.FormResize(Sender: TObject);
+procedure TFormMain.ConnectToPeer(const RemoteID: string);
+var
+  RemotePassword: string;
+  RememberPassword: Boolean;
 begin
-
-  // Align Edit comfortably over the Skia input box rect
-  // skSidebarWidth (260) + DrawConnectionArea.Left (20) + InputCard.Left (20) = 300
-  // Adding 10px padding for the cursor/text inside the card
-  editRemoteID.SetBounds(Trunc(skSidebarWidth) + 50, 108, 280, 24);
-  editRemoteID.BringToFront;
+  if RemoteID = '' then Exit;
   
-  // WebView sits below the top bar (40px)
-  if FActiveTabID <> 'dashboard' then
+  FCurrentRemoteID := RemoteID;
+  
+  // Don't connect if already active in a tab
+  if FSessionManager.IsSessionActive(RemoteID) then
   begin
-    EdgeBrowser.SetBounds(0, 40, Self.ClientWidth, Self.ClientHeight - 40 - memoLog.Height);
-    EdgeBrowser.Visible := True;
-    EdgeBrowser.BringToFront;
+    FSessionManager.ActiveTabID := RemoteID;
+    Exit;
+  end;
+
+  FSessionManager.Storage.AddRecent(RemoteID);
+  FSessionManager.Save;
+  
+  // Check for saved password first
+  RemotePassword := FSessionManager.Storage.GetSavedPassword(RemoteID);
+  RememberPassword := False;
+  
+  // If no saved password, ask user
+  if RemotePassword = '' then
+  begin
+    if not TFormPasswordDialog.Execute(RemoteID, RemotePassword, RememberPassword) then
+    begin
+      Log('Conexão cancelada pelo usuário');
+      SkPaintBoxMain.Redraw;
+      Exit;
+    end;
+    
+    // Save password if requested
+    if RememberPassword and (RemotePassword <> '') then
+    begin
+      FSessionManager.Storage.SavePassword(RemoteID, RemotePassword);
+      FSessionManager.Save;
+    end;
+  end;
+  
+  if RemotePassword <> '' then
+  begin
+    FLastPassword := RemotePassword;
+    editRemoteID.Text := RemoteID;
+    FBridge.Connect(RemoteID);
+    SkPaintBoxMain.Redraw;
   end
   else
-  begin
-    EdgeBrowser.SetBounds(-2000, 0, 800, 600); // Off-screen
-    EdgeBrowser.Visible := False;
-  end;
+    Log('Conexão cancelada: senha não informada');
 end;
 
 procedure TFormMain.FormMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 begin
-  if FActiveTabID = 'dashboard' then
+  if FSessionManager.IsDashboard then
   begin
     FScrollOffset := FScrollOffset - (WheelDelta / 2); // Adjust speed
     if FScrollOffset < 0 then FScrollOffset := 0;
     if FScrollOffset > FMaxScroll then FScrollOffset := FMaxScroll;
     
+    RebuildDashboardComponents;
     SkPaintBoxMain.Redraw;
     Handled := True;
   end;
@@ -512,60 +690,7 @@ begin
   if Key = #13 then // ENTER
   begin
     Key := #0; // Prevent beep
-    if editRemoteID.Text <> '' then
-    begin
-       FCurrentRemoteID := Trim(editRemoteID.Text);
-       if FActiveSessions.IndexOf(FCurrentRemoteID) <> -1 then
-       begin
-          FActiveTabID := FCurrentRemoteID;
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
-       end
-       else
-       begin
-         // Check for saved password first
-         var RemotePassword: string := FStorage.GetSavedPassword(FCurrentRemoteID);
-         var RememberPassword: Boolean := False;
-         
-         // If no saved password, ask user
-         if RemotePassword = '' then
-         begin
-           if not TFormPasswordDialog.Execute(FCurrentRemoteID, RemotePassword, RememberPassword) then
-           begin
-             memoLog.Lines.Add('Conexão cancelada pelo usuário');
-             Exit;
-           end;
-
-           // Trim password to avoid whitespace issues
-           RemotePassword := Trim(RemotePassword);
-           memoLog.Lines.Add('Password provided. Len: ' + IntToStr(Length(RemotePassword)));
-
-           // Save password if requested
-           if RememberPassword and (RemotePassword <> '') then
-           begin
-             FStorage.SavePassword(FCurrentRemoteID, RemotePassword);
-             FStorage.Save;
-           end;
-         end
-         else
-         begin
-            RemotePassword := Trim(RemotePassword); // Ensure saved password is trimmed too
-            memoLog.Lines.Add('Using saved password. Len: ' + IntToStr(Length(RemotePassword)));
-         end;
-         
-         if RemotePassword <> '' then
-         begin
-           FLastPassword := RemotePassword;
-           FBridge.Connect(FCurrentRemoteID);
-           FStorage.AddRecent(FCurrentRemoteID);
-           FStorage.Save;
-         end
-         else
-           memoLog.Lines.Add('Conexão cancelada: senha não informada');
-           
-         SkPaintBoxMain.Redraw;
-       end;
-    end;
+    ConnectToPeer(Trim(editRemoteID.Text));
   end;
 end;
 
@@ -575,25 +700,20 @@ begin
   begin
     case Key of
       ord('W'): // Ctrl + W: Close active session
-        if FActiveTabID <> 'dashboard' then
+        if not FSessionManager.IsDashboard then
         begin
-          memoLog.Lines.Add('Shortcut: Closing session ' + FActiveTabID);
-          FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', FActiveTabID));
-          FActiveSessions.Delete(FActiveSessions.IndexOf(FActiveTabID));
-          FActiveTabID := 'dashboard';
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
+          Log('Shortcut: Closing session ' + FSessionManager.ActiveTabID);
+          FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', FSessionManager.ActiveTabID));
+          FSessionManager.RemoveSession(FSessionManager.ActiveTabID);
         end;
       ord('T'): // Ctrl + T: Back to dashboard
-        if FActiveTabID <> 'dashboard' then
+        if not FSessionManager.IsDashboard then
         begin
-           FActiveTabID := 'dashboard';
-           FormResize(nil);
-           SkPaintBoxMain.Redraw;
+           FSessionManager.ActiveTabID := 'dashboard';
         end;
       VK_TAB: // Ctrl + Tab: Switch tabs
         begin
-          if FActiveSessions.Count > 0 then
+          if FSessionManager.ActiveSessions.Count > 0 then
           begin
              // Not implemented for brevity, but could switch between indices
           end;
@@ -610,8 +730,8 @@ begin
   LNewAlias := InputBox('Renomear Conexão', 'Novo apelido para ' + FTargetSessionID, '');
   if LNewAlias <> '' then
   begin
-    FStorage.UpdateContact(FTargetSessionID, LNewAlias, False); // Keeps favorite status if exists
-    FStorage.Save;
+    FSessionManager.Storage.UpdateContact(FTargetSessionID, LNewAlias, False); // Keeps favorite status if exists
+    FSessionManager.Save;
     SkPaintBoxMain.Redraw;
   end;
 end;
@@ -623,7 +743,7 @@ var
 begin
   if FTargetSessionID = '' then Exit;
   LFound := False;
-  for LContact in FStorage.Contacts do
+  for LContact in FSessionManager.Storage.Contacts do
   begin
     if LContact.ID = FTargetSessionID then
     begin
@@ -634,9 +754,9 @@ begin
   end;
   
   if not LFound then
-    FStorage.UpdateContact(FTargetSessionID, '', True);
+    FSessionManager.Storage.UpdateContact(FTargetSessionID, '', True);
     
-  FStorage.Save;
+  FSessionManager.Save;
   SkPaintBoxMain.Redraw;
 end;
 
@@ -645,14 +765,33 @@ var
   Idx: Integer;
 begin
   if FTargetSessionID = '' then Exit;
-  Idx := FStorage.RecentSessions.IndexOf(FTargetSessionID);
+  Idx := FSessionManager.Storage.RecentSessions.IndexOf(FTargetSessionID);
   if Idx <> -1 then
   begin
-    FStorage.RecentSessions.Delete(Idx);
-    FStorage.Save;
+    FSessionManager.Storage.RecentSessions.Delete(Idx);
+    FSessionManager.Save;
     SkPaintBoxMain.Redraw;
   end;
 end;
+
+procedure TFormMain.OnMenuViewModeSelect(Sender: TObject);
+var
+  LItem: TMenuItem;
+begin
+  if not (Sender is TMenuItem) then Exit;
+  LItem := TMenuItem(Sender);
+  
+  case LItem.Tag of
+    0: FViewMode := 'contain'; // Ajustar
+    1: FViewMode := 'fill';    // Esticar
+    2: FViewMode := 'none';    // Original
+  end;
+
+  FBridge.SendCommand('SET_VIEW_MODE', TJSONObject.Create.AddPair('mode', FViewMode));
+  Log('Modo de visualização: ' + LItem.Caption);
+  SkPaintBoxMain.Redraw;
+end;
+
 
 procedure TFormMain.SkPaintBoxMainMouseLeave(Sender: TObject);
 begin
@@ -675,6 +814,7 @@ var
   OldIndex: Integer;
   OldID: string;
   W, H: Single;
+  LComp: TSkComponent;
 begin
   W := SkPaintBoxMain.Width;
   H := SkPaintBoxMain.Height;
@@ -689,21 +829,26 @@ begin
   Screen.Cursor := crDefault;
 
   // 0. Session Toolbar Hover (Top Right)
-  if FActiveTabID <> 'dashboard' then
+  if not FSessionManager.IsDashboard then
   begin
-    if RectF(W - 195, 8, W - 170, 32).Contains(PointF(X, Y)) then
+    var ToolbarX := W - 250;
+    if RectF(ToolbarX, 5, ToolbarX + 30, 35).Contains(PointF(X, Y)) then
+    begin
+      FHoveredElement := uiFileTransferBtn; Screen.Cursor := crHandPoint;
+    end
+    else if RectF(ToolbarX + 35, 5, ToolbarX + 65, 35).Contains(PointF(X, Y)) then
     begin
       FHoveredElement := uiChatBtn; Screen.Cursor := crHandPoint;
     end
-    else if RectF(W - 165, 8, W - 140, 32).Contains(PointF(X, Y)) then
+    else if RectF(ToolbarX + 70, 5, ToolbarX + 100, 35).Contains(PointF(X, Y)) then
     begin
       FHoveredElement := uiActionsBtn; Screen.Cursor := crHandPoint;
     end
-    else if RectF(W - 135, 8, W - 110, 32).Contains(PointF(X, Y)) then
+    else if RectF(ToolbarX + 105, 5, ToolbarX + 135, 35).Contains(PointF(X, Y)) then
     begin
       FHoveredElement := uiMonitorBtn; Screen.Cursor := crHandPoint;
     end
-    else if RectF(W - 105, 8, W - 80, 32).Contains(PointF(X, Y)) then
+    else if RectF(ToolbarX + 140, 5, ToolbarX + 170, 35).Contains(PointF(X, Y)) then
     begin
       FHoveredElement := uiViewModeBtn; Screen.Cursor := crHandPoint;
     end;
@@ -739,85 +884,31 @@ begin
     end;
   end;
 
-  // 1. Top Bar Tabs
-  if Y <= 40 then
+  // 1. Top Bar / Tabs
+  LComp := FTabComponents.HandleMouseMove(X, Y);
+  if Assigned(LComp) then
   begin
-    // Check Dashboard Tab
-    if (X >= 0) and (X <= 120) then
-    begin
-      FHoveredElement := uiTab;
-      FHoveredID := 'dashboard';
-      Screen.Cursor := crHandPoint;
-    end
-    else
-    begin
-      // Session Tabs
-      for I := 0 to FActiveSessions.Count - 1 do
-      begin
-        TabX := 120 + (I * 150);
-        if (X >= TabX) and (X <= TabX + 150) then
-        begin
-          if X >= TabX + 120 then
-            FHoveredElement := uiTabClose
-          else
-            FHoveredElement := uiTab;
-            
-          FHoveredID := FActiveSessions[I];
-          Screen.Cursor := crHandPoint;
-          Break;
-        end;
-      end;
-    end;
-    
-    if (FHoveredElement <> OldElement) or (FHoveredID <> OldID) then SkPaintBoxMain.Redraw;
-    Exit;
+    FHoveredElement := uiTab;
+    FHoveredID := LComp.ID;
+    Screen.Cursor := crHandPoint;
   end;
 
   // Only continue if Dashboard
-  if FActiveTabID <> 'dashboard' then Exit;
+  if not FSessionManager.IsDashboard then Exit;
 
   // 2. Sidebar Items
   SidebarRect := RectF(0, 40, skSidebarWidth, SkPaintBoxMain.Height);
   if SidebarRect.Contains(PointF(X, Y)) then
   begin
-    // Active Banner Button
-    if FIsConnected and (FIncomingPeerID <> '') then
+    // Delegate hover check to components
+    LComp := FSidebarComponents.HandleMouseMove(X, Y);
+    if Assigned(LComp) then
     begin
-       if RectF(skSidebarWidth - 110, 60, skSidebarWidth - 20, 100).Contains(PointF(X, Y)) then // Offset by 50 (top) + coordinates in DrawActiveConnectionBanner
-       begin
-         FHoveredElement := uiActiveBannerBtn;
-         Screen.Cursor := crHandPoint;
-       end;
-    end;
-
-    // Local ID (Sidebar) - Adjusting if banner is visible
-    var SidebarOffsetY: Single := 0;
-    if FIsConnected and (FIncomingPeerID <> '') then SidebarOffsetY := 70;
-    
-    if RectF(15, 60 + SidebarOffsetY, skSidebarWidth - 15, 110 + SidebarOffsetY).Contains(PointF(X, Y)) then
-    begin
-      FHoveredElement := uiSidebarCopyID;
-      Screen.Cursor := crHandPoint;
-    end;
-
-    // Session Password (Sidebar regen)
-    if RectF(15, 130, skSidebarWidth - 15, 180).Contains(PointF(X, Y)) then
-    begin
-      FHoveredElement := uiSidebarRegenPass;
-      Screen.Cursor := crHandPoint;
-    end;
-    
-    // Service Button (moved down to avoid overlap if needed, but keeping current for now)
-    if RectF(20, H - 110, skSidebarWidth - 20, H - 90).Contains(PointF(X, Y)) then
-    begin
-      FHoveredElement := uiSidebarBtn; // Service Btn
-      Screen.Cursor := crHandPoint;
-    end;
-    
-    // Settings Shortcut
-    if RectF(20, H - 75, skSidebarWidth - 20, H - 45).Contains(PointF(X, Y)) then
-    begin
-      FHoveredElement := uiSidebarSettings;
+      if LComp.ID = 'activeBannerBtn' then FHoveredElement := uiActiveBannerBtn
+      else if LComp.ID = 'copyIDBtn' then FHoveredElement := uiSidebarCopyID
+      else if LComp.ID = 'regenPassBtn' then FHoveredElement := uiSidebarRegenPass
+      else if LComp.ID = 'serviceBtn' then FHoveredElement := uiSidebarBtn
+      else if LComp.ID = 'settingsBtn' then FHoveredElement := uiSidebarSettings;
       Screen.Cursor := crHandPoint;
     end;
     
@@ -846,47 +937,13 @@ begin
   end;
 
   // 4. Session Grid Cards
-  LList := TList<string>.Create;
-  try
-    if FActiveTab = 'recent' then
-    begin
-      for OldID in FStorage.RecentSessions do LList.Add(OldID); // Reuse OldID var as temp
-    end
-    else
-    begin
-      for LContact in FStorage.Contacts do
-        if LContact.IsFavorite then LList.Add(LContact.ID);
-    end;
-
-    ColCount := Trunc((ContentRect.Width - 20) / 220);
-    if ColCount < 1 then ColCount := 1;
-
-    // Adjust Y for scroll
-    for I := 0 to LList.Count - 1 do
-    begin
-      Col := I mod ColCount;
-      Row := I div ColCount;
-      GridCardRect := RectF(
-        ContentRect.Left + 20 + (Col * 220),
-        230 + (Row * 200) - FScrollOffset,
-        ContentRect.Left + 20 + (Col * 220) + 200,
-        230 + (Row * 200) + 180 - FScrollOffset
-      );
-      
-      // Hit Test taking Clip into account
-      if (GridCardRect.Bottom > 215) and (GridCardRect.Top < SkPaintBoxMain.Height) then
-      begin
-        if GridCardRect.Contains(PointF(X, Y)) then
-        begin
-          FHoveredElement := uiSessionCard;
-          FHoveredID := LList[I];
-          Screen.Cursor := crHandPoint;
-          Break;
-        end;
-      end;
-    end;
-  finally
-    LList.Free;
+  // Delegate hover check to components
+  LComp := FDashboardComponents.HandleMouseMove(X, Y);
+  if Assigned(LComp) and (LComp is TSkSessionCard) then
+  begin
+    FHoveredElement := uiSessionCard;
+    FHoveredID := TSkSessionCard(LComp).SessionID;
+    Screen.Cursor := crHandPoint;
   end;
 
   if (FHoveredElement <> OldElement) or (FHoveredID <> OldID) then
@@ -897,18 +954,9 @@ procedure TFormMain.SkPaintBoxMainDraw(ASender: TObject;
   const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
   LPaint: ISkPaint;
-  CardRect: TRectF;
   W, H: Single;
   SidebarRect: TRectF;
   ContentRect: TRectF;
-  I, Row, Col: Integer;
-  GridCardRect: TRectF;
-  LList: TList<string>;
-  sID: string;
-  LContact: TContact;
-  LIsFav: Boolean;
-  LAlias: string;
-  ColCount: Integer;
 begin
 
   W := ADest.Width;
@@ -916,47 +964,68 @@ begin
   
   // 1. Top Bar (Global)
   TSkUIDrawer.DrawTopTabBar(ACanvas, RectF(0, 0, W, 40));
-  
-  // Dashboard Tab
-  TSkUIDrawer.DrawTab(ACanvas, RectF(0, 0, 120, 40), 'Painel', FActiveTabID = 'dashboard', False);
-  
-  // Sessions Tabs
-  for I := 0 to FActiveSessions.Count - 1 do
+  FTabComponents.Draw(ACanvas, 1.0);
+
+  // 1.1 Session Toolbar (Icons on the right of the top bar)
+  if not FSessionManager.IsDashboard then
   begin
-    sID := FActiveSessions[I];
-    LAlias := sID; // Fallback
-    for LContact in FStorage.Contacts do
-    begin
-      if LContact.ID = sID then
-      begin
-        if LContact.Alias <> '' then LAlias := LContact.Alias;
-        Break;
-      end;
+    var ToolbarX := W - 250;
+    TSkUIDrawer.DrawToolbarButton(ACanvas, RectF(ToolbarX, 5, ToolbarX + 30, 35), iconFile, FHoveredElement = uiFileTransferBtn, False);
+    TSkUIDrawer.DrawToolbarButton(ACanvas, RectF(ToolbarX + 35, 5, ToolbarX + 65, 35), iconChat, FHoveredElement = uiChatBtn, FIsChatOpen);
+    TSkUIDrawer.DrawToolbarButton(ACanvas, RectF(ToolbarX + 70, 5, ToolbarX + 100, 35), iconZap, FHoveredElement = uiActionsBtn, False);
+    TSkUIDrawer.DrawToolbarButton(ACanvas, RectF(ToolbarX + 105, 5, ToolbarX + 135, 35), iconMonitor, FHoveredElement = uiMonitorBtn, False);
+    TSkUIDrawer.DrawToolbarButton(ACanvas, RectF(ToolbarX + 140, 5, ToolbarX + 170, 35), iconComputer, FHoveredElement = uiViewModeBtn, False);
+    
+    // Draw Hints
+    case FHoveredElement of
+      uiFileTransferBtn: TSkUIDrawer.DrawHint(ACanvas, RectF(ToolbarX, 5, ToolbarX + 30, 35), 'Transferir Arquivos');
+      uiChatBtn: TSkUIDrawer.DrawHint(ACanvas, RectF(ToolbarX + 35, 5, ToolbarX + 65, 35), 'Abrir Chat');
+      uiActionsBtn: TSkUIDrawer.DrawHint(ACanvas, RectF(ToolbarX + 70, 5, ToolbarX + 100, 35), 'Ações Rápidas');
+      uiMonitorBtn: TSkUIDrawer.DrawHint(ACanvas, RectF(ToolbarX + 105, 5, ToolbarX + 135, 35), 'Alternar Monitores');
+      uiViewModeBtn: TSkUIDrawer.DrawHint(ACanvas, RectF(ToolbarX + 140, 5, ToolbarX + 170, 35), 'Modo de Visualização');
     end;
-    TSkUIDrawer.DrawTab(ACanvas, RectF(120 + (I * 150), 0, 120 + ((I+1) * 150), 40), LAlias, FActiveTabID = sID, True);
   end;
 
-  // Draw modals BEFORE checking active tab (so they appear on top of everything)
-  if FShowAcceptanceModal then
-  begin
-    LPaint := TSkPaint.Create;
-    LPaint.Color := $4B000000;
-    ACanvas.DrawRect(ADest, LPaint);
-    CardRect := RectF((W/2) - 150, (H/2) - 75, (W/2) + 150, (H/2) + 75);
-    TSkUIDrawer.DrawCard(ACanvas, CardRect, skCardBG);
-    TSkUIDrawer.DrawHeader(ACanvas, RectF(CardRect.Left, CardRect.Top, CardRect.Right, CardRect.Top + 40), 'Conexão Recebida');
-    TSkUIDrawer.DrawLabel(ACanvas, RectF(CardRect.Left + 20, CardRect.Top + 60, CardRect.Right - 20, CardRect.Top + 90), 'De: ' + FIncomingPeerID, 12, skTextMain, True);
-    TSkUIDrawer.DrawButton(ACanvas, RectF(CardRect.Left + 20, CardRect.Bottom - 45, CardRect.Left + 120, CardRect.Bottom - 15), 'Aceitar', False);
-    TSkUIDrawer.DrawButton(ACanvas, RectF(CardRect.Right - 120, CardRect.Bottom - 45, CardRect.Right - 20, CardRect.Bottom - 15), 'Rejeitar', False);
-  end;
 
   if FShowSettingsModal then
   begin
     TSkUIDrawer.DrawSettingsModal(ACanvas, ADest, FServerIP, (FHoveredElement = uiSettingsSaveBtn));
   end;
 
+  // 1.2 File Transfer Progress UI (Overlay)
+  if not FSessionManager.IsDashboard then
+  begin
+    var LTransfers: TList<TFileTransfer> := FFileTransferManager.GetActiveTransfers;
+    try
+      for var I := 0 to LTransfers.Count - 1 do
+      begin
+        var T: TFileTransfer := LTransfers[I];
+        if (T.PeerID = FSessionManager.ActiveTabID) and (T.State = tsTransferring) then
+        begin
+           // Just draw the first active one for simplicity
+           var BarRect := RectF(W - 250, 45, W - 10, 75);
+           TSkUIDrawer.DrawCard(ACanvas, BarRect, $C0000000);
+           var FillRect := BarRect;
+           FillRect.Inflate(-2, -2);
+           var TotalW: Single := FillRect.Width;
+           FillRect.Right := FillRect.Left + (TotalW * T.ProgressPct / 100);
+           
+           var LP: ISkPaint := TSkPaint.Create;
+           LP.Color := skPrimary;
+           ACanvas.DrawRoundRect(FillRect, 4, 4, LP);
+           
+           TSkUIDrawer.DrawLabel(ACanvas, RectF(BarRect.Left + 10, BarRect.Top + 5, BarRect.Right - 10, BarRect.Bottom), 
+             Format('%d%% - %s', [Round(T.ProgressPct), T.FileName]), 9, TAlphaColors.White, True);
+           Break; 
+        end;
+      end;
+    finally
+      LTransfers.Free;
+    end;
+  end;
+
   // Only draw dashboard content if dashboard is active
-  if FActiveTabID <> 'dashboard' then
+  if not FSessionManager.IsDashboard then
   begin
     EdgeBrowser.Visible := True;
     Exit;
@@ -972,39 +1041,22 @@ begin
   ACanvas.Clear(skBackground);
   TSkUIDrawer.DrawSidebar(ACanvas, SidebarRect, FServerConnected, FAppLogo);
 
-  // Active Connection Banner (if someone is connected to me)
-  if FIsConnected and (FIncomingPeerID <> '') then
-  begin
-    TSkUIDrawer.DrawActiveConnectionBanner(ACanvas, RectF(10, 50, skSidebarWidth - 10, 110), FIncomingPeerID, (FHoveredElement = uiActiveBannerBtn));
-    // Offset next elements if banner is shown
-    ACanvas.Save;
-    ACanvas.Translate(0, 70);
-  end;
-  
   // Sidebar Details (Cards)
-  // 1. ID Card
-  TSkUIDrawer.DrawIDCard(ACanvas, RectF(10, 50, skSidebarWidth - 10, 160), FPeerID, False, False);
-  
-  // 2. Password Card
-  TSkUIDrawer.DrawPasswordCard(ACanvas, RectF(10, 170, skSidebarWidth - 10, 280), FSessionPassword, False, False, False);
-
-  // 3. Splash Card (Below password)
-  TSkUIDrawer.DrawSplashCard(ACanvas, RectF(10, 290, skSidebarWidth - 10, 520), FAppSplash);
-
-  if FIsConnected and (FIncomingPeerID <> '') then ACanvas.Restore;
+  FSidebarComponents.Draw(ACanvas, 1.0);
   
   // Section: Serviço
-  TSkUIDrawer.DrawSidebarSection(ACanvas, RectF(0, 530, skSidebarWidth, 560), 'SERVIÇO DE ACESSO');
-  if GetMireDeskServiceStatus = ssRunning then
-    TSkUIDrawer.DrawLabel(ACanvas, RectF(20, 570, skSidebarWidth - 20, 590), '● Serviço Ativo', 10, skSuccess, True)
-  else
-    TSkUIDrawer.DrawLabel(ACanvas, RectF(20, 570, skSidebarWidth - 20, 590), '○ Serviço Parado', 10, skDanger, True);
-    
+//  TSkUIDrawer.DrawSidebarSection(ACanvas, RectF(0, H - 140, skSidebarWidth, H - 110), 'SERVIÇO DE ACESSO');
+//
+//  if GetMireDeskServiceStatus = ssRunning then
+//    TSkUIDrawer.DrawLabel(ACanvas, RectF(20, H - 100, skSidebarWidth - 20, H - 80), '● Serviço Ativo', 10, skSuccess, True)
+//  else
+//    TSkUIDrawer.DrawLabel(ACanvas, RectF(20, H - 100, skSidebarWidth - 20, H - 80), '○ Serviço Parado', 10, skDanger, True);
+
   // 5. Sidebar Footer (Version) - Back to bottom
   TSkUIDrawer.DrawSidebarFooter(ACanvas, RectF(0, H - 40, skSidebarWidth, H), FAppVersion);
 
   // 3. Draw Main Content Area - Shifted down by Top Bar (40px) + padding
-  TSkUIDrawer.DrawConnectionArea(ACanvas, RectF(ContentRect.Left + 20, 60, ContentRect.Right - 20, 150), FHoveredElement = uiConnectBtn);
+  TSkUIDrawer.DrawConnectionArea(ACanvas, RectF(ContentRect.Left + 20, 60, ContentRect.Right - 20, 150), FHoveredElement = uiConnectBtn, FPulseScale);
 
   // Line to separate connection area from the rest
   LPaint := TSkPaint.Create;
@@ -1016,178 +1068,60 @@ begin
   LPaint := TSkPaint.Create;
   LPaint.AntiAlias := True;
   
-  if FActiveTab = 'recent' then
+  if FSessionManager.ActiveSubTab = 'recent' then
     TSkUIDrawer.DrawLabel(ACanvas, RectF(ContentRect.Left + 20, 180, ContentRect.Left + 120, 210), 'Sessões Recentes', 10, skTextMain, True)
   else
     TSkUIDrawer.DrawLabel(ACanvas, RectF(ContentRect.Left + 20, 180, ContentRect.Left + 120, 210), 'Sessões Recentes', 10, skTextSecondary, True);
 
-  if FActiveTab = 'favorites' then
+  if FSessionManager.ActiveSubTab = 'favorites' then
     TSkUIDrawer.DrawLabel(ACanvas, RectF(ContentRect.Left + 140, 180, ContentRect.Left + 220, 210), 'Favoritos', 10, skTextMain, True)
   else
     TSkUIDrawer.DrawLabel(ACanvas, RectF(ContentRect.Left + 140, 180, ContentRect.Left + 220, 210), 'Favoritos', 10, skTextSecondary, True);
     
-  if FActiveTab = 'recent' then
+  if FSessionManager.ActiveSubTab = 'recent' then
     ACanvas.DrawLine(ContentRect.Left + 20, 215, ContentRect.Left + 120, 215, LPaint)
   else
     ACanvas.DrawLine(ContentRect.Left + 140, 215, ContentRect.Left + 200, 215, LPaint);
 
   // Search Bar (Dash only)
-  TSkUIDrawer.DrawSearchBar(ACanvas, RectF(ContentRect.Left + 20, 110, ContentRect.Left + 460, 145), FSearchTerm, (FHoveredElement = uiSearchBar));
+  TSkUIDrawer.DrawSearchBar(ACanvas, RectF(ContentRect.Left + 20+ 300, 180, ContentRect.Left + 460 + 300, 215), FSearchTerm, (FHoveredElement = uiSearchBar));
 
 
   // Session Grid
-  LList := TList<string>.Create;
-  try
-    if FActiveTab = 'recent' then
-    begin
-      for sID in FStorage.RecentSessions do
-      begin
-        LAlias := '';
-        for LContact in FStorage.Contacts do if LContact.ID = sID then LAlias := LContact.Alias;
-        
-        if (FSearchTerm = '') or 
-           (sID.ToLower.Contains(FSearchTerm.ToLower)) or 
-           (LAlias.ToLower.Contains(FSearchTerm.ToLower)) then
-          LList.Add(sID);
-      end;
-    end
-    else
-    begin
-      for LContact in FStorage.Contacts do
-        if LContact.IsFavorite then
-        begin
-          if (FSearchTerm = '') or 
-             (LContact.ID.ToLower.Contains(FSearchTerm.ToLower)) or 
-             (LContact.Alias.ToLower.Contains(FSearchTerm.ToLower)) then
-            LList.Add(LContact.ID);
-        end;
-    end;
-
-    // Dynamic Columns based on Width
-    // CardWidth (200) + Padding (20) = 220
-    ColCount := Trunc((ContentRect.Width - 20) / 220);
-    if ColCount < 1 then ColCount := 1;
-
-    // Calculate Max Scroll
-    // Each row is 200px. Header area starts at 230px.
-    // Total height = 230 + (Rows * 200)
-    FMaxScroll := ( ( (LList.Count - 1) div ColCount ) + 1 ) * 200 + 230 - ContentRect.Height;
-    if FMaxScroll < 0 then FMaxScroll := 0;
-
-    // Save and Clip for Scroll
-    ACanvas.Save;
-    ACanvas.ClipRect(ContentRect);
-    ACanvas.Translate(0, -FScrollOffset);
-
-    for I := 0 to LList.Count - 1 do
-    begin
-      Col := I mod ColCount;
-      Row := I div ColCount;
-      GridCardRect := RectF(
-        ContentRect.Left + 20 + (Col * 220),
-        230 + (Row * 200),
-        ContentRect.Left + 20 + (Col * 220) + 200,
-        230 + (Row * 200) + 180
-      );
-      
-      // OPTIONAL: Simple culling to improve performance if many items
-      if (GridCardRect.Bottom < FScrollOffset - 100) or (GridCardRect.Top > FScrollOffset + ContentRect.Height + 100) then
-        Continue;
-      
-      LIsFav := False;
-      LAlias := '';
-      for LContact in FStorage.Contacts do
-        if LContact.ID = LList[I] then
-        begin
-          LIsFav := LContact.IsFavorite;
-          LAlias := LContact.Alias;
-          Break;
-        end;
-      
-      var IsOnline: Boolean := False;
-      if FOnlineMap.ContainsKey(LList[I]) then
-        IsOnline := FOnlineMap[LList[I]];
-        
-      TSkUIDrawer.DrawSessionCard(ACanvas, GridCardRect, LList[I], LAlias, IsOnline, LIsFav, (FHoveredElement = uiSessionCard) and (FHoveredID = LList[I]), FPulseScale);
-    end;
-  finally
-    ACanvas.Restore;
-    LList.Free;
+  ACanvas.Save;
+  ACanvas.ClipRect(ContentRect);
+  
+  // Update Pulse Scale for all cards
+  for var I := 0 to FDashboardComponents.Children.Count - 1 do
+  begin
+    if FDashboardComponents.Children[I] is TSkSessionCard then
+      TSkSessionCard(FDashboardComponents.Children[I]).PulseScale := FPulseScale;
   end;
+  
+  FDashboardComponents.Draw(ACanvas, 1.0);
+  ACanvas.Restore;
 
 
   // 4. Modals are now drawn at the beginning (before tab check)
 end;
 
 procedure TFormMain.FormMouseDown(Sender: TObject; Button: TMouseButton;
-
   Shift: TShiftState; X, Y: Integer);
 var
-  BtnRect, CardRect, GridCardRect, StarRect: TRectF;
   W, H: Single;
-  I, Row, Col: Integer;
-  LList: TList<string>;
-  sID, sNewAlias, curAlias: string;
-  LContact, c: TContact;
-  LAns, TabX, ColCount: Integer;
-  curFav, LIsFav: Boolean;
-
+  LComp: TSkComponent;
 begin
   W := SkPaintBoxMain.Width;
   H := SkPaintBoxMain.Height;
 
   // 0. Session Toolbar Clicks (Logic is handled further down in the procedure)
 
-  // 0. Top Bar Click Detection
-  if Y <= 40 then
-  begin
-    if Button = mbRight then Exit; // No context menu on top bar for now
-    // Dashboard Tab Click
-    if (X >= 0) and (X <= 120) then
-    begin
-      FActiveTabID := 'dashboard';
-      FormResize(nil);
-      SkPaintBoxMain.Redraw;
-      Exit;
-    end;
-    
-    // Sessions Tabs Click
-    for I := 0 to FActiveSessions.Count - 1 do
-    begin
-      TabX := 120 + (I * 150);
-      if (X >= TabX) and (X <= TabX + 150) then
-
-      begin
-        // Detect Close Button (X area)
-        if (X >= TabX + 120) then
-        begin
-          memoLog.Lines.Add('Closing tab: ' + FActiveSessions[I]);
-          FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', FActiveSessions[I]));
-          FActiveSessions.Delete(I);
-          FActiveTabID := 'dashboard';
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
-          Exit;
-        end;
-
-        
-        
-        if FActiveTabID <> FActiveSessions[I] then
-        begin
-          FActiveTabID := FActiveSessions[I];
-          // Notify JS to show the correct video element
-          FBridge.SendCommand('SWITCH_TAB', TJSONObject.Create.AddPair('remoteId', FActiveTabID));
-          
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
-        end;
-        Exit;
-      end;
-    end;
-  end;
+  // 1. Top Bar / Tab Clicks
+  LComp := FTabComponents.HandleClick(Button, Shift, X, Y);
+  if Assigned(LComp) then Exit; // Click handled by component events
 
   // Session Toolbar Clicks
-  if FActiveTabID <> 'dashboard' then
+  if not FSessionManager.IsDashboard then
   begin
     if FHoveredElement = uiChatBtn then
     begin
@@ -1195,61 +1129,44 @@ begin
        SkPaintBoxMain.Redraw;
        Exit;
     end;
-    if FHoveredElement = uiMonitorBtn then
+    if FHoveredElement = uiFileTransferBtn then
     begin
-      // Logic for monitor selection (InputQuery or simple toggle for now)
-      FBridge.SendCommand('SWITCH_MONITOR', TJSONObject.Create.AddPair('monitor', 1)); // Simple test
-      Exit;
+       // Open File Dialog
+       var LOpenDialog := TOpenDialog.Create(nil);
+       try
+         LOpenDialog.Title := 'Selecionar arquivo para transferência';
+         if LOpenDialog.Execute then
+         begin
+           Log('Iniciando transferência de: ' + LOpenDialog.FileName);
+           FFileTransferManager.OfferFile(FSessionManager.ActiveTabID, LOpenDialog.FileName);
+         end;
+       finally
+         LOpenDialog.Free;
+       end;
+       Exit;
     end;
+      if FHoveredElement = uiMonitorBtn then
+      begin
+        // Logic for monitor selection (InputQuery or simple toggle for now)
+        FBridge.SendCommand('SWITCH_MONITOR', TJSONObject.Create.AddPair('monitor', 1)); // Simple test
+        Exit;
+      end;
+      if FHoveredElement = uiViewModeBtn then
+      begin
+         // Show Popup Menu at button position
+         var P: TPoint := SkPaintBoxMain.ClientToScreen(Point(X, Y));
+         FViewModeMenu.Popup(P.X, P.Y);
+         Exit;
+      end;
   end;
 
   // If we are in a session tab, don't handle clicks below the tab bar (Y > 40)
-  if FActiveTabID <> 'dashboard' then Exit;
+  if not FSessionManager.IsDashboard then Exit;
 
-  if FShowAcceptanceModal then
-  begin
-    CardRect := RectF((W/2) - 150, (H/2) - 75, (W/2) + 150, (H/2) + 75);
-    // Accept Button Hit Test
-    BtnRect := RectF(CardRect.Left + 20, CardRect.Bottom - 45, CardRect.Left + 120, CardRect.Bottom - 15);
-    if BtnRect.Contains(PointF(X, Y)) then
-    begin
-      FBridge.SendToWeb('ACCEPT_CONN', TJSONObject.Create.AddPair('remoteID', FIncomingPeerID));
-      FShowAcceptanceModal := False;
-      SkPaintBoxMain.Redraw;
-      Exit;
-    end;
+  // Handle clicks on sidebar components
+  LComp := FSidebarComponents.HandleClick(Button, Shift, X, Y);
+  if Assigned(LComp) then Exit; // Click handled by component events
 
-    // Reject Button Hit Test
-    BtnRect := RectF(CardRect.Right - 120, CardRect.Bottom - 45, CardRect.Right - 20, CardRect.Bottom - 15);
-    if BtnRect.Contains(PointF(X, Y)) then
-    begin
-      FBridge.SendToWeb('REJECT_CONN', TJSONObject.Create.AddPair('remoteID', FIncomingPeerID));
-      FShowAcceptanceModal := False;
-      SkPaintBoxMain.Redraw;
-      Exit;
-    end;
-    Exit;
-  end;
-
-  // 1. Sidebar ID Card (Copy ID)
-  if (FHoveredElement = uiSidebarCopyID) and (FPeerID <> '') then
-  begin
-    Clipboard.AsText := FPeerID;
-    memoLog.Lines.Add('ID Copiado: ' + FPeerID);
-    Exit;
-  end;
-
-  // 2. Start/Stop Service Button
-  if (FHoveredElement = uiSidebarBtn) then
-  begin
-    if GetMireDeskServiceStatus = ssRunning then
-      StopMireDeskService
-    else
-      StartMireDeskService;
-    SkPaintBoxMain.Redraw;
-    Exit;
-  end;
-  
   // 3. Connect Button
   if (FHoveredElement = uiConnectBtn) then
   begin
@@ -1268,23 +1185,6 @@ begin
       FSearchTerm := NewSearch;
       SkPaintBoxMain.Redraw;
     end;
-    Exit;
-  end;
-
-  // 5. Sidebar Regen Password
-  if (FHoveredElement = uiSidebarRegenPass) then
-  begin
-    FSessionPassword := IntToStr(100000 + Random(899999));
-    memoLog.Lines.Add('Nova Senha de Sessão: ' + FSessionPassword);
-    SkPaintBoxMain.Redraw;
-    Exit;
-  end;
-
-  // 5.1 Sidebar Settings Open
-  if (FHoveredElement = uiSidebarSettings) then
-  begin
-    FShowSettingsModal := True;
-    SkPaintBoxMain.Redraw;
     Exit;
   end;
 
@@ -1322,247 +1222,80 @@ begin
     Exit;
   end;
   
-  // 7. Session Cards (Popup or Connect)
+  // 7. Session Cards
   if (FHoveredElement = uiSessionCard) and (FHoveredID <> '') then
   begin
-    if Button = mbRight then
-    begin
-      FTargetSessionID := FHoveredID;
-      // Convert Client Point to Screen Point for Popup
-      var P := ClientToScreen(Point(X, Y));
-      FPopupMenu.Popup(P.X, P.Y);
-    end
-    else
-    begin
-        // Check for saved password first
-        var RemotePassword: string := FStorage.GetSavedPassword(FHoveredID);
-        var RememberPassword: Boolean := False;
-        
-        // If no saved password, ask user
-        if RemotePassword = '' then
-        begin
-          if not TFormPasswordDialog.Execute(FHoveredID, RemotePassword, RememberPassword) then
-          begin
-            memoLog.Lines.Add('Conexão cancelada pelo usuário');
-            Exit;
-          end;
-          
-          RemotePassword := Trim(RemotePassword);
-          memoLog.Lines.Add('Password provided (Card). Len: ' + IntToStr(Length(RemotePassword)));
-          
-          // Save password if requested
-          if RememberPassword and (RemotePassword <> '') then
-          begin
-            FStorage.SavePassword(FHoveredID, RemotePassword);
-            FStorage.Save;
-          end;
-        end
-        else
-        begin
-           RemotePassword := Trim(RemotePassword);
-           memoLog.Lines.Add('Using saved password (Card). Len: ' + IntToStr(Length(RemotePassword)));
-        end;
-        
-        if RemotePassword <> '' then
-        begin
-          FLastPassword := RemotePassword;
-          editRemoteID.Text := FHoveredID;
-          var Key: Char := #13;
-          editRemoteIDKeyPress(Self, Key);
-        end
-        else
-          memoLog.Lines.Add('Conexão cancelada: senha não informada');
-    end;
+    ConnectToPeer(FHoveredID);
     Exit;
   end;
 
   // 4. Tab Switching
-  if (Y >= 150) and (Y <= 185) then
+  if (Y >= skTabBarTop) and (Y <= skTabBarTop + skTabBarHeight) then
   begin
-    if (X >= skSidebarWidth + 20) and (X <= skSidebarWidth + 130) then
+    // Recent Tab
+    if (X >= skSidebarWidth + skContentPadding) and (X <= skSidebarWidth + skContentPadding + skTabWidth) then
     begin
-      FActiveTab := 'recent';
-      SkPaintBoxMain.Redraw;
+      FSessionManager.ActiveSubTab := 'recent';
       Exit;
     end;
-    if (X >= skSidebarWidth + 140) and (X <= skSidebarWidth + 240) then
+    // Favorites Tab
+    if (X >= skSidebarWidth + skContentPadding + skTabWidth + skTabGap) and (X <= skSidebarWidth + skContentPadding + skTabWidth + skTabGap + skTabWidth) then
     begin
-      FActiveTab := 'favorites';
-      SkPaintBoxMain.Redraw;
+      FSessionManager.ActiveSubTab := 'favorites';
       Exit;
     end;
   end;
 
   // 5. Connect Button (Main Area)
-  // Area drawing: ARect.Left (skSidebarWidth + 20) + 360 = skSidebarWidth + 380
-  // ARect.Top (60) + 40 = 100.
-  // Using a slightly larger hit area (10px padding) for easier clicking
-  BtnRect := RectF(skSidebarWidth + 370, 90, skSidebarWidth + 490, 150);
+  var BtnRect := RectF(skSidebarWidth + skContentPadding + 340, skConnectBtnTop, skSidebarWidth + skContentPadding + 340 + skConnectBtnWidth, skConnectBtnTop + skConnectBtnHeight);
   if BtnRect.Contains(PointF(X, Y)) then
   begin
-     memoLog.Lines.Add('Botão Conectar clicado em ' + IntToStr(X) + ',' + IntToStr(Y));
-     if editRemoteID.Text <> '' then
-     begin
-        FCurrentRemoteID := Trim(editRemoteID.Text);
-        
-        // Don't connect if already active in a tab
-        if FActiveSessions.IndexOf(FCurrentRemoteID) <> -1 then
-        begin
-           FActiveTabID := FCurrentRemoteID;
-           FormResize(nil);
-           SkPaintBoxMain.Redraw;
-           Exit;
-        end;
-
-        FStorage.AddRecent(FCurrentRemoteID);
-        FStorage.Save;
-        
-        // Check for saved password first
-        var RemotePassword: string := FStorage.GetSavedPassword(FCurrentRemoteID);
-        var RememberPassword: Boolean := False;
-        
-        // If no saved password, ask user
-        if RemotePassword = '' then
-        begin
-          if not TFormPasswordDialog.Execute(FCurrentRemoteID, RemotePassword, RememberPassword) then
-          begin
-            memoLog.Lines.Add('Conexão cancelada pelo usuário');
-            SkPaintBoxMain.Redraw;
-            Exit;
-          end;
-          
-          // Save password if requested
-          if RememberPassword and (RemotePassword <> '') then
-          begin
-            FStorage.SavePassword(FCurrentRemoteID, RemotePassword);
-            FStorage.Save;
-          end;
-        end;
-        
-        if RemotePassword <> '' then
-        begin
-          FLastPassword := RemotePassword;
-          FBridge.Connect(FCurrentRemoteID);
-        end
-        else
-          memoLog.Lines.Add('Conexão cancelada: senha não informada');
-          
-        SkPaintBoxMain.Redraw;
-     end;
+     ConnectToPeer(Trim(editRemoteID.Text));
      Exit;
   end;
 
-  // 6. Session Card Interactions    // List selection
-    LList := TList<string>.Create;
-    try
-      if FActiveTab = 'recent' then
-      begin
-        for sID in FStorage.RecentSessions do LList.Add(sID);
-      end
-      else
-      begin
-        for LContact in FStorage.Contacts do
-          if LContact.IsFavorite then LList.Add(LContact.ID);
-      end;
-
-      // Dynamic Columns for HitTest
-      ColCount := Trunc((W - skSidebarWidth - 20) / 220);
-      if ColCount < 1 then ColCount := 1;
-
-      for I := 0 to LList.Count - 1 do
-      begin
-        Col := I mod ColCount;
-        Row := I div ColCount;
-        GridCardRect := RectF(
-          skSidebarWidth + 20 + (Col * 220),
-          230 + (Row * 200) - FScrollOffset,
-          skSidebarWidth + 20 + (Col * 220) + 200,
-          230 + (Row * 200) + 180 - FScrollOffset
-        );
-      
-      if (Y > 180) and GridCardRect.Contains(PointF(X, Y)) then
-      begin
-        // Right Click: Context Menu (Rename / Remove)
-         if Button = mbRight then
-         begin
-            LAns := MessageDlg('Deseja renomear ou remover este computador?', mtConfirmation, [mbYes, mbNo, mbCancel], 0, mbYes);
-            if LAns = mrYes then // Rename
-            begin
-              sNewAlias := InputBox('Renomear', 'Digite o apelido para ' + LList[I] + ':', '');
-              FStorage.UpdateContact(LList[I], sNewAlias, False); // Keeps favorite status inside UpdateContact if implemented or just fetch current
-              // Fix: better fetching of existing favorite status
-              curFav := False;
-              for c in FStorage.Contacts do if c.ID = LList[I] then curFav := c.IsFavorite;
-              FStorage.UpdateContact(LList[I], sNewAlias, curFav);
-              FStorage.Save;
-              SkPaintBoxMain.Redraw;
-            end
-            else if LAns = mrNo then // Remove
-            begin
-              if FActiveTab = 'recent' then
-                FStorage.RecentSessions.Delete(FStorage.RecentSessions.IndexOf(LList[I]))
-              else
-                FStorage.UpdateContact(LList[I], '', False); // Unfavorite basically
-              
-              FStorage.Save;
-              SkPaintBoxMain.Redraw;
-            end;
-            Exit;
-         end;
-
-        // Detect click on the star icon (Upper Right, 30x30 area)
-        StarRect := RectF(GridCardRect.Right - 30, GridCardRect.Top, GridCardRect.Right, GridCardRect.Top + 30);
-
-        if StarRect.Contains(PointF(X, Y)) then
-        begin
-          LIsFav := False;
-          curAlias := '';
-          for LContact in FStorage.Contacts do
-            if LContact.ID = LList[I] then 
-            begin
-              LIsFav := LContact.IsFavorite;
-              curAlias := LContact.Alias;
-            end;
-          
-          FStorage.UpdateContact(LList[I], curAlias, not LIsFav);
-          FStorage.Save;
-          SkPaintBoxMain.Redraw;
-          Exit;
-        end;
-
-        // Otherwise, connect
-        if FActiveSessions.IndexOf(LList[I]) <> -1 then
-        begin
-          FActiveTabID := LList[I];
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
-          Exit;
-        end;
-
-        FBridge.Connect(LList[I]);
-        FStorage.AddRecent(LList[I]);
-        FStorage.Save;
-        Exit;
-      end;
+  // Dashboard Click
+  if FSessionManager.IsDashboard then
+  begin
+    LComp := FDashboardComponents.HandleClick(Button, Shift, X, Y);
+    if Assigned(LComp) and (LComp is TSkSessionCard) then
+    begin
+       // Card was clicked
+       FTargetSessionID := TSkSessionCard(LComp).SessionID;
+       
+       if Button = mbRight then
+         FPopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y)
+       else if Button = mbLeft then
+          ConnectToPeer(FTargetSessionID);
+       
+       Exit;
     end;
-  finally
-    LList.Free;
+    
+    // Fallback for non-component area of dashboard
+    if (FHoveredElement = uiConnectBtn) then
+    begin
+      // Trigger connect logic
+      var Key: Char := #13;
+      editRemoteIDKeyPress(Self, Key); // Simulate enter
+      Exit;
+    end;
   end;
+
 end;
 
 procedure TFormMain.TimerPulseTimer(Sender: TObject);
 begin
   if FPulseScale >= 1.2 then FPulseScale := 1.0;
-  FPulseScale := FPulseScale + 0.05;
+  FPulseScale := FPulseScale + 0.01;
   SkPaintBoxMain.Redraw;
 end;
 
 procedure TFormMain.EdgeBrowserCreateWebViewCompleted(Sender: TCustomEdgeBrowser; AResult: HRESULT);
 begin
   if Succeeded(AResult) then
-    memoLog.Lines.Add('WebView2 Engine Ready')
+    Log('WebView2 Engine Ready')
   else
-    memoLog.Lines.Add(Format('Error: WebView2 Initialization Failed (HRESULT: 0x%x)', [AResult]));
+    Log(Format('Error: WebView2 Initialization Failed (HRESULT: 0x%x)', [AResult]));
 end;
 
 procedure TFormMain.OnBridgeReady(Sender: TObject);
@@ -1573,9 +1306,10 @@ begin
   if (Host = '') or (Host = 'cloud') then
     Host := '167.234.241.147';
 
-  memoLog.Lines.Add('Bridge JS is ready. Handshaking with ' + Host + '...');
+  Log('Bridge JS is ready. Handshaking with ' + Host + '...');
   { Initialize with your server config }
   FBridge.Initialize(Host, 9000, '/peerjs', FPeerID);
+  FStatusTick := 10; // Trigger immediate online status check
   
   { Auto-start MJPEG capture (pointing to our Agent) }
   FBridge.StartVideo('http://127.0.0.1:9876/stream.mjpeg');
@@ -1585,26 +1319,43 @@ procedure TFormMain.TimerClipboardTimer(Sender: TObject);
 var
   CurrentText: string;
   LContact: TContact;
+  sID: string;
 begin
   // Status Check every ~15s (assuming interval=1500)
   FStatusTick := FStatusTick + 1;
   if FStatusTick >= 10 then
   begin
     FStatusTick := 0;
-    if Assigned(FStorage) and Assigned(FBridge) then
+    if Assigned(FSessionManager) and Assigned(FBridge) then
     begin
-      var LIDs: TJSONArray := TJSONArray.Create;
-      for LContact in FStorage.Contacts do
-      begin
-        // Skip if already in active sessions or current remote ID
-        if (FActiveSessions.IndexOf(LContact.ID) = -1) and (FActiveTabID <> LContact.ID) then
-          LIDs.Add(LContact.ID);
+      var LIDsToCheck: TStringList := TStringList.Create;
+      try
+        LIDsToCheck.Sorted := True;
+        LIDsToCheck.Duplicates := dupIgnore;
+        
+        // 1. Add Contacts
+        for LContact in FSessionManager.Storage.Contacts do
+          LIDsToCheck.Add(LContact.ID);
+          
+        // 2. Add Recent Sessions
+        for sID in FSessionManager.Storage.RecentSessions do
+          LIDsToCheck.Add(sID);
+
+        var LIDs: TJSONArray := TJSONArray.Create;
+        for sID in LIDsToCheck do
+        begin
+          // Skip if already in active sessions or current remote ID
+          if (not FSessionManager.IsSessionActive(sID)) and (FSessionManager.ActiveTabID <> sID) then
+            LIDs.Add(sID);
+        end;
+        
+        if LIDs.Count > 0 then
+          FBridge.CheckOnline(LIDs)
+        else
+          LIDs.Free;
+      finally
+        LIDsToCheck.Free;
       end;
-      
-      if LIDs.Count > 0 then
-        FBridge.CheckOnline(LIDs)
-      else
-        LIDs.Free;
     end;
   end;
 
@@ -1631,29 +1382,49 @@ begin
   FIsConnected := True;
   FServerConnected := True;
   lblMyID.Caption := 'Your ID: ' + PeerID;
-  memoLog.Lines.Add('Connected to PeerServer. My ID: ' + PeerID);
+  Log('Connected to PeerServer. My ID: ' + PeerID);
   SkPaintBoxMain.Redraw; // Force repaint to show ID on Skia card
 end;
 
 procedure TFormMain.OnPeerConnection(Sender: TObject; const RemoteID: string);
 begin
-  memoLog.Lines.Add('Incoming connection intent from: ' + RemoteID);
-  FIncomingPeerID := RemoteID;
-  FShowAcceptanceModal := True;
+  Log('[Handshake] Nova solicitação de conexão de: ' + RemoteID);
   
-  // Also send sources list right away or after accept? 
-  // Electron sends it when data channel opens. 
-  // For now, let's send it when we accept or when they connect.
-  SendSourcesList(RemoteID);
-  
-  SkPaintBoxMain.Redraw;
+  // Use TThread.Queue to decouple from the WebView2 event and ensure Main Thread UI
+  TThread.ForceQueue(nil, procedure
+  begin
+    Log('[UI] Exibindo formulário de solicitação para: ' + RemoteID);
+    
+    // Use the premium Skia connection request form
+    if TFormConnectionRequest.Execute(RemoteID) then
+    begin
+      FIncomingPeerID := RemoteID;
+      FIsConnected := True;
+      
+      // Accept the connection
+      FBridge.SendToWeb('ACCEPT_CONN', TJSONObject.Create.AddPair('remoteID', RemoteID));
+      
+      // Send sources list so they see our screens
+      SendSourcesList(RemoteID);
+      
+      Log('Conexão aceita para: ' + RemoteID);
+    end
+    else
+    begin
+      // Reject the connection
+      FBridge.SendToWeb('REJECT_CONN', TJSONObject.Create.AddPair('remoteID', RemoteID));
+      Log('Conexão rejeitada para: ' + RemoteID);
+    end;
+    
+    SkPaintBoxMain.Redraw;
+  end);
 end;
 
 procedure TFormMain.OnConnOpen(Sender: TObject; const RemoteID: string);
 var
   LAuth: TJSONObject;
 begin
-  memoLog.Lines.Add('Connected to ' + RemoteID + ' (Data Channel). Sending AUTH...');
+  Log('Connected to ' + RemoteID + ' (Data Channel). Sending AUTH...');
   
   // Tab creation moved to AUTH_STATUS OK
   // if FActiveSessions.IndexOf(RemoteID) = -1 then ...
@@ -1662,176 +1433,541 @@ begin
   LAuth := TJSONObject.Create;
   LAuth.AddPair('type', 'AUTH');
   LAuth.AddPair('password', FLastPassword);
-  memoLog.Lines.Add('OnConnOpen: Sending AUTH packet. PassLen: ' + IntToStr(Length(FLastPassword)));
+  Log('OnConnOpen: Sending AUTH packet. PassLen: ' + IntToStr(Length(FLastPassword)));
   FBridge.SendDataJSON(RemoteID, LAuth);
 end;
 
 procedure TFormMain.OnConnClose(Sender: TObject; const RemoteID: string);
 begin
-  memoLog.Lines.Add('Connection closed with ' + RemoteID);
+  Log('Connection closed with ' + RemoteID);
   
-  if FActiveSessions.IndexOf(RemoteID) <> -1 then
+  if FSessionManager.IsSessionActive(RemoteID) then
   begin
-    FActiveSessions.Delete(FActiveSessions.IndexOf(RemoteID));
-    
-    // If active tab was this session, go back to dashboard
-    if FActiveTabID = RemoteID then
-    begin
-        FActiveTabID := 'dashboard';
-        FormResize(nil);
-    end;
-    SkPaintBoxMain.Redraw;
+    FSessionManager.RemoveSession(RemoteID);
   end;
 end;
-
 
 
 procedure TFormMain.OnVideoStarted(Sender: TObject; const RemoteID: string);
 begin
-  memoLog.Lines.Add('VIDEO STREAM STARTED! Switching to Remote View.');
+  Log('VIDEO STREAM STARTED! Switching to Remote View.');
   
   { NO Align := alClient here! Keep SkIA tabs visible at the top (40px) }
-  FActiveTabID := RemoteID;
-  FormResize(nil);
-  SkPaintBoxMain.Redraw;
+  FSessionManager.ActiveTabID := RemoteID;
   EdgeBrowser.SetFocus;
 end;
 
 procedure TFormMain.OnDataReceived(Sender: TObject; const RemoteID: string; Data: TJSONValue);
-var
-  JSONObj, LAuth: TJSONObject;
-  MsgType, NewPass: string;
 begin
-  memoLog.Lines.Add('Data from ' + RemoteID + ': ' + Data.ToJSON);
+  Log('Data from ' + RemoteID + ': ' + Data.ToJSON);
+  FDispatcher.DispatchMessage(RemoteID, Data);
+end;
 
-  
-  if Data is TJSONObject then
+procedure TFormMain.OnDispatcherAuthRequest(Sender: TObject; const RemoteID, Password: string);
+begin
+  Log('AUTH request received from ' + RemoteID);
+  if Password = FSessionPassword then
   begin
-    JSONObj := TJSONObject(Data);
-    if JSONObj.TryGetValue<string>('type', MsgType) then
+    FBridge.SendToWeb('AUTH_STATUS', TJSONObject.Create.AddPair('status', 'OK').AddPair('remoteId', RemoteID));
+    Log('Auth SUCCESS for ' + RemoteID);
+  end
+  else
+  begin
+    FBridge.SendToWeb('AUTH_STATUS', TJSONObject.Create.AddPair('status', 'FAIL').AddPair('remoteId', RemoteID));
+    Log('Auth FAILED for ' + RemoteID);
+  end;
+end;
+
+procedure TFormMain.OnDispatcherAuthStatus(Sender: TObject; const RemoteID: string; Status: TAuthStatus);
+var
+  NewPass: string;
+  LAuth: TJSONObject;
+begin
+  if Status = asOK then
+  begin
+    Log('Auth SUCCESS for ' + RemoteID);
+    
+    // Create Tab / Session if needed
+    FSessionManager.AddSession(RemoteID);
+      
+    // Always switch to the authenticated tab
+    if FSessionManager.ActiveTabID <> RemoteID then
     begin
-      if MsgType = 'AUTH' then
-      begin
-        memoLog.Lines.Add('AUTH request received from ' + RemoteID);
-        if JSONObj.GetValue<string>('password') = FSessionPassword then
-        begin
-          FBridge.SendToWeb('AUTH_STATUS', TJSONObject.Create.AddPair('status', 'OK').AddPair('remoteId', RemoteID));
-          memoLog.Lines.Add('Auth SUCCESS for ' + RemoteID);
-        end
-        else
-        begin
-          FBridge.SendToWeb('AUTH_STATUS', TJSONObject.Create.AddPair('status', 'FAIL').AddPair('remoteId', RemoteID));
-          memoLog.Lines.Add('Auth FAILED for ' + RemoteID);
-        end;
-      end
-      else if MsgType = 'CLIPBOARD' then
-      begin
-        Clipboard.AsText := JSONObj.GetValue<string>('text');
-        memoLog.Lines.Add('Clipboard updated from remote');
-      end
-      else if MsgType = 'AUTH_STATUS' then
-      begin
-        if JSONObj.GetValue<string>('status') = 'OK' then
-        begin
-          memoLog.Lines.Add('Auth SUCCESS for ' + RemoteID);
-          
-          // Create Tab / Session here
-          // Create Tab / Session if needed
-          if FActiveSessions.IndexOf(RemoteID) = -1 then
-            FActiveSessions.Add(RemoteID);
-            
-          // Always switch to the authenticated tab
-          if FActiveTabID <> RemoteID then
-          begin
-            FActiveTabID := RemoteID;
-            FBridge.SendCommand('SWITCH_TAB', TJSONObject.Create.AddPair('remoteId', RemoteID));
-          end;
-          
-          FormResize(nil);
-          SkPaintBoxMain.Redraw;
-          
-          { Initiate the Call to get the stream }
-          FBridge.SendCommand('CALL', TJSONObject.Create.AddPair('remoteId', RemoteID));
-        end
-        else
-        begin
-          memoLog.Lines.Add('Auth FAILED for ' + RemoteID + '. Prompting user...');
-          NewPass := FLastPassword;
-          var Rem: Boolean := False;
-          
-          // Use the custom dialog instead of InputQuery for consistency
-          if TFormPasswordDialog.Execute(RemoteID, NewPass, Rem) then
-          begin
-             NewPass := Trim(NewPass);
-             FLastPassword := NewPass;
-             memoLog.Lines.Add('Retrying Auth with new password. Len: ' + IntToStr(Length(NewPass)));
-             
-             LAuth := TJSONObject.Create;
-             LAuth.AddPair('type', 'AUTH');
-             LAuth.AddPair('password', NewPass);
-             FBridge.SendDataJSON(RemoteID, LAuth);
-          end
-          else
-          begin
-             memoLog.Lines.Add('Auth retry cancelled by user');
-             // Optionally close connection here
-             FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', RemoteID));
-          end;
-        end;
-      end
-      else if MsgType = 'SOURCES_LIST' then
-      begin
-         memoLog.Lines.Add('Remote Sources List received (' + IntToStr(TJSONArray(JSONObj.GetValue('sources')).Count) + ' sources)');
-         
-         // Ensure tab/session is active as fallback
-         if FActiveSessions.IndexOf(RemoteID) = -1 then
-           FActiveSessions.Add(RemoteID);
-           
-         if FActiveTabID <> RemoteID then
-         begin
-           FActiveTabID := RemoteID;
-           FBridge.SendCommand('SWITCH_TAB', TJSONObject.Create.AddPair('remoteId', RemoteID));
-           FormResize(nil);
-           SkPaintBoxMain.Redraw;
-         end;
-      end
-      else if MsgType = 'MONITOR_CHANGED' then
-      begin
-         memoLog.Lines.Add('Remote Monitor changed to: ' + JSONObj.GetValue<string>('activeSourceId'));
-      end
-      else
-      begin
-        // Inject input directly!
-        HandleRemoteInput(MsgType, JSONObj);
-      end;
+      FSessionManager.ActiveTabID := RemoteID;
+      FBridge.SendCommand('SWITCH_TAB', TJSONObject.Create.AddPair('remoteId', RemoteID));
+    end;
+    
+    FormResize(nil);
+    SkPaintBoxMain.Redraw;
+    
+    { Initiate the Call to get the stream }
+    FBridge.SendCommand('CALL', TJSONObject.Create.AddPair('remoteId', RemoteID));
+  end
+  else
+  begin
+    Log('Auth FAILED for ' + RemoteID + '. Prompting user...');
+    NewPass := FLastPassword;
+    var Rem: Boolean := False;
+    
+    if TFormPasswordDialog.Execute(RemoteID, NewPass, Rem) then
+    begin
+       NewPass := Trim(NewPass);
+       FLastPassword := NewPass;
+       Log('Retrying Auth with new password. Len: ' + IntToStr(Length(NewPass)));
+       
+       LAuth := TJSONObject.Create;
+       LAuth.AddPair('type', 'AUTH');
+       LAuth.AddPair('password', NewPass);
+       FBridge.SendDataJSON(RemoteID, LAuth);
+    end
+    else
+    begin
+       Log('Auth retry cancelled by user');
+       FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', RemoteID));
     end;
   end;
 end;
 
+procedure TFormMain.OnDispatcherClipboard(Sender: TObject; const RemoteID, Text: string);
+begin
+  Clipboard.AsText := Text;
+  Log('Clipboard updated from remote');
+end;
+
+procedure TFormMain.OnDispatcherSources(Sender: TObject; const RemoteID: string; Sources: TJSONArray);
+begin
+  Log('Remote Sources List received (' + IntToStr(Sources.Count) + ' sources)');
+  
+  // Ensure tab/session is active as fallback
+  FSessionManager.AddSession(RemoteID);
+     
+  if FSessionManager.ActiveTabID <> RemoteID then
+  begin
+    FSessionManager.ActiveTabID := RemoteID;
+    FBridge.SendCommand('SWITCH_TAB', TJSONObject.Create.AddPair('remoteId', RemoteID));
+  end;
+end;
+
+procedure TFormMain.OnDispatcherMonitorChanged(Sender: TObject; const RemoteID, ActiveSourceID: string);
+begin
+  Log('Remote Monitor changed to: ' + ActiveSourceID);
+end;
+
+procedure TFormMain.OnDispatcherFileMessage(Sender: TObject; const RemoteID: string; Data: TJSONObject);
+begin
+  if Assigned(FFileTransferManager) then
+    FFileTransferManager.HandleMessage(RemoteID, Data);
+end;
+
+procedure TFormMain.OnDispatcherUnhandled(Sender: TObject; const RemoteID, MsgType: string; Data: TJSONObject);
+begin
+  // Inject input directly!
+  HandleRemoteInput(MsgType, Data);
+end;
+
 procedure TFormMain.OnPeerOnlineStatus(Sender: TObject; const RemoteID: string; IsOnline: Boolean);
+var
+  I: Integer;
 begin
   FOnlineMap.AddOrSetValue(RemoteID, IsOnline);
+  
+  if Assigned(FDashboardComponents) then
+  begin
+    for I := 0 to FDashboardComponents.Children.Count - 1 do
+    begin
+      if (FDashboardComponents.Children[I] is TSkSessionCard) then
+      begin
+        var LCard := TSkSessionCard(FDashboardComponents.Children[I]);
+        if LCard.SessionID = RemoteID then
+        begin
+          LCard.IsOnline := IsOnline;
+          Break;
+        end;
+      end;
+    end;
+  end;
+  
   SkPaintBoxMain.Redraw;
 end;
 
 procedure TFormMain.OnPeerError(Sender: TObject; const ErrorMsg: string);
 begin
   FServerConnected := False;
-  memoLog.Lines.Add('Peer Error: ' + ErrorMsg);
-  memoLog.Lines.Add('The system will attempt to reconnect automatically in 5 seconds...');
+  Log('Peer Error: ' + ErrorMsg);
+  Log('The system will attempt to reconnect automatically in 5 seconds...');
   SkPaintBoxMain.Redraw;
 end;
 
 procedure TFormMain.OnLog(Sender: TObject; const Msg: string);
 begin
-  memoLog.Lines.Add('[JS] ' + Msg);
+  if Assigned(memoLog) then
+    memoLog.Lines.Add(Msg);
+end;
+
+procedure TFormMain.SendTransferData(const RemoteID: string; Payload: TJSONObject);
+begin
+  FBridge.SendDataJSON(RemoteID, Payload);
+end;
+
+procedure TFormMain.OnTransferProgress(Sender: TObject; Transfer: TFileTransfer);
+begin
+  // For now just log, will add UI progress later
+  // Log(Format('Ref: %s | %d%%', [Transfer.FileName, Round(Transfer.ProgressPct)]));
+  SkPaintBoxMain.Redraw; // Update UI if needed
+end;
+
+procedure TFormMain.OnTransferComplete(Sender: TObject; Transfer: TFileTransfer);
+begin
+  Log('Transferência completa: ' + Transfer.FileName);
+  SkPaintBoxMain.Redraw;
+end;
+
+procedure TFormMain.OnTransferRequest(Sender: TObject; const PeerID, FileName: string; FileSize: Int64; const TransferID: string);
+begin
+  // UI interaction: Confirmation
+  if MessageDlg(Format('%s deseja enviar: %s (%d bytes). Aceitar?', [PeerID, FileName, FileSize]), mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+     var LSaveDialog := TSaveDialog.Create(nil);
+     try
+       LSaveDialog.FileName := FileName;
+       if LSaveDialog.Execute then
+       begin
+         FFileTransferManager.AcceptOffer(PeerID, TransferID, LSaveDialog.FileName, FileSize, FileName);
+       end;
+     finally
+       LSaveDialog.Free;
+     end;
+  end
+  else
+  begin
+     var Msg := TJSONObject.Create;
+     Msg.AddPair('type', 'FILE_REJECT');
+     Msg.AddPair('transferId', TransferID);
+     FBridge.SendDataJSON(PeerID, Msg);
+  end;
+end;
+
+procedure TFormMain.Log(const Msg: string);
+begin
+  if Assigned(memoLog) then
+    memoLog.Lines.Add(Msg);
+end;
+
+procedure TFormMain.Log(const Fmt: string; const Args: array of const);
+begin
+  Log(Format(Fmt, Args));
+end;
+
+
+procedure TFormMain.RebuildDashboardComponents;
+var
+  LCard: TSkSessionCard;
+  LList: TList<string>;
+  sID, LAlias: string;
+  LContact: TContact;
+  I, ColCount, Row, Col: Integer;
+  W: Single;
+begin
+  FDashboardComponents.Children.Clear;
+  
+  LList := TList<string>.Create;
+  try
+    if FSessionManager.ActiveSubTab = 'recent' then
+    begin
+      for sID in FSessionManager.Storage.RecentSessions do
+      begin
+        LAlias := '';
+        for LContact in FSessionManager.Storage.Contacts do if LContact.ID = sID then LAlias := LContact.Alias;
+        if (FSearchTerm = '') or (sID.ToLower.Contains(FSearchTerm.ToLower)) or (LAlias.ToLower.Contains(FSearchTerm.ToLower)) then
+          LList.Add(sID);
+      end;
+    end
+    else
+    begin
+      for LContact in FSessionManager.Storage.Contacts do
+        if LContact.IsFavorite then
+          if (FSearchTerm = '') or (LContact.ID.ToLower.Contains(FSearchTerm.ToLower)) or (LContact.Alias.ToLower.Contains(FSearchTerm.ToLower)) then
+            LList.Add(LContact.ID);
+    end;
+
+    W := SkPaintBoxMain.Width;
+    ColCount := Trunc((W - skSidebarWidth - 20) / 220);
+    if ColCount < 1 then ColCount := 1;
+
+    for I := 0 to LList.Count - 1 do
+    begin
+      Col := I mod ColCount;
+      Row := I div ColCount;
+      sID := LList[I];
+      
+      LAlias := '';
+      var LIsFav := False;
+      for LContact in FSessionManager.Storage.Contacts do
+        if LContact.ID = sID then
+        begin
+          LAlias := LContact.Alias;
+          LIsFav := LContact.IsFavorite;
+          Break;
+        end;
+
+      LCard := TSkSessionCard.Create(sID, LAlias);
+      LCard.IsFavorite := LIsFav;
+      var LIsOnline: Boolean := False;
+      FOnlineMap.TryGetValue(sID, LIsOnline);
+      LCard.IsOnline := LIsOnline;
+      LCard.Bounds := RectF(
+        skSidebarWidth + 20 + (Col * 220),
+        230 + (Row * 200) - FScrollOffset,
+        skSidebarWidth + 20 + (Col * 220) + 200,
+        230 + (Row * 200) + 180 - FScrollOffset
+      );
+      LCard.OnClick := OnComponentSessionClick;
+      LCard.OnFavoriteClick := OnComponentFavoriteClick;
+      FDashboardComponents.Add(LCard);
+    end;
+  finally
+    LList.Free;
+  end;
+end;
+
+procedure TFormMain.OnComponentSessionClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+  var LCard := TSkSessionCard(Sender);
+  FHoveredID := LCard.SessionID;
+  FHoveredElement := uiSessionCard;
+  
+  // Call existing logic (we'll migrate it soon)
+  // FormMouseDown handles Card click specifically
+end;
+
+procedure TFormMain.OnComponentFavoriteClick(Sender: TObject);
+begin
+  var LCard := TSkSessionCard(Sender);
+  var sID := LCard.SessionID;
+  var LContact: TContact;
+  var LFound: Boolean := False;
+  var curAlias: string := '';
+  var curFav: Boolean := False;
+  
+  for LContact in FSessionManager.Storage.Contacts do
+    if LContact.ID = sID then
+    begin
+      curAlias := LContact.Alias;
+      curFav := LContact.IsFavorite;
+      LFound := True;
+      Break;
+    end;
+    
+  FSessionManager.Storage.UpdateContact(sID, curAlias, not curFav);
+  FSessionManager.Save;
+  FSessionManager.NotifyContactUpdated(sID);
+end;
+
+procedure TFormMain.OnComponentSidebarBtnClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+  if Sender.ID = 'copyIDBtn' then
+  begin
+    Clipboard.AsText := FPeerID;
+    Log('ID Copiado: ' + FPeerID);
+    ShowToast('ID copiado para área de transferência', ttSuccess);
+  end
+  else if Sender.ID = 'regenPassBtn' then
+  begin
+    FSessionPassword := IntToStr(100000 + Random(899999));
+    Log('Nova Senha de Sessão: ' + FSessionPassword);
+    FSessionManager.NotifyPasswordChanged;
+    ShowToast('Senha regenerada: ' + FSessionPassword, ttInfo);
+  end
+  else if Sender.ID = 'serviceBtn' then
+  begin
+    if GetMireDeskServiceStatus = ssRunning then
+      StopMireDeskService
+    else
+      StartMireDeskService;
+  end
+  else if Sender.ID = 'settingsBtn' then
+  begin
+    FShowSettingsModal := True;
+  end
+  else if Sender.ID = 'activeBannerBtn' then
+  begin
+    FBridge.SendCommand('CLOSE_ALL', nil);
+    FIsConnected := False;
+    FIncomingPeerID := '';
+  end;
+  
+  SkPaintBoxMain.Redraw;
+end;
+
+procedure TFormMain.RebuildSidebarComponents;
+var
+  LComp: TSkComponent;
+  SidebarOffsetY: Single;
+  H: Single;
+begin
+  FSidebarComponents.Children.Clear;
+  H := SkPaintBoxMain.Height;
+
+  SidebarOffsetY := 0;
+  if FIsConnected and (FIncomingPeerID <> '') then
+  begin
+    LComp := TSkBanner.Create(FIncomingPeerID);
+    LComp.Bounds := RectF(10, 50, skSidebarWidth - 10, 110);
+    LComp.OnClick := OnComponentSidebarBtnClick;
+    FSidebarComponents.Add(LComp);
+    SidebarOffsetY := 70;
+  end;
+
+  // 1. ID Card
+  LComp := TSkIDCard.Create(FPeerID, False, False);
+  LComp.Bounds := RectF(10, 50 + SidebarOffsetY, skSidebarWidth - 10, 160 + SidebarOffsetY);
+  LComp.ID := 'copyIDBtn';
+  LComp.OnClick := OnComponentSidebarBtnClick;
+  FSidebarComponents.Add(LComp);
+
+  // 2. Password Card
+  LComp := TSkPasswordCard.Create(FSessionPassword, False, False, False);
+  LComp.Bounds := RectF(10, 170 + SidebarOffsetY, skSidebarWidth - 10, 280 + SidebarOffsetY);
+  LComp.ID := 'regenPassBtn';
+  LComp.OnClick := OnComponentSidebarBtnClick;
+  FSidebarComponents.Add(LComp);
+
+  // 3. Splash Card (Below password)
+  LComp := TSkSplashCard.Create(FAppSplash);
+  LComp.Bounds := RectF(10, 290 + SidebarOffsetY, skSidebarWidth - 10, H - 200);
+  LComp.ID := 'splashCard';
+  LComp.Anchors := [akLeft, akTop, akRight, akBottom];
+
+  // Safety check: if Top > Bottom, hide it or fix it
+  if LComp.Bounds.Top >= LComp.Bounds.Bottom then
+    LComp.Visible := False;
+
+  FSidebarComponents.Add(LComp);
+
+  // Service Button
+  LComp := TSkButton.Create('serviceBtn', 'Serviço', RectF(20, H - 110, skSidebarWidth - 20, H - 90));
+  LComp.Anchors := [akLeft, akBottom, akRight];
+  LComp.OnClick := OnComponentSidebarBtnClick;
+  FSidebarComponents.Add(LComp);
+
+  // Settings Shortcut
+  LComp := TSkButton.Create('settingsBtn', 'Configurações', RectF(20, H - 75, skSidebarWidth - 20, H - 45));
+  LComp.Anchors := [akLeft, akBottom, akRight];
+  LComp.OnClick := OnComponentSidebarBtnClick;
+  FSidebarComponents.Add(LComp);
+end;
+
+procedure TFormMain.RebuildTabComponents;
+var
+  LTab: TSkTab;
+  I: Integer;
+  sID, LAlias: string;
+  LContact: TContact;
+begin
+  FTabComponents.Children.Clear;
+  
+  // Dashboard Tab
+  LTab := TSkTab.Create('Painel', FSessionManager.IsDashboard, False);
+  LTab.Bounds := RectF(0, 0, 120, 40);
+  LTab.ID := 'dashboard';
+  LTab.OnClick := OnComponentTabClick;
+  FTabComponents.Add(LTab);
+  
+  // Session Tabs
+  for I := 0 to FSessionManager.ActiveSessions.Count - 1 do
+  begin
+    sID := FSessionManager.ActiveSessions[I];
+    LAlias := sID;
+    for LContact in FSessionManager.Storage.Contacts do
+      if LContact.ID = sID then
+      begin
+        if LContact.Alias <> '' then LAlias := LContact.Alias;
+        Break;
+      end;
+      
+    LTab := TSkTab.Create(LAlias, FSessionManager.ActiveTabID = sID, True);
+    LTab.Bounds := RectF(120 + (I * 150), 0, 120 + ((I+1) * 150), 40);
+    LTab.ID := sID;
+    LTab.OnClick := OnComponentTabClick;
+    LTab.OnCloseClick := OnComponentTabClose;
+    FTabComponents.Add(LTab);
+  end;
+end;
+
+procedure TFormMain.OnComponentTabClick(Sender: TSkComponent; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+  FSessionManager.ActiveTabID := Sender.ID;
+end;
+
+procedure TFormMain.OnComponentTabClose(Sender: TObject);
+begin
+  var LTab := TSkTab(Sender);
+  var sID := LTab.ID;
+  Log('Closing session via UI: ' + sID);
+  FBridge.SendCommand('REMOVE_CONN', TJSONObject.Create.AddPair('remoteId', sID));
+  FSessionManager.RemoveSession(sID);
+end;
+
+procedure TFormMain.OnSessionManagerChange(Sender: TObject; ChangeType: TSessionChangeType; const SessionID: string);
+begin
+  TThread.ForceQueue(nil, procedure
+  begin
+    case ChangeType of
+      scAdded, scRemoved:
+      begin
+        RebuildDashboardComponents;
+        RebuildTabComponents;
+      end;
+      
+      scTabSwitched:
+      begin
+        FScrollOffset := 0;
+        RebuildTabComponents; // Update active tab highlight
+        if Assigned(editRemoteID) then
+          editRemoteID.Visible := FSessionManager.IsDashboard;
+        if Assigned(btnConnect) then
+          btnConnect.Visible := False;
+      end;
+      
+      scPasswordChanged:
+      begin
+        RebuildSidebarComponents; // Only rebuild sidebar for password
+      end;
+      
+      scContactUpdated:
+      begin
+        RebuildDashboardComponents; // Only rebuild dashboard for contact changes
+      end;
+      
+      scOnlineStatusChanged:
+      begin
+        RebuildDashboardComponents; // Update online indicators
+      end;
+      
+      scStorageChanged:
+      begin
+        RebuildDashboardComponents; // Full dashboard refresh
+      end;
+    end;
+    
+    SkPaintBoxMain.Redraw;
+    FormResize(Self);
+  end);
 end;
 
 procedure TFormMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  // Minimize to tray instead of closing
-  Action := caNone;
-  Self.Hide;
+  if FIsConnected or (FSessionManager.ActiveSessions.Count > 0) then
+  begin
+    // If sessions are active, just minimize to tray
+    Action := caNone;
+    Self.Hide;
+  end
+  else
+  begin
+    FSessionManager.Save;
+    Action := caFree;
+  end;
 end;
 
 end.

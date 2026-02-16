@@ -1,4 +1,4 @@
-unit UIParts;
+﻿unit UIParts;
 
 interface
 
@@ -18,7 +18,7 @@ type
     // New Dashboard Helpers
     class procedure DrawSidebar(const ACanvas: ISkCanvas; const ARect: TRectF; AIsOnline: Boolean; const ALogo: ISkImage = nil);
     class procedure DrawSidebarSection(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
-    class procedure DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean);
+    class procedure DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean; APulseScale: Single = 0.0);
     class procedure DrawSessionCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID, AAlias: string; AIsOnline, AIsFavorite, AIsHovered: Boolean; APulseScale: Single = 0.5);
     class procedure DrawSearchBar(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsFocused: Boolean);
     class procedure DrawIDCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID: string; AIsMenuHovered, AIsInviteHovered: Boolean);
@@ -33,6 +33,8 @@ type
     class procedure DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF);
     class procedure DrawTab(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string; AIsActive, AHasClose: Boolean);
     class procedure DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor);
+    class procedure DrawHint(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string);
+    class procedure DrawSidebarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon, AText: string; AIsHovered, AIsRunning, AIsDanger: Boolean);
   end;
 
 
@@ -74,10 +76,6 @@ begin
   LPaint.Color := TAlphaColor(skBorder);
   ACanvas.DrawLine(ARect.Right, ARect.Top, ARect.Right, ARect.Bottom, LPaint);
 
-  // Icons for Sections
-  DrawSVGIcon(ACanvas, iconUser, RectF(ARect.Left + 15, 62, ARect.Left + 31, 78), skTextSecondary);
-  DrawSVGIcon(ACanvas, iconLock, RectF(ARect.Left + 15, 172, ARect.Left + 31, 188), skTextSecondary);
-  DrawSVGIcon(ACanvas, iconService, RectF(ARect.Left + 15, 282, ARect.Left + 31, 298), skTextSecondary);
 end;
 
 class procedure TSkUIDrawer.DrawSidebarSection(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
@@ -85,13 +83,39 @@ begin
   DrawLabel(ACanvas, RectF(ARect.Left + 40, ARect.Top + 10, ARect.Right, ARect.Top + 30), ATitle, 10, skTextSecondary, True);
 end;
 
-class procedure TSkUIDrawer.DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean);
+class procedure TSkUIDrawer.DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean; APulseScale: Single);
+var
+  BtnRect: TRectF;
+  PulseRect: TRectF;
+  LPaint: ISkPaint;
+  LAlpha: Integer;
 begin
-  DrawLabel(ACanvas, RectF(ARect.Left + 20, ARect.Top, ARect.Right, ARect.Top + 30), 'Controle um Computador Remoto', 16, skTextMain, True);
+  DrawLabel(ACanvas, RectF(ARect.Left + skContentPadding, ARect.Top, ARect.Right, ARect.Top + 30), 'Controle um Computador Remoto', 16, skTextMain, True);
   // Input placeholder rect (Height 40)
-  DrawCard(ACanvas, RectF(ARect.Left + 20, ARect.Top + 40, ARect.Left + 350, ARect.Top + 80), skCardBG);
+  // Input Width = 330
+  DrawCard(ACanvas, RectF(ARect.Left + skContentPadding, ARect.Top + 40, ARect.Left + skContentPadding + 330, ARect.Top + 80), skCardBG);
   
-  DrawButton(ACanvas, RectF(ARect.Left + 360, ARect.Top + 40, ARect.Left + 460, ARect.Top + 80), 'Conectar', AIsBtnHovered);
+  // Button (Left = InputRight + 10 = 350 + 10 = 360) (relative to Sidebar)
+  // 360 = skContentPadding (20) + 340
+  BtnRect := RectF(ARect.Left + skContentPadding + 340, ARect.Top + 40, ARect.Left + skContentPadding + 340 + 100, ARect.Top + 80);
+  
+  // Pulse Effect behind button
+  if APulseScale > 0 then
+  begin
+    LPaint := TSkPaint.Create;
+    // Calculate alpha explicitly and update color
+    LAlpha := Round(255 * (1.5 - APulseScale));
+    if LAlpha < 0 then LAlpha := 0;
+    if LAlpha > 255 then LAlpha := 255;
+    
+    LPaint.Color := (skPrimary and $00FFFFFF) or (TAlphaColor(LAlpha) shl 24);
+    
+    PulseRect := BtnRect;
+    PulseRect.Inflate(10 * (APulseScale - 1.0), 10 * (APulseScale - 1.0));
+    ACanvas.DrawRoundRect(PulseRect, 12, 12, LPaint);
+  end;
+
+  DrawButton(ACanvas, BtnRect, 'Conectar', AIsBtnHovered);
 end;
 
 class procedure TSkUIDrawer.DrawSessionCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID, AAlias: string; AIsOnline, AIsFavorite, AIsHovered: Boolean; APulseScale: Single);
@@ -172,28 +196,29 @@ var
   ScaleX, ScaleY: Single;
 begin
   LPath := TSkPath.Create(ASVGPath);
-  if LPath = nil then Exit;
+  if (LPath = nil) or LPath.IsEmpty then Exit;
   
   LBounds := LPath.GetBounds;
   if (LBounds.Width = 0) or (LBounds.Height = 0) then Exit;
 
-  // Calculate scaling to fit ARect
-  ScaleX := ARect.Width / LBounds.Width;
-  ScaleY := ARect.Height / LBounds.Height;
-  
-  // Maintain Aspect Ratio? Usually icons are square 24x24 so simple scaling is fine.
-  
-  LMatrix := TMatrix.CreateTranslation(-LBounds.Left, -LBounds.Top); // Move to 0,0
-  LMatrix := LMatrix * TMatrix.CreateScaling(ScaleX, ScaleY); // Scale
-  LMatrix := LMatrix * TMatrix.CreateTranslation(ARect.Left, ARect.Top); // Move to Dest
-  
-  LPath.Transform(LMatrix);
-  
   LPaint := TSkPaint.Create;
   LPaint.Color := AColor;
   LPaint.AntiAlias := True;
-  
-  ACanvas.DrawPath(LPath, LPaint);
+
+  ACanvas.Save;
+  try
+    // Calculate scaling to fit ARect
+    ScaleX := ARect.Width / LBounds.Width;
+    ScaleY := ARect.Height / LBounds.Height;
+    
+    ACanvas.Translate(ARect.Left, ARect.Top);
+    ACanvas.Scale(ScaleX, ScaleY);
+    ACanvas.Translate(-LBounds.Left, -LBounds.Top);
+    
+    ACanvas.DrawPath(LPath, LPaint);
+  finally
+    ACanvas.Restore;
+  end;
 end;
 
 class procedure TSkUIDrawer.DrawCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AColor: TAlphaColor);
@@ -502,7 +527,7 @@ begin
   DrawSplash(ACanvas, ImgRect, ASplash);
   
   // Title (No limite inferior)
-  DrawLabelCentered(ACanvas, RectF(ARect.Left, ARect.Bottom - 35, ARect.Right, ARect.Bottom), 'Miré-Desk', 22, skHopBlue, True);
+//  DrawLabelCentered(ACanvas, RectF(ARect.Left, ARect.Bottom - 35, ARect.Right, ARect.Bottom), 'Miré-Desk', 22, skHopBlue, True);
 end;
 
 class procedure TSkUIDrawer.DrawSidebarFooter(const ACanvas: ISkCanvas; const ARect: TRectF; const AVersion: string);
@@ -576,16 +601,16 @@ begin
   LPaint.AntiAlias := True;
   
   if AIsActive then
-    LPaint.Color := TAlphaColor($20000000) // Active state background
+    LPaint.Color := TAlphaColor($40FFFFFF)
   else if AIsHovered then
-    LPaint.Color := TAlphaColor($10000000) // Hover state background
+    LPaint.Color := TAlphaColor($20FFFFFF)
   else
-    LPaint.Color := TAlphaColor(0);
+    LPaint.Color := TAlphaColor($10FFFFFF);
     
   if LPaint.Color <> TAlphaColor(0) then
     ACanvas.DrawRoundRect(ARect, 4, 4, LPaint);
     
-  DrawSVGIcon(ACanvas, ASVGIcon, RectF(ARect.Left + 4, ARect.Top + 4, ARect.Right - 4, ARect.Bottom - 4), skTextMain);
+  DrawSVGIcon(ACanvas, ASVGIcon, RectF(ARect.Left + 4, ARect.Top + 4, ARect.Right - 4, ARect.Bottom - 4), TAlphaColors.White);
 end;
 
 class procedure TSkUIDrawer.DrawSettingsModal(const ACanvas: ISkCanvas; const ARect: TRectF; const ACurrentIP: string; AIsBtnHovered: Boolean);
@@ -614,6 +639,58 @@ begin
   DrawButton(ACanvas, RectF(CardRect.Right - 120, CardRect.Bottom - 50, CardRect.Right - 20, CardRect.Bottom - 15), 'Salvar', AIsBtnHovered);
   // Cancel Button (using same DrawButton style but simplified color if needed, keep standard for now)
   DrawLabel(ACanvas, RectF(CardRect.Left + 20, CardRect.Bottom - 45, CardRect.Left + 100, CardRect.Bottom - 15), 'Cancelar', 11, skPrimary, True);
+end;
+
+class procedure TSkUIDrawer.DrawHint(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  TextWidth: Single;
+  HintRect: TRectF;
+begin
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Normal), 10);
+  TextWidth := LFont.MeasureText(AText);
+  
+  // Create a rect centered around the target area
+  HintRect := RectF(ARect.CenterPoint.X - (TextWidth / 2) - 8, ARect.Bottom + 5, 
+                    ARect.CenterPoint.X + (TextWidth / 2) + 8, ARect.Bottom + 25);
+                    
+  LPaint := TSkPaint.Create;
+  LPaint.Color := $D01E293B; // Slate 800 with 80% opacity
+  LPaint.AntiAlias := True;
+  ACanvas.DrawRoundRect(HintRect, 6, 6, LPaint);
+  
+  LPaint.Color := TAlphaColors.White;
+  ACanvas.DrawSimpleText(AText, HintRect.Left + 8, HintRect.Top + 14, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawSidebarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon, AText: string; AIsHovered, AIsRunning, AIsDanger: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  if AIsHovered then
+  begin
+    LPaint.Color := TAlphaColor($15000000);
+    ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+    
+    LPaint.Style := TSkPaintStyle.Stroke;
+    LPaint.Color := TAlphaColor($20000000);
+    LPaint.StrokeWidth := 1;
+    ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+    LPaint.Style := TSkPaintStyle.Fill;
+  end;
+
+  var IconColor: TAlphaColor;
+  if AIsRunning then IconColor := skSuccess
+  else if AIsDanger then IconColor := skDanger
+  else IconColor := skTextSecondary;
+
+  DrawSVGIcon(ACanvas, ASVGIcon, RectF(ARect.Left + 12, ARect.Top + 10, ARect.Left + 28, ARect.Bottom - 10), IconColor);
+  
+  DrawLabel(ACanvas, RectF(ARect.Left + 40, ARect.Top + 2, ARect.Right, ARect.Bottom), AText, 10, skTextMain, True);
 end;
 
 end.

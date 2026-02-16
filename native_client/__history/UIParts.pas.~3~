@@ -1,0 +1,677 @@
+﻿unit UIParts;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, System.UITypes, System.Types, System.Skia, Vcl.Skia, Styles, System.StrUtils, Icons, System.Math.Vectors;
+
+type
+  TSkUIDrawer = class
+  public
+    class procedure DrawCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AColor: TAlphaColor);
+    class procedure DrawButton(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsHovered: Boolean);
+    class procedure DrawHeader(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+    class procedure DrawLabel(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+    class procedure DrawLabelCentered(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+    class procedure DrawStatusPulse(const ACanvas: ISkCanvas; const ACenter: TPointF; const AColor: TAlphaColor; APulseScale: Single);
+    class procedure DrawSidebarCard(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+    // New Dashboard Helpers
+    class procedure DrawSidebar(const ACanvas: ISkCanvas; const ARect: TRectF; AIsOnline: Boolean; const ALogo: ISkImage = nil);
+    class procedure DrawSidebarSection(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+    class procedure DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean);
+    class procedure DrawSessionCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID, AAlias: string; AIsOnline, AIsFavorite, AIsHovered: Boolean; APulseScale: Single = 0.5);
+    class procedure DrawSearchBar(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsFocused: Boolean);
+    class procedure DrawIDCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID: string; AIsMenuHovered, AIsInviteHovered: Boolean);
+    class procedure DrawPasswordCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AValue: string; AIsRefreshHovered, AIsEditHovered, AIsFixed: Boolean);
+    class procedure DrawSidebarFooter(const ACanvas: ISkCanvas; const ARect: TRectF; const AVersion: string);
+    class procedure DrawSplash(const ACanvas: ISkCanvas; const ARect: TRectF; const ASplash: ISkSVGDOM);
+    class procedure DrawSplashCard(const ACanvas: ISkCanvas; const ARect: TRectF; const ASplash: ISkSVGDOM);
+    class procedure DrawActiveConnectionBanner(const ACanvas: ISkCanvas; const ARect: TRectF; const ARemoteID: string; AIsBtnHovered: Boolean);
+    class procedure DrawToolbarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon: string; AIsHovered, AIsActive: Boolean);
+    class procedure DrawSettingsModal(const ACanvas: ISkCanvas; const ARect: TRectF; const ACurrentIP: string; AIsBtnHovered: Boolean);
+    // Multi-Tab UI Helpers
+    class procedure DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF);
+    class procedure DrawTab(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string; AIsActive, AHasClose: Boolean);
+    class procedure DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor);
+    class procedure DrawHint(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string);
+    class procedure DrawSidebarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon, AText: string; AIsHovered, AIsRunning, AIsDanger: Boolean);
+  end;
+
+
+implementation
+
+{ TSkUIDrawer }
+
+class procedure TSkUIDrawer.DrawSidebar(const ACanvas: ISkCanvas; const ARect: TRectF; AIsOnline: Boolean; const ALogo: ISkImage = nil);
+var
+  LPaint: ISkPaint;
+  StatusColor: TAlphaColor;
+  LBlur: ISkImageFilter;
+  LogoSize: Single;
+begin
+  // Glassmorphism Background
+  LPaint := TSkPaint.Create;
+  LBlur := TSkImageFilter.MakeBlur(skGlassBlur, skGlassBlur);
+  LPaint.ImageFilter := LBlur; // Background blur effect
+  LPaint.Color := TAlphaColor(skSidebarBG); // Semi-transparent white
+  ACanvas.DrawRect(ARect, LPaint);
+  
+  // Subtle inner border for glass effect
+  LPaint := TSkPaint.Create;
+  LPaint.Style := TSkPaintStyle.Stroke;
+  LPaint.Color := $20FFFFFF; // Very subtle highlights
+  LPaint.StrokeWidth := 1;
+  ACanvas.DrawRect(ARect, LPaint);
+
+  // Logo Drawing at the top
+  if ALogo <> nil then
+  begin
+    LogoSize := 32;
+    ACanvas.DrawImageRect(ALogo, RectF(ARect.Left + 15, 10, ARect.Left + 15 + LogoSize, 10 + LogoSize), TSkSamplingOptions.High);
+    DrawLabel(ACanvas, RectF(ARect.Left + 15 + LogoSize + 8, 10, ARect.Right, 10 + LogoSize), 'Miré-Desk', 16, skTextMain, True);
+  end;
+
+  // Divider line
+  LPaint.Style := TSkPaintStyle.Stroke;
+  LPaint.Color := TAlphaColor(skBorder);
+  ACanvas.DrawLine(ARect.Right, ARect.Top, ARect.Right, ARect.Bottom, LPaint);
+
+  // Icons for Sections
+  DrawSVGIcon(ACanvas, iconUser, RectF(ARect.Left + 15, 62, ARect.Left + 31, 78), skTextSecondary);
+  DrawSVGIcon(ACanvas, iconLock, RectF(ARect.Left + 15, 172, ARect.Left + 31, 188), skTextSecondary);
+  DrawSVGIcon(ACanvas, iconService, RectF(ARect.Left + 15, 282, ARect.Left + 31, 298), skTextSecondary);
+end;
+
+class procedure TSkUIDrawer.DrawSidebarSection(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+begin
+  DrawLabel(ACanvas, RectF(ARect.Left + 40, ARect.Top + 10, ARect.Right, ARect.Top + 30), ATitle, 10, skTextSecondary, True);
+end;
+
+class procedure TSkUIDrawer.DrawConnectionArea(const ACanvas: ISkCanvas; const ARect: TRectF; AIsBtnHovered: Boolean);
+begin
+  DrawLabel(ACanvas, RectF(ARect.Left + skContentPadding, ARect.Top, ARect.Right, ARect.Top + 30), 'Controle um Computador Remoto', 16, skTextMain, True);
+  // Input placeholder rect (Height 40)
+  // Input Width = 330
+  DrawCard(ACanvas, RectF(ARect.Left + skContentPadding, ARect.Top + 40, ARect.Left + skContentPadding + 330, ARect.Top + 80), skCardBG);
+  
+  // Button (Left = InputRight + 10 = 350 + 10 = 360) (relative to Sidebar)
+  // 360 = skContentPadding (20) + 340
+  DrawButton(ACanvas, RectF(ARect.Left + skContentPadding + 340, ARect.Top + 40, ARect.Left + skContentPadding + 340 + 100, ARect.Top + 80), 'Conectar', AIsBtnHovered);
+end;
+
+class procedure TSkUIDrawer.DrawSessionCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID, AAlias: string; AIsOnline, AIsFavorite, AIsHovered: Boolean; APulseScale: Single);
+var
+  LPaint: ISkPaint;
+  StatusColor: TAlphaColor;
+  DisplayTitle: string;
+  IconRect: TRectF;
+begin
+  if AAlias <> '' then DisplayTitle := AAlias else DisplayTitle := AID;
+  
+  // 1. Multiple Drop Shadows for High-End look
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor(skCardBG);
+  LPaint.AntiAlias := True;
+  
+  // Base shadow
+  LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 4, 12, 12, TAlphaColor($15000000));
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+  
+  // Secondary tighter shadow
+  LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 1, 3, 3, TAlphaColor($10000000));
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+  
+  // 2. Main Card Content
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor(skCardBG);
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+
+  // Hover Outline
+  if AIsHovered then
+  begin
+    LPaint.Style := TSkPaintStyle.Stroke;
+    LPaint.Color := TAlphaColor(skPrimary);
+    LPaint.StrokeWidth := 2;
+    ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+    LPaint.Style := TSkPaintStyle.Fill;
+  end;
+  
+  // Blue Header with Gradient
+  var Colors: TArray<TAlphaColor> := [TAlphaColor(skPrimaryGradient), TAlphaColor(skPrimary)];
+  LPaint.Shader := TSkShader.MakeGradientLinear(
+    PointF(ARect.Left, ARect.Top), 
+    PointF(ARect.Left, ARect.Top + (ARect.Height * 0.6)), 
+    Colors, nil, TSkTileMode.Clamp);
+    
+  ACanvas.DrawRoundRect(RectF(ARect.Left, ARect.Top, ARect.Right, ARect.Top + (ARect.Height * 0.6)), skCornerRadius, skCornerRadius, LPaint);
+  ACanvas.DrawRect(RectF(ARect.Left, ARect.Top + skCornerRadius, ARect.Right, ARect.Top + (ARect.Height * 0.6)), LPaint);
+  
+  // Computer Icon centered
+  IconRect := RectF(ARect.CenterPoint.X - 28, ARect.Top + 30, ARect.CenterPoint.X + 28, ARect.Top + 86);
+  DrawSVGIcon(ACanvas, iconComputer, IconRect, $90FFFFFF);
+
+  // Favorite Star
+  IconRect := RectF(ARect.Right - 32, ARect.Top + 12, ARect.Right - 8, ARect.Top + 36);
+  if AIsFavorite then
+    DrawSVGIcon(ACanvas, iconStarFilled, IconRect, skWarning)
+  else
+    DrawSVGIcon(ACanvas, iconStar, IconRect, $30FFFFFF);
+
+  // Status with Dynamic Pulse
+  if AIsOnline then StatusColor := skSuccess else StatusColor := skDanger;
+  
+  var FooterCenterY: Single := ARect.Top + (ARect.Height * 0.6) + (ARect.Height * 0.2); // Center of bottom 40%
+  
+  // Pass dynamic center to Status Pulse helper
+  DrawStatusPulse(ACanvas, PointF(ARect.Left + 22, FooterCenterY), StatusColor, APulseScale);
+
+  DrawLabel(ACanvas, RectF(ARect.Left + 42, FooterCenterY - 10, ARect.Right - 10, FooterCenterY + 10), DisplayTitle, 13, skTextMain, True);
+end;
+
+class procedure TSkUIDrawer.DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor);
+var
+  LPath: ISkPath;
+  LPaint: ISkPaint;
+  LMatrix: TMatrix;
+  LBounds: TRectF;
+  ScaleX, ScaleY: Single;
+begin
+  LPath := TSkPath.Create(ASVGPath);
+  if (LPath = nil) or LPath.IsEmpty then Exit;
+  
+  LBounds := LPath.GetBounds;
+  if (LBounds.Width = 0) or (LBounds.Height = 0) then Exit;
+
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.AntiAlias := True;
+
+  ACanvas.Save;
+  try
+    // Calculate scaling to fit ARect
+    ScaleX := ARect.Width / LBounds.Width;
+    ScaleY := ARect.Height / LBounds.Height;
+    
+    ACanvas.Translate(ARect.Left, ARect.Top);
+    ACanvas.Scale(ScaleX, ScaleY);
+    ACanvas.Translate(-LBounds.Left, -LBounds.Top);
+    
+    ACanvas.DrawPath(LPath, LPaint);
+  finally
+    ACanvas.Restore;
+  end;
+end;
+
+class procedure TSkUIDrawer.DrawCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AColor: TAlphaColor);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  
+  // Draw Shadow
+  LPaint.Color := TAlphaColor(skShadowColor);
+  LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 4, skShadowBlur, skShadowBlur, TAlphaColor(skShadowColor));
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+  
+  // Draw Background
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.Style := TSkPaintStyle.Fill;
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawHeader(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  LPath: ISkPathBuilder;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor(skSecondary);
+  LPaint.AntiAlias := True;
+
+  // Create a rounded rect only for the top corners
+  ACanvas.DrawRoundRect(ARect, skCornerRadius, skCornerRadius, LPaint);
+  
+  // Fill the bottom corners to make them square (since it's a header)
+  // Or just draw a rect and clip? Better to draw a rounded rect 
+  // and then another rect for bottom part.
+  ACanvas.DrawRect(RectF(ARect.Left, ARect.Top + skCornerRadius, ARect.Right, ARect.Bottom), LPaint);
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Bold), 13);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColors.White;
+  LPaint.AntiAlias := True;
+  ACanvas.DrawSimpleText(ATitle, ARect.Left + 20, ARect.Top + 28, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawButton(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsHovered: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+begin
+  // Premium Gradient for Button
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  var Colors: TArray<TAlphaColor>;
+  if AIsHovered then
+    Colors := [TAlphaColor($FF3B82F6), TAlphaColor($FF2563EB)]
+  else
+    Colors := [TAlphaColor(skPrimaryGradient), TAlphaColor(skPrimary)];
+
+  LPaint.Shader := TSkShader.MakeGradientLinear(
+    PointF(ARect.Left, ARect.Top), 
+    PointF(ARect.Left, ARect.Bottom), 
+    Colors, nil, TSkTileMode.Clamp);
+
+  // Shadow
+  if AIsHovered then
+    LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 4, 8, 8, TAlphaColor(skShadowColor))
+  else
+    LPaint.ImageFilter := TSkImageFilter.MakeDropShadow(0, 2, 4, 4, TAlphaColor($15000000));
+
+  ACanvas.DrawRoundRect(ARect, 10, 10, LPaint);
+  
+  // Label Rendering
+  if AText = 'Conectar' then
+  begin
+     DrawSVGIcon(ACanvas, iconConnect, RectF(ARect.Left + 12, ARect.Top + 12, ARect.Left + 28, ARect.Top + 28), TAlphaColors.White);
+     LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Bold), 11);
+     LPaint := TSkPaint.Create;
+     LPaint.Color := TAlphaColors.White;
+     ACanvas.DrawSimpleText(AText, ARect.Left + 36, ARect.Top + 25, LFont, LPaint);
+  end
+  else
+  begin
+    LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Normal), 11);
+    LPaint := TSkPaint.Create;
+    LPaint.Color := TAlphaColors.White;
+    LPaint.AntiAlias := True;
+    ACanvas.DrawSimpleText(AText, ARect.Left + 15, ARect.Top + 22, LFont, LPaint);
+  end;
+end;
+
+class procedure TSkUIDrawer.DrawLabel(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  LStyle: TSkFontStyle;
+begin
+  if ABold then LStyle := TSkFontStyle.Bold else LStyle := TSkFontStyle.Normal;
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', LStyle), ASize);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.AntiAlias := True;
+  
+  ACanvas.DrawSimpleText(AText, ARect.Left, ARect.Top + ASize + 5, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawLabelCentered(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; ASize: Single; AColor: TAlphaColor; ABold: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  LStyle: TSkFontStyle;
+  TextWidth: Single;
+begin
+  if ABold then LStyle := TSkFontStyle.Bold else LStyle := TSkFontStyle.Normal;
+  
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', LStyle), ASize);
+  LPaint := TSkPaint.Create;
+  LPaint.Color := AColor;
+  LPaint.AntiAlias := True;
+  
+  TextWidth := LFont.MeasureText(AText);
+  ACanvas.DrawSimpleText(AText, ARect.Left + (ARect.Width - TextWidth) / 2, ARect.Top + ASize + 5, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawSidebarCard(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  LPaint.Color := TAlphaColor(skSidebarCardBG);
+  ACanvas.DrawRoundRect(ARect, 12, 12, LPaint);
+  
+  if ATitle <> '' then
+    DrawLabel(ACanvas, RectF(ARect.Left + 15, ARect.Top + 12, ARect.Right, ARect.Top + 30), ATitle, 10, skTextSecondary, True);
+end;
+
+class procedure TSkUIDrawer.DrawStatusPulse(const ACanvas: ISkCanvas; const ACenter: TPointF; const AColor: TAlphaColor; APulseScale: Single);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  // Outer pulse circle
+  LPaint.Color := (AColor and $00FFFFFF) or (Round(100 * (1 - APulseScale)) shl 24);
+  ACanvas.DrawCircle(ACenter.X, ACenter.Y, 3 + (8 * APulseScale), LPaint);
+  
+  // Inner solid circle
+  LPaint.Color := AColor;
+  ACanvas.DrawCircle(ACenter.X, ACenter.Y, 3.5, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor(skSecondary); 
+  ACanvas.DrawRect(ARect, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawTab(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string; AIsActive, AHasClose: Boolean);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  DisplayTitle: string;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  if AIsActive then
+  begin
+    // Premium Active Tab Gradient
+    var Colors: TArray<TAlphaColor> := [TAlphaColor(skPrimaryGradient), TAlphaColor(skPrimary)];
+    LPaint.Shader := TSkShader.MakeGradientLinear(
+      PointF(ARect.Left, ARect.Top), 
+      PointF(ARect.Left, ARect.Bottom), 
+      Colors, nil, TSkTileMode.Clamp);
+    ACanvas.DrawRoundRect(ARect, 10, 10, LPaint);
+    // Fill bottom corners to merge with content
+    ACanvas.DrawRect(RectF(ARect.Left, ARect.Top + 10, ARect.Right, ARect.Bottom), LPaint);
+  end
+  else
+  begin
+    LPaint.Color := TAlphaColor($20FFFFFF); 
+    ACanvas.DrawRoundRect(ARect, 10, 10, LPaint);
+    ACanvas.DrawRect(RectF(ARect.Left, ARect.Top + 10, ARect.Right, ARect.Bottom), LPaint);
+  end;
+
+  // Truncate text if too long
+  DisplayTitle := ATitle;
+  if DisplayTitle.Length > 15 then
+    DisplayTitle := DisplayTitle.Substring(0, 12) + '...';
+
+  // Text
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Bold), 10);
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  if AIsActive then 
+    LPaint.Color := TAlphaColors.White 
+  else 
+    LPaint.Color := TAlphaColor($A0FFFFFF); 
+    
+  ACanvas.DrawSimpleText(DisplayTitle, ARect.Left + 15, ARect.Top + 25, LFont, LPaint);
+  
+  if AHasClose then
+  begin
+    LPaint.Color := TAlphaColor($80FFFFFF);
+    ACanvas.DrawSimpleText('×', ARect.Right - 20, ARect.Top + 25, LFont, LPaint);
+  end;
+end;
+
+
+class procedure TSkUIDrawer.DrawSearchBar(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string; AIsFocused: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  // Background
+  LPaint.Color := TAlphaColor($10000000); // Subtle gray
+  ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+  
+  if AIsFocused then
+  begin
+    LPaint.Style := TSkPaintStyle.Stroke;
+    LPaint.Color := TAlphaColor(skPrimary);
+    LPaint.StrokeWidth := 1.5;
+    ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+  end;
+  
+  // Icon
+  DrawSVGIcon(ACanvas, iconSearch, RectF(ARect.Left + 10, ARect.Top + 8, ARect.Left + 26, ARect.Bottom - 8), skTextSecondary);
+  
+  // Text or Placeholder
+  if AText = '' then
+    DrawLabel(ACanvas, RectF(ARect.Left + 35, ARect.Top + 8, ARect.Right, ARect.Bottom), 'Pesquisar ID ou Apelido...', 11, $80000000, False)
+  else
+    DrawLabel(ACanvas, RectF(ARect.Left + 35, ARect.Top + 8, ARect.Right, ARect.Bottom), AText, 11, skTextMain, False);
+end;
+
+class procedure TSkUIDrawer.DrawIDCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AID: string; AIsMenuHovered, AIsInviteHovered: Boolean);
+var
+  BtnRect: TRectF;
+  LPaint: ISkPaint;
+begin
+  DrawSidebarCard(ACanvas, ARect, 'ID');
+  
+  // Three dots menu (simplified as vertical svg)
+  DrawSVGIcon(ACanvas, 'M12,8c1.1,0,2-0.9,2-2s-0.9-2-2-2-2,0.9-2,2S10.9,8,12,8z M12,10c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,10,12,10z M12,16c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,16,12,16z', 
+    RectF(ARect.Right - 30, ARect.Top + 10, ARect.Right - 10, ARect.Top + 30), skTextSecondary);
+
+  // Large Blue ID
+  DrawLabel(ACanvas, RectF(ARect.Left, ARect.Top + 35, ARect.Right, ARect.Top + 75), AID, 22, skHopBlue, True);
+  
+  // Invite Button
+  BtnRect := RectF(ARect.Left + 40, ARect.Bottom - 35, ARect.Right - 40, ARect.Bottom - 10);
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  LPaint.Color := TAlphaColors.White;
+  ACanvas.DrawRoundRect(BtnRect, 6, 6, LPaint);
+  
+  LPaint.Style := TSkPaintStyle.Stroke;
+  LPaint.Color := TAlphaColor($20000000);
+  ACanvas.DrawRoundRect(BtnRect, 6, 6, LPaint);
+  
+  DrawLabel(ACanvas, BtnRect, 'Convidar', 11, skHopBlue, True);
+end;
+
+class procedure TSkUIDrawer.DrawPasswordCard(const ACanvas: ISkCanvas; const ARect: TRectF; const AValue: string; AIsRefreshHovered, AIsEditHovered, AIsFixed: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+//  DrawSidebarCard(ACanvas, ARect, 'Senha');
+  
+  // Value
+  DrawLabel(ACanvas, RectF(ARect.Left + 15, ARect.Top + 35, ARect.Right - 60, ARect.Top + 65), AValue, 16, skHopBlue, True);
+  
+  // Actions
+  DrawSVGIcon(ACanvas, iconRefresh, RectF(ARect.Right - 65, ARect.Top + 38, ARect.Right - 45, ARect.Top + 58), skTextSecondary);
+  DrawSVGIcon(ACanvas, 'M3,17.25V21h3.75L17.81,9.94l-3.75-3.75L3,17.25z M20.71,7.04c0.39-0.39,0.39-1.02,0-1.41l-2.34-2.34c-0.39-0.39-1.02-0.39-1.41,0l-1.83,1.83l3.75,3.75L20.71,7.04z', 
+    RectF(ARect.Right - 35, ARect.Top + 38, ARect.Right - 15, ARect.Top + 58), skTextSecondary);
+    
+  // Checkbox (Placeholder)
+  LPaint := TSkPaint.Create;
+  LPaint.Style := TSkPaintStyle.Stroke;
+  LPaint.Color := skHopBlue;
+  LPaint.StrokeWidth := 2;
+  ACanvas.DrawRoundRect(RectF(ARect.Left + 30, ARect.Bottom - 32, ARect.Left + 48, ARect.Bottom - 14), 4, 4, LPaint);
+  DrawLabel(ACanvas, RectF(ARect.Left + 55, ARect.Bottom - 32, ARect.Right, ARect.Bottom - 14), 'Senha de Bloqueio', 11, skTextSecondary, False);
+end;
+
+class procedure TSkUIDrawer.DrawSplashCard(const ACanvas: ISkCanvas; const ARect: TRectF; const ASplash: ISkSVGDOM);
+var
+  ImgRect: TRectF;
+begin
+  DrawSidebarCard(ACanvas, ARect, '');
+  
+  // Image (Maximizado: ocupa quase todo o box)
+  ImgRect := RectF(ARect.Left - 5, ARect.Top - 5, ARect.Right + 5, ARect.Bottom - 25);
+  DrawSplash(ACanvas, ImgRect, ASplash);
+  
+  // Title (No limite inferior)
+  DrawLabelCentered(ACanvas, RectF(ARect.Left, ARect.Bottom - 35, ARect.Right, ARect.Bottom), 'Miré-Desk', 22, skHopBlue, True);
+end;
+
+class procedure TSkUIDrawer.DrawSidebarFooter(const ACanvas: ISkCanvas; const ARect: TRectF; const AVersion: string);
+var
+  LPaint: ISkPaint;
+begin
+  // No line needed for cards
+  DrawLabel(ACanvas, RectF(ARect.Left, ARect.Top + 10, ARect.Right, ARect.Bottom), 'v' + AVersion, 9, TAlphaColor($80000000), True);
+end;
+
+class procedure TSkUIDrawer.DrawSplash(const ACanvas: ISkCanvas; const ARect: TRectF; const ASplash: ISkSVGDOM);
+var
+  SplashWidth, SplashHeight: Single;
+  TargetRect: TRectF;
+begin
+  if ASplash = nil then Exit;
+
+  SplashWidth := ARect.Width;
+  SplashHeight := SplashWidth * (ASplash.Root.Height.Value / ASplash.Root.Width.Value);
+  
+  if SplashHeight > ARect.Height then
+  begin
+    SplashHeight := ARect.Height;
+    SplashWidth := SplashHeight * (ASplash.Root.Width.Value / ASplash.Root.Height.Value);
+  end;
+
+  TargetRect := RectF(
+    ARect.Left + (ARect.Width - SplashWidth) / 2,
+    ARect.Top + (ARect.Height - SplashHeight) / 2,
+    ARect.Left + (ARect.Width + SplashWidth) / 2,
+    ARect.Top + (ARect.Height + SplashHeight) / 2
+  );
+  
+  ASplash.SetContainerSize(TargetRect.Size);
+  ACanvas.Save;
+  ACanvas.Translate(TargetRect.Left, TargetRect.Top);
+  ASplash.Render(ACanvas);
+  ACanvas.Restore;
+end;
+
+class procedure TSkUIDrawer.DrawActiveConnectionBanner(const ACanvas: ISkCanvas; const ARect: TRectF; const ARemoteID: string; AIsBtnHovered: Boolean);
+var
+  LPaint: ISkPaint;
+  LColors: TArray<TAlphaColor>;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  // Gradient Background (Red Pulsing)
+  LColors := [TAlphaColor($FFEB5757), TAlphaColor($FFE03226)];
+  LPaint.Shader := TSkShader.MakeGradientLinear(PointF(ARect.Left, ARect.Top), PointF(ARect.Right, ARect.Bottom), LColors, nil, TSkTileMode.Clamp);
+  ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+  
+  // Text
+  DrawLabel(ACanvas, RectF(ARect.Left + 15, ARect.Top + 8, ARect.Right - 100, ARect.Top + 25), '🔴 Conexão Remota Ativa', 12, TAlphaColorRec.White, True);
+  DrawLabel(ACanvas, RectF(ARect.Left + 15, ARect.Top + 25, ARect.Right - 100, ARect.Bottom - 5), ARemoteID + ' está controlando esta máquina', 10, TAlphaColor($E0FFFFFF), False);
+  
+  // Disconnect Button
+  var BtnRect := RectF(ARect.Right - 110, ARect.Top + 10, ARect.Right - 10, ARect.Bottom - 10);
+  LPaint.Shader := nil;
+  if AIsBtnHovered then LPaint.Color := TAlphaColor($40FFFFFF) else LPaint.Color := TAlphaColor($20FFFFFF);
+  ACanvas.DrawRoundRect(BtnRect, 6, 6, LPaint);
+  DrawLabel(ACanvas, BtnRect, 'Desconectar', 10, TAlphaColorRec.White, True);
+end;
+
+class procedure TSkUIDrawer.DrawToolbarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon: string; AIsHovered, AIsActive: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  if AIsActive then
+    LPaint.Color := TAlphaColor($40FFFFFF)
+  else if AIsHovered then
+    LPaint.Color := TAlphaColor($20FFFFFF)
+  else
+    LPaint.Color := TAlphaColor($10FFFFFF);
+    
+  if LPaint.Color <> TAlphaColor(0) then
+    ACanvas.DrawRoundRect(ARect, 4, 4, LPaint);
+    
+  DrawSVGIcon(ACanvas, ASVGIcon, RectF(ARect.Left + 4, ARect.Top + 4, ARect.Right - 4, ARect.Bottom - 4), TAlphaColors.White);
+end;
+
+class procedure TSkUIDrawer.DrawSettingsModal(const ACanvas: ISkCanvas; const ARect: TRectF; const ACurrentIP: string; AIsBtnHovered: Boolean);
+var
+  LPaint: ISkPaint;
+  CardRect: TRectF;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.Color := TAlphaColor($4B000000);
+  ACanvas.DrawRect(ARect, LPaint);
+  
+  CardRect := RectF((ARect.Width/2) - 180, (ARect.Height/2) - 120, (ARect.Width/2) + 180, (ARect.Height/2) + 100);
+  DrawCard(ACanvas, CardRect, skCardBG);
+  DrawHeader(ACanvas, RectF(CardRect.Left, CardRect.Top, CardRect.Right, CardRect.Top + 45), 'Configurações');
+  
+  DrawLabel(ACanvas, RectF(CardRect.Left + 20, CardRect.Top + 65, CardRect.Right - 20, CardRect.Top + 85), 'IP do Servidor (Requer Reinício)', 10, skTextSecondary, True);
+  
+  // Input placeholder rect
+  LPaint.Color := TAlphaColor($10000000);
+  ACanvas.DrawRoundRect(RectF(CardRect.Left + 20, CardRect.Top + 90, CardRect.Right - 20, CardRect.Top + 125), 6, 6, LPaint);
+  DrawLabel(ACanvas, RectF(CardRect.Left + 30, CardRect.Top + 95, CardRect.Right - 40, CardRect.Top + 120), ACurrentIP, 12, skTextMain, True);
+  
+  DrawLabel(ACanvas, RectF(CardRect.Left + 20, CardRect.Top + 130, CardRect.Right - 20, CardRect.Top + 150), 'Deixe em branco ou "cloud" para padrão.', 9, TAlphaColor($60000000), False);
+  
+  // Save Button
+  DrawButton(ACanvas, RectF(CardRect.Right - 120, CardRect.Bottom - 50, CardRect.Right - 20, CardRect.Bottom - 15), 'Salvar', AIsBtnHovered);
+  // Cancel Button (using same DrawButton style but simplified color if needed, keep standard for now)
+  DrawLabel(ACanvas, RectF(CardRect.Left + 20, CardRect.Bottom - 45, CardRect.Left + 100, CardRect.Bottom - 15), 'Cancelar', 11, skPrimary, True);
+end;
+
+class procedure TSkUIDrawer.DrawHint(const ACanvas: ISkCanvas; const ARect: TRectF; const AText: string);
+var
+  LPaint: ISkPaint;
+  LFont: ISkFont;
+  TextWidth: Single;
+  HintRect: TRectF;
+begin
+  LFont := TSkFont.Create(TSkTypeface.MakeFromName('Segoe UI', TSkFontStyle.Normal), 10);
+  TextWidth := LFont.MeasureText(AText);
+  
+  // Create a rect centered around the target area
+  HintRect := RectF(ARect.CenterPoint.X - (TextWidth / 2) - 8, ARect.Bottom + 5, 
+                    ARect.CenterPoint.X + (TextWidth / 2) + 8, ARect.Bottom + 25);
+                    
+  LPaint := TSkPaint.Create;
+  LPaint.Color := $D01E293B; // Slate 800 with 80% opacity
+  LPaint.AntiAlias := True;
+  ACanvas.DrawRoundRect(HintRect, 6, 6, LPaint);
+  
+  LPaint.Color := TAlphaColors.White;
+  ACanvas.DrawSimpleText(AText, HintRect.Left + 8, HintRect.Top + 14, LFont, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawSidebarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon, AText: string; AIsHovered, AIsRunning, AIsDanger: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+  LPaint := TSkPaint.Create;
+  LPaint.AntiAlias := True;
+  
+  if AIsHovered then
+  begin
+    LPaint.Color := TAlphaColor($15000000);
+    ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+    
+    LPaint.Style := TSkPaintStyle.Stroke;
+    LPaint.Color := TAlphaColor($20000000);
+    LPaint.StrokeWidth := 1;
+    ACanvas.DrawRoundRect(ARect, 8, 8, LPaint);
+    LPaint.Style := TSkPaintStyle.Fill;
+  end;
+
+  var IconColor: TAlphaColor;
+  if AIsRunning then IconColor := skSuccess
+  else if AIsDanger then IconColor := skDanger
+  else IconColor := skTextSecondary;
+
+  DrawSVGIcon(ACanvas, ASVGIcon, RectF(ARect.Left + 12, ARect.Top + 10, ARect.Left + 28, ARect.Bottom - 10), IconColor);
+  
+  DrawLabel(ACanvas, RectF(ARect.Left + 40, ARect.Top + 2, ARect.Right, ARect.Bottom), AText, 10, skTextMain, True);
+end;
+
+end.

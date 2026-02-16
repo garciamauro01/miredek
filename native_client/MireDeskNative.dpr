@@ -1,19 +1,23 @@
-program MireDeskNative;
+﻿program MireDeskNative;
 
 uses
   Vcl.Forms,
-
- { Skia }
-  System.Skia, Vcl.Skia,
-
+  System.Skia,
+  Vcl.Skia,
   MainForm in 'MainForm.pas' {FormMain},
   PeerJSBridge in 'PeerJSBridge.pas',
   InputUtils in 'InputUtils.pas',
   Styles in 'Styles.pas',
   UIParts in 'UIParts.pas',
+  StorageUtils in 'StorageUtils.pas',
+  PasswordDialog in 'PasswordDialog.pas' {FormPasswordDialog},
+  ConnectionRequestForm in 'ConnectionRequestForm.pas' {FormConnectionRequest},
+  MireComponents in 'MireComponents.pas',
+  ResourceCache in 'ResourceCache.pas',
   ServiceUtils in 'ServiceUtils.pas',
-  StorageUtils in 'StorageUtils.pas';
-
+  SessionManager in 'SessionManager.pas',
+  SkiaComponents in 'SkiaComponents.pas',
+  Icons in 'Icons.pas';
 
 {$R *.res}
 {$R 'NativeResources.res' 'NativeResources.rc'}

@@ -15,7 +15,9 @@ type
     procedure SkPaintBoxDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
     procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure editPasswordKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure editPasswordChange(Sender: TObject);
   private
     FRemoteID: string;
@@ -77,6 +79,10 @@ begin
   
   FHoveredElement := '';
   FCheckboxChecked := False;
+  
+  self.KeyPreview := True;
+  self.OnKeyDown := FormKeyDown;
+  editPassword.OnKeyDown := editPasswordKeyDown;
 end;
 
 procedure TFormPasswordDialog.editPasswordChange(Sender: TObject);
@@ -84,14 +90,31 @@ begin
   FPassword := editPassword.Text;
 end;
 
+procedure TFormPasswordDialog.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+    ModalResult := mrCancel
+  else if Key = VK_RETURN then
+  begin
+    Key := 0; 
+    if FPassword <> '' then
+    begin
+      FRememberPassword := FCheckboxChecked;
+      ModalResult := mrOk;
+    end;
+  end;
+end;
+
 procedure TFormPasswordDialog.FormKeyPress(Sender: TObject; var Key: Char);
 begin
-  if Key = #27 then // ESC
+  if Key = #13 then Key := #0; // Prevent beep
+end;
+
+procedure TFormPasswordDialog.editPasswordKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_RETURN then
   begin
-    ModalResult := mrCancel;
-  end
-  else if Key = #13 then // ENTER
-  begin
+    Key := 0; // Prevent beep
     if FPassword <> '' then
     begin
       FRememberPassword := FCheckboxChecked;

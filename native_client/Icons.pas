@@ -54,6 +54,9 @@ const
   // Shield / Security
   iconShield = 'M12,1L3,5v6c0,5.55,3.84,10.74,9,12c5.16-1.26,9-6.45,9-12V5L12,1z M12,11.99h7c-0.53,4.12-3.28,7.79-7,8.94V12H5V6.3l7-3.11V11.99z';
 
+  // File / Transfer
+  iconFile = 'M14,2H6C4.9,2,4.01,2.9,4.01,4L4,20c0,1.1,0.89,2,1.99,2H18c1.1,0,2-0.9,2-2V8L14,2z M13,9V3.5L18.5,9H13z';
+
 implementation
 
 end.

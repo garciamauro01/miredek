@@ -14,6 +14,14 @@ echo.
 set /p UPDATE_TOKEN="Digite o Token de Upload (deixe em branco para o padrao): "
 if "!UPDATE_TOKEN!"=="" set UPDATE_TOKEN=miredesk-secret-token
 
+
+echo.
+echo 0. Parando processos do Agente...
+taskkill /F /IM MireDeskAgent.exe >nul 2>&1
+taskkill /F /IM MireDeskService.exe >nul 2>&1
+taskkill /F /IM MireDeskNative.exe >nul 2>&1
+echo [OK] Processos parados.
+
 echo.
 echo 1. Compilando Componentes Nativos (Delphi)...
 set "DCC_PATH=C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\dcc64.exe"

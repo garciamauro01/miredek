@@ -3,9 +3,10 @@ unit ServerWorker;
 interface
 
 uses
-  System.SysUtils, System.Classes, Vcl.Graphics, System.Net.Socket,
+  System.SysUtils, System.Classes, System.Math, Vcl.Graphics, System.Net.Socket,
   IdContext, IdCustomHTTPServer, IdHTTPServer, Vcl.Imaging.jpeg,
-  Winapi.Windows, Winapi.MultiMon, System.Threading, ProcessUtils, System.IOUtils, System.SyncObjs;
+  Winapi.Windows, Winapi.MultiMon, System.Threading, ProcessUtils, System.IOUtils, System.SyncObjs,
+  BlockProtocol;
 
 type
   TServiceWorker = class(TThread)
@@ -21,9 +22,20 @@ type
     FCaptureRect: TRect;
     FMonitorIndex: Integer;
 
+    // Differential Capture (Block-based)
+    FPreviousFrame: Vcl.Graphics.TBitmap;
+    FBlockSize: Integer;
+    FUseDifferentialCapture: Boolean;
+    FBlockEncoder: TBlockProtocolEncoder;
+    FFrameNumber: Cardinal;
+
     procedure OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
     procedure CaptureScreen;
     procedure UpdateCaptureArea(AMonitorIndex: Integer);
+    
+    // Block Comparison Helpers
+    function CalculateBlockChecksum(ABitmap: Vcl.Graphics.TBitmap; X, Y, BlockSize: Integer): Cardinal;
+    function IsBlockDirty(X, Y: Integer): Boolean;
   protected
     procedure Execute; override;
   public
@@ -53,6 +65,13 @@ begin
   // Default to Primary Monitor
   FMonitorIndex := 0; 
   FCaptureRect := Rect(0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+  
+  // Differential Capture Settings
+  FBlockSize := 64; // 64x64 pixel blocks
+  FUseDifferentialCapture := True; // Enable by default
+  FPreviousFrame := nil; // Will be created on first capture
+  FBlockEncoder := TBlockProtocolEncoder.Create(FBlockSize, 70); // Quality 70
+  FFrameNumber := 0;
   
   LogToFile('ServiceWorker Created');
 end;
@@ -149,7 +168,7 @@ begin
     FBmp.SetSize(1920, 1080); // Init size
     
     FJpg := TJPEGImage.Create;
-    FJpg.CompressionQuality := 60;
+    FJpg.CompressionQuality := 70; // Better quality, slightly larger size
     FJpg.Performance := jpBestSpeed;
     
     TempStream := TMemoryStream.Create;
@@ -179,17 +198,23 @@ begin
   while not Terminated do
   begin
     try
-      // Check Desktop Switch
-      // if SwitchToActiveDesktop then ...
+    // Check Desktop Switch periodically (approx every 1 sec)
+    if (GetTickCount mod 1000) < 50 then
+    begin
+       if SwitchToActiveDesktop then
+       begin
+          // LogToFile('Switched Desktop');
+       end;
+    end;
       
-      // Capture
-      CaptureScreen;
+    // Capture
+    CaptureScreen;
       
     except
       on E: Exception do
         LogToFile('Error in capture loop: ' + E.Message);
     end;
-    Sleep(33); 
+    Sleep(16); // Target ~60 FPS capture rate (limited by encoding speed) 
   end;
 
   FServer.Active := False;
@@ -198,6 +223,7 @@ begin
   FBmp.Free;
   FJpg.Free;
   TempStream.Free;
+  if FPreviousFrame <> nil then FPreviousFrame.Free;
   
   LogToFile('Worker Thread STOPPED');
 end;
@@ -206,6 +232,59 @@ procedure TServiceWorker.Stop;
 begin
   Terminate;
   WaitFor;
+end;
+
+function TServiceWorker.CalculateBlockChecksum(ABitmap: Vcl.Graphics.TBitmap; X, Y, BlockSize: Integer): Cardinal;
+var
+  Row, Col: Integer;
+  P: PByte;
+  Hash: Cardinal;
+  MaxX, MaxY: Integer;
+  PixelValue: Cardinal;
+begin
+  Hash := 0;
+  MaxX := Min(X + BlockSize, ABitmap.Width);
+  MaxY := Min(Y + BlockSize, ABitmap.Height);
+  
+  // Simple hash: XOR of sampled pixels (every 4th row and column for speed)
+  for Row := Y to MaxY - 1 do
+  begin
+    if (Row - Y) mod 4 <> 0 then Continue; // Sample every 4th row
+    P := ABitmap.ScanLine[Row];
+    
+    for Col := X to MaxX - 1 do
+    begin
+      if (Col - X) mod 4 = 0 then // Sample every 4th column
+      begin
+        // Read 3 bytes (RGB) safely
+        PixelValue := Cardinal(P[Col * 3]) shl 16 or 
+                      Cardinal(P[Col * 3 + 1]) shl 8 or 
+                      Cardinal(P[Col * 3 + 2]);
+        Hash := Hash xor PixelValue;
+      end;
+    end;
+  end;
+  
+  Result := Hash;
+end;
+
+function TServiceWorker.IsBlockDirty(X, Y: Integer): Boolean;
+var
+  CurrentChecksum, PreviousChecksum: Cardinal;
+begin
+  // If no previous frame, all blocks are dirty
+  if FPreviousFrame = nil then
+  begin
+    Result := True;
+    Exit;
+  end;
+  
+  // Calculate checksums for current and previous frames
+  CurrentChecksum := CalculateBlockChecksum(FBmp, X, Y, FBlockSize);
+  PreviousChecksum := CalculateBlockChecksum(FPreviousFrame, X, Y, FBlockSize);
+  
+  // Block is dirty if checksums differ
+  Result := CurrentChecksum <> PreviousChecksum;
 end;
 
 procedure TServiceWorker.CaptureScreen;
@@ -299,6 +378,45 @@ begin
       begin
          FLastCapture.SaveToFile(TPath.Combine(TPath.GetTempPath, 'debug_frame.jpg'));
          LogToFile('DEBUG: Saved valid first frame to ' + TPath.Combine(TPath.GetTempPath, 'debug_frame.jpg'));
+      end;
+      
+      // Differential Capture: Detect dirty blocks (Phase 1 - Logging Only)
+      if FUseDifferentialCapture and (not UseFallback) then
+      begin
+        var BlockX, BlockY, DirtyCount, TotalBlocks: Integer;
+        DirtyCount := 0;
+        TotalBlocks := 0;
+        
+        BlockY := 0;
+        while BlockY < H do
+        begin
+          BlockX := 0;
+          while BlockX < W do
+          begin
+            Inc(TotalBlocks);
+            if IsBlockDirty(BlockX, BlockY) then
+              Inc(DirtyCount);
+            Inc(BlockX, FBlockSize);
+          end;
+          Inc(BlockY, FBlockSize);
+        end;
+        
+        // Log statistics every 5 seconds
+        if (GetTickCount mod 5000) < 50 then
+          LogToFile(Format('[Differential] Dirty blocks: %d/%d (%.1f%%)', 
+            [DirtyCount, TotalBlocks, (DirtyCount / TotalBlocks) * 100]));
+        
+        // Store current frame as previous for next comparison
+        if FPreviousFrame = nil then
+        begin
+          FPreviousFrame := Vcl.Graphics.TBitmap.Create;
+          FPreviousFrame.PixelFormat := pf24bit;
+          FPreviousFrame.SetSize(W, H);
+        end
+        else if (FPreviousFrame.Width <> W) or (FPreviousFrame.Height <> H) then
+          FPreviousFrame.SetSize(W, H);
+          
+        FPreviousFrame.Canvas.Draw(0, 0, FBmp);
       end;
 
       // Log regular progress
@@ -460,14 +578,118 @@ begin
              end;
           end;
 
-          // Throttle to ~20 FPS (50ms) to ensure stability
-          Sleep(50);
+           // Throttle to maximize FPS (10ms ~ 100fps theoretical max, limited by bandwidth/encoding)
+           Sleep(10);
+         end;
+       finally
+         LogToFile('Stream Phase: Loop Ended. Connected=' + BoolToStr(AContext.Connection.Connected, True));
+       end;
+     finally
+       LocalCapture.Free;
+     end;
+  end
+  else if ARequestInfo.Document = '/stream.blocks' then
+  begin
+    // Differential Block Stream (Phase 2)
+    LogToFile('[BlockStream] Client connected for differential stream');
+    
+    // Handle Monitor Selection Parameter
+    if ARequestInfo.Params.IndexOfName('monitor') <> -1 then
+    begin
+       I := StrToIntDef(ARequestInfo.Params.Values['monitor'], 0);
+       System.TMonitor.Enter(FLock);
+       try
+         if FMonitorIndex <> I then UpdateCaptureArea(I);
+       finally
+         System.TMonitor.Exit(FLock);
+       end;
+    end;
+
+    // Binary stream response
+    AResponseInfo.CustomHeaders.AddValue('Access-Control-Allow-Origin', '*');
+    AResponseInfo.ContentType := 'application/octet-stream';
+    AResponseInfo.CustomHeaders.AddValue('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    
+    try
+      // Manual response headers
+      AContext.Connection.IOHandler.Write('HTTP/1.1 200 OK' + CRLF);
+      AContext.Connection.IOHandler.Write('Content-Type: application/octet-stream' + CRLF);
+      AContext.Connection.IOHandler.Write('Cache-Control: no-cache, no-store, must-revalidate, max-age=0' + CRLF);
+      AContext.Connection.IOHandler.Write('Access-Control-Allow-Origin: *' + CRLF);
+      AContext.Connection.IOHandler.Write('Connection: keep-alive' + CRLF);
+      AContext.Connection.IOHandler.Write(CRLF);
+      
+      LocalCapture := TMemoryStream.Create;
+      try
+        while not Terminated do
+        begin
+          // Build frame with dirty blocks
+          var DirtyBlocks: array of TPoint;
+          var BlockX, BlockY, DirtyCount, W, H: Integer;
+          
+          System.TMonitor.Enter(FLock);
+          try
+            W := FBmp.Width;
+            H := FBmp.Height;
+          finally
+            System.TMonitor.Exit(FLock);
+          end;
+          
+          // Collect dirty block coordinates
+          SetLength(DirtyBlocks, 0);
+          DirtyCount := 0;
+          
+          BlockY := 0;
+          while BlockY < H do
+          begin
+            BlockX := 0;
+            while BlockX < W do
+            begin
+              if IsBlockDirty(BlockX, BlockY) then
+              begin
+                SetLength(DirtyBlocks, DirtyCount + 1);
+                DirtyBlocks[DirtyCount].X := BlockX;
+                DirtyBlocks[DirtyCount].Y := BlockY;
+                Inc(DirtyCount);
+              end;
+              Inc(BlockX, FBlockSize);
+            end;
+            Inc(BlockY, FBlockSize);
+          end;
+          
+          // Only send if there are dirty blocks
+          if DirtyCount > 0 then
+          begin
+            var Frame: TBlockFrame;
+            System.TMonitor.Enter(FLock);
+            try
+              Frame := FBlockEncoder.BuildFrame(FFrameNumber, DirtyBlocks, FBmp);
+              Inc(FFrameNumber);
+            finally
+              System.TMonitor.Exit(FLock);
+            end;
+            
+            LocalCapture.Clear;
+            FBlockEncoder.WriteFrameToStream(Frame, LocalCapture);
+            
+            LocalCapture.Position := 0;
+            AContext.Connection.IOHandler.Write(LocalCapture);
+            AContext.Connection.IOHandler.WriteBufferFlush;
+            
+            if (FFrameNumber mod 30) = 0 then
+              LogToFile(Format('[BlockStream] Sent frame #%d with %d blocks (%d bytes)', 
+                [FFrameNumber, DirtyCount, LocalCapture.Size]));
+          end;
+          
+          Sleep(16); // ~60 FPS
         end;
       finally
-        LogToFile('Stream Phase: Loop Ended. Connected=' + BoolToStr(AContext.Connection.Connected, True));
+        LocalCapture.Free;
+        LogToFile('[BlockStream] Stream ended');
       end;
-    finally
-      LocalCapture.Free;
+    except
+      on E: Exception do
+        LogToFile('[BlockStream] Error: ' + E.Message);
     end;
   end
   else if ARequestInfo.Document = '/monitors.json' then
@@ -480,15 +702,13 @@ begin
       EnumDisplayMonitors(0, nil, @MonitorEnumProc, LPARAM(Pointer(LocalMonitorList)));
       
       JSON := '[';
-      // Add Virtual Screen
-      JSON := JSON + Format('{"id": -1, "name": "Virtual Screen", "width": %d, "height": %d}', 
-        [GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN)]);
       
       // Add Individual Monitors
       for I := 0 to LocalMonitorList.Count - 1 do
       begin
         R := PRect(LocalMonitorList[I]);
-        JSON := JSON + Format(', {"id": %d, "name": "Monitor %d", "width": %d, "height": %d}', 
+        if I > 0 then JSON := JSON + ', '; // Add comma for subsequent items
+        JSON := JSON + Format('{"id": %d, "name": "Monitor %d", "width": %d, "height": %d}', 
           [I, I + 1, R.Right - R.Left, R.Bottom - R.Top]);
       end;
       JSON := JSON + ']';

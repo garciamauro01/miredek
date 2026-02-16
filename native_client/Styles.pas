@@ -20,6 +20,7 @@ const
   skSuccess = $FF10B981;     // Emerald 500
   skDanger = $FFEF4444;      // Red 500
   skWarning = $FFF59E0B;     // Amber 500
+  skInfo = $FF3B82F6;        // Blue 500
   skSidebarCardBG = $FFF0F5F9; // HopToDesk style light blue BG
   skHopBlue = $FF3B82F6;       // HopToDesk style vibrant blue
   
@@ -32,6 +33,17 @@ const
   skCornerRadius = 16.0;     // Slightly more rounded
   skShadowBlur = 12.0;
   skGlassBlur = 15.0;        // Blur intensity for glassmorphism
+  
+  // Layout Constants
+  skContentPadding = 20.0;
+  skTabBarTop = 150.0;
+  skTabBarHeight = 35.0;
+  skTabWidth = 110.0;
+  skTabGap = 10.0;
+  
+  skConnectBtnTop = 100.0;
+  skConnectBtnHeight = 40.0;
+  skConnectBtnWidth = 100.0;
 
 implementation
 

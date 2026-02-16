@@ -47,7 +47,7 @@
     <div id="log"></div>
     <video id="localVideo" style="display:none" autoplay muted></video>
     <video id="remoteVideo" autoplay playsinline muted
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:100; background:black;"></video>
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:100; background:black; object-fit: fill;"></video>
     <canvas id="streamCanvas" style="position:fixed; top:0; left:0; pointer-events:none; opacity:0.01;"></canvas>
     <img id="mjpegFrame" style="display:none" crossorigin="anonymous">
 
@@ -454,6 +454,12 @@
                             switchVideoStream(null);
                         }
                         break;
+                    case 'ACCEPT_CONN':
+                        acceptConnection(args.remoteID || args.remoteId);
+                        break;
+                    case 'REJECT_CONN':
+                        rejectConnection(args.remoteID || args.remoteId);
+                        break;
 
                     case 'CHECK_ONLINE':
                         const idsToCheck = Array.isArray(args.remoteId) ? args.remoteId : [args.remoteId];
@@ -490,6 +496,10 @@
                             });
                         });
                         break;
+                    case 'SET_VIEW_MODE':
+                        remoteVideo.style.objectFit = args.mode || 'fill';
+                        log(`View mode changed to: ${remoteVideo.style.objectFit}`);
+                        break;
                 }
             });
         }
@@ -520,15 +530,9 @@
         // --- INPUT HANDLING (Viewer Mode) ---
         let lastMove = 0;
         function sendInput(type, e) {
-            if (!currentCall || !connections[currentCall.peer]) {
-                if (type === 'mousedown') log(`Input failed: No active call or connection missing for ${currentCall ? currentCall.peer : 'null'}`);
-                return;
-            }
+            if (!currentCall || !connections[currentCall.peer]) return;
             const conn = connections[currentCall.peer];
-            if (!conn.open) {
-                if (type === 'mousedown') log(`Input failed: Data channel with ${currentCall.peer} is closed`);
-                return;
-            }
+            if (!conn.open) return;
 
             if (type === 'mousemove') {
                 const now = Date.now();
@@ -537,14 +541,51 @@
             }
 
             const rect = remoteVideo.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = (e.clientY - rect.top) / rect.height;
+            const fit = remoteVideo.style.objectFit || 'fill';
 
-            const payload = {
-                type: type,
-                x: x,
-                y: y
-            };
+            let x = 0;
+            let y = 0;
+
+            const vw = remoteVideo.videoWidth;
+            const vh = remoteVideo.videoHeight;
+            const cw = rect.width;
+            const ch = rect.height;
+
+            if (fit === 'fill') {
+                x = (e.clientX - rect.left) / cw;
+                y = (e.clientY - rect.top) / ch;
+            } else if (fit === 'contain') {
+                const videoRatio = vw / vh;
+                const containerRatio = cw / ch;
+                let renderedW, renderedH;
+
+                if (containerRatio > videoRatio) {
+                    renderedH = ch;
+                    renderedW = ch * videoRatio;
+                } else {
+                    renderedW = cw;
+                    renderedH = cw / videoRatio;
+                }
+
+                const offsetX = (cw - renderedW) / 2;
+                const offsetY = (ch - renderedH) / 2;
+
+                x = (e.clientX - rect.left - offsetX) / renderedW;
+                y = (e.clientY - rect.top - offsetY) / renderedH;
+            } else if (fit === 'none') {
+                // Original size centered
+                const offsetX = (cw - vw) / 2;
+                const offsetY = (ch - vh) / 2;
+
+                x = (e.clientX - rect.left - offsetX) / vw;
+                y = (e.clientY - rect.top - offsetY) / vh;
+            }
+
+            // Clamp coordinates to 0..1
+            x = Math.max(0, Math.min(1, x));
+            y = Math.max(0, Math.min(1, y));
+
+            const payload = { type, x, y };
 
             if (e.button !== undefined) {
                 payload.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';

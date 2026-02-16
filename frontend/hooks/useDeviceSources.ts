@@ -47,21 +47,33 @@ export function useDeviceSources(
 
                     const nativeSources = agentMonitors.map((m: any) => ({
                         id: `native-${m.id}`,
-                        name: `Nativo: ${m.name} (${m.width}x${m.height})`,
+                        name: `Monitor ${m.id + 1} (${m.width}x${m.height})`,
                         thumbnail: null
                     }));
 
-                    const allSources = [...nativeSources, ...available];
-                    setSources(allSources);
+                    // Sort: Monitor 1, 2, ...
+                    nativeSources.sort((a: any, b: any) => {
+                        const idA = parseInt(a.id.replace('native-', ''));
+                        const idB = parseInt(b.id.replace('native-', ''));
+                        return idA - idB;
+                    });
 
-                    if (allSources.length > 0) {
-                        selectSource(allSources[0].id);
+                    // Se temos fontes nativas, removemos as fontes 'screen' (monitores) do Electron
+                    // Mantemos 'window' (janelas) se existirem
+                    const filteredAvailable = available.filter((s: any) => !s.id.startsWith('screen:'));
+                    const finalSources = [...nativeSources, ...filteredAvailable];
+
+                    setSources(finalSources);
+
+                    if (finalSources.length > 0) {
+                        selectSource(finalSources[0].id);
                     }
                 } catch (e) {
                     console.warn('[Host] Agente Delphi não disponível para listar monitores.');
+                    // Fallback to "Logon Screen" native source + Electron sources
                     const nativeSource = { id: 'native-service', name: 'MireDesk Native (Login Screen)', thumbnail: null };
-                    const allSources = [nativeSource, ...available];
-                    setSources(allSources);
+                    const allFallback = [nativeSource, ...available];
+                    setSources(allFallback);
                     selectSource(available[0]?.id || 'native-service');
                 }
             } else {

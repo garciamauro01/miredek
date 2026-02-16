@@ -26,7 +26,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>MireDeskNative</SanitizedProjectName>
-        <DCC_Define>SKIA;$(DCC_Define)</DCC_Define>
+        <DCC_Define>SKIA;DEBUG;$(DCC_Define)</DCC_Define>
+        <VerInfo_Locale>1046</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
@@ -49,6 +50,21 @@
         <DCCReference Include="InputUtils.pas"/>
         <DCCReference Include="Styles.pas"/>
         <DCCReference Include="UIParts.pas"/>
+        <DCCReference Include="StorageUtils.pas"/>
+        <DCCReference Include="PasswordDialog.pas">
+            <Form>FormPasswordDialog</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="ConnectionRequestForm.pas">
+            <Form>FormConnectionRequest</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="MireComponents.pas"/>
+        <DCCReference Include="ResourceCache.pas"/>
+        <DCCReference Include="ServiceUtils.pas"/>
+        <DCCReference Include="SessionManager.pas"/>
+        <DCCReference Include="SkiaComponents.pas"/>
+        <DCCReference Include="Icons.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
