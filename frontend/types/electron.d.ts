@@ -45,6 +45,9 @@ export interface ElectronAPI {
     installService: () => Promise<boolean>;
     uninstallService: () => Promise<boolean>;
     getServiceStatus: () => Promise<'running' | 'stopped' | 'not-installed'>;
+    // --- SHARED STORAGE ---
+    loadSharedStorage: () => Promise<any | null>;
+    saveSharedStorage: (data: any) => Promise<boolean>;
 }
 
 declare global {

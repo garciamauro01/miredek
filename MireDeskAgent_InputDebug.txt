@@ -1,0 +1,1492 @@
+[20/02/2026 21:41:19] ServiceWorker Created
+[20/02/2026 21:41:19] Worker Thread STARTING
+[20/02/2026 21:41:19] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 21:41:19] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 21:41:19] MJPEG Server active on port 9876
+[20/02/2026 21:41:19] DEBUG: Saved valid first frame to C:\Windows\Temp\debug_frame.jpg
+[20/02/2026 21:41:20] Successfully launched Agent.
+[20/02/2026 21:41:20] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:20] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:20] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:20] ServiceWorker Created
+[20/02/2026 21:41:20] Worker Thread STARTING
+[20/02/2026 21:41:20] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 21:41:20] FATAL Error starting MJPEG Server: Could not bind socket.
+[20/02/2026 21:41:23] CaptureScreen: Running. Current Frame size=236096 bytes
+[20/02/2026 21:41:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:24] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:29] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:41:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:34] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:39] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:41:43] CaptureScreen: Running. Current Frame size=239579 bytes
+[20/02/2026 21:41:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:44] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:49] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:53] CaptureScreen: Running. Current Frame size=227064 bytes
+[20/02/2026 21:41:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:54] Mire-Desk executable not found at any path.
+[20/02/2026 21:41:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:41:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:41:59] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:04] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:09] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:14] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:19] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:23] CaptureScreen: Running. Current Frame size=217330 bytes
+[20/02/2026 21:42:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:24] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:29] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:33] CaptureScreen: Running. Current Frame size=215950 bytes
+[20/02/2026 21:42:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:34] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:39] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:43] CaptureScreen: Running. Current Frame size=219787 bytes
+[20/02/2026 21:42:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:44] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:49] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:42:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:54] Mire-Desk executable not found at any path.
+[20/02/2026 21:42:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:42:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:42:59] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:03] CaptureScreen: Running. Current Frame size=211024 bytes
+[20/02/2026 21:43:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:04] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:09] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:13] CaptureScreen: Running. Current Frame size=210322 bytes
+[20/02/2026 21:43:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:14] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:19] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:23] CaptureScreen: Running. Current Frame size=209886 bytes
+[20/02/2026 21:43:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:24] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:29] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:33] CaptureScreen: Running. Current Frame size=213935 bytes
+[20/02/2026 21:43:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:34] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:39] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:44] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:49] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:43:54] CaptureScreen: Running. Current Frame size=241503 bytes
+[20/02/2026 21:43:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:54] Mire-Desk executable not found at any path.
+[20/02/2026 21:43:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:43:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:43:59] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:04] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:09] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:13] CaptureScreen: Running. Current Frame size=235775 bytes
+[20/02/2026 21:44:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:14] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:19] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:23] CaptureScreen: Running. Current Frame size=232620 bytes
+[20/02/2026 21:44:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:24] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:29] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:33] CaptureScreen: Running. Current Frame size=232700 bytes
+[20/02/2026 21:44:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:34] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:39] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:43] CaptureScreen: Running. Current Frame size=227456 bytes
+[20/02/2026 21:44:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:44] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:49] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:44:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:54] Mire-Desk executable not found at any path.
+[20/02/2026 21:44:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:44:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:44:59] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:45:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:45:03] CaptureScreen: Running. Current Frame size=227412 bytes
+[20/02/2026 21:45:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:04] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:10] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:37] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:45:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:45:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:45:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:45:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:45:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:46:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:46:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:46:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:46:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:46:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:46:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:46:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:46:24] Mire-Desk executable not found at any path.
+[20/02/2026 21:46:40] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:46:40] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:46:40] Mire-Desk executable not found at any path.
+[20/02/2026 21:46:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:46:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:46:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:46:56] Mire-Desk executable not found at any path.
+[20/02/2026 21:46:56] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:46:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:46:56] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:01] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:06] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:06] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:06] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:11] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:16] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:16] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:16] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:21] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:23] CaptureScreen: Running. Current Frame size=230982 bytes
+[20/02/2026 21:47:26] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:26] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:26] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:31] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:36] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:36] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:36] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:41] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:46] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:51] Mire-Desk executable not found at any path.
+[20/02/2026 21:47:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:53] CaptureScreen: Running. Current Frame size=231000 bytes
+[20/02/2026 21:47:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:47:56] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:47:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:47:56] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:01] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:03] CaptureScreen: Running. Current Frame size=230979 bytes
+[20/02/2026 21:48:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:06] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:06] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:06] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:11] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:13] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:16] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:16] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:16] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:21] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:23] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:23] CaptureScreen: Running. Current Frame size=228655 bytes
+[20/02/2026 21:48:26] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:26] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:26] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:31] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:33] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:33] CaptureScreen: Running. Current Frame size=230000 bytes
+[20/02/2026 21:48:36] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:36] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:36] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:41] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:43] CaptureScreen: Running. Current Frame size=230036 bytes
+[20/02/2026 21:48:43] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:46] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:51] Mire-Desk executable not found at any path.
+[20/02/2026 21:48:53] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:48:56] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:48:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:48:56] Mire-Desk executable not found at any path.
+[20/02/2026 21:49:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:49:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:49:01] Mire-Desk executable not found at any path.
+[20/02/2026 21:49:03] CaptureScreen: Running. Current Frame size=232272 bytes
+[20/02/2026 21:49:03] CaptureScreen: Running. Current Frame size=15991 bytes
+[20/02/2026 21:49:06] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:49:06] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:49:06] Mire-Desk executable not found at any path.
+[20/02/2026 21:49:09] Worker Thread STOPPED
+[20/02/2026 21:50:12] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 21:50:12] Successfully launched Agent.
+[20/02/2026 21:50:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:12] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:12] ServiceWorker Created
+[20/02/2026 21:50:12] Worker Thread STARTING
+[20/02/2026 21:50:12] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 21:50:12] MJPEG Server active on port 9876
+[20/02/2026 21:50:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:17] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:23] CaptureScreen: Running. Current Frame size=232813 bytes
+[20/02/2026 21:50:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:27] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:32] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:33] CaptureScreen: Running. Current Frame size=226259 bytes
+[20/02/2026 21:50:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:37] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:42] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:47] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:52] Mire-Desk executable not found at any path.
+[20/02/2026 21:50:53] CaptureScreen: Running. Current Frame size=229723 bytes
+[20/02/2026 21:50:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:50:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:50:57] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:02] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:07] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:12] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:17] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:23] CaptureScreen: Running. Current Frame size=227886 bytes
+[20/02/2026 21:51:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:27] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:32] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:37] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:42] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:43] CaptureScreen: Running. Current Frame size=235516 bytes
+[20/02/2026 21:51:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:47] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:52] Mire-Desk executable not found at any path.
+[20/02/2026 21:51:53] CaptureScreen: Running. Current Frame size=232957 bytes
+[20/02/2026 21:51:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:51:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:51:57] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:02] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:03] CaptureScreen: Running. Current Frame size=232946 bytes
+[20/02/2026 21:52:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:07] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:12] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:17] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:27] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:32] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:33] CaptureScreen: Running. Current Frame size=224874 bytes
+[20/02/2026 21:52:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:37] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:42] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:47] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:52] Mire-Desk executable not found at any path.
+[20/02/2026 21:52:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:52:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:52:57] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:02] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:03] CaptureScreen: Running. Current Frame size=240016 bytes
+[20/02/2026 21:53:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:07] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:12] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:13] CaptureScreen: Running. Current Frame size=239473 bytes
+[20/02/2026 21:53:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:17] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:22] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:23] CaptureScreen: Running. Current Frame size=239483 bytes
+[20/02/2026 21:53:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:27] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:32] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:37] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:42] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:43] CaptureScreen: Running. Current Frame size=239473 bytes
+[20/02/2026 21:53:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:47] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:52] Mire-Desk executable not found at any path.
+[20/02/2026 21:53:53] CaptureScreen: Running. Current Frame size=219396 bytes
+[20/02/2026 21:53:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:53:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:53:57] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:02] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:03] CaptureScreen: Running. Current Frame size=225930 bytes
+[20/02/2026 21:54:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:07] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:12] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:13] CaptureScreen: Running. Current Frame size=227706 bytes
+[20/02/2026 21:54:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:17] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:23] CaptureScreen: Running. Current Frame size=221160 bytes
+[20/02/2026 21:54:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:33] CaptureScreen: Running. Current Frame size=220964 bytes
+[20/02/2026 21:54:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:43] CaptureScreen: Running. Current Frame size=207386 bytes
+[20/02/2026 21:54:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:54:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:54:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:54:58] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:03] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:08] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:13] CaptureScreen: Running. Current Frame size=207564 bytes
+[20/02/2026 21:55:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:18] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:33] CaptureScreen: Running. Current Frame size=203444 bytes
+[20/02/2026 21:55:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:43] CaptureScreen: Running. Current Frame size=202818 bytes
+[20/02/2026 21:55:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:55:53] CaptureScreen: Running. Current Frame size=236000 bytes
+[20/02/2026 21:55:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:55:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:55:58] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:03] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:08] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:13] CaptureScreen: Running. Current Frame size=170040 bytes
+[20/02/2026 21:56:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:18] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:33] CaptureScreen: Running. Current Frame size=134692 bytes
+[20/02/2026 21:56:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:43] CaptureScreen: Running. Current Frame size=227704 bytes
+[20/02/2026 21:56:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:56:53] CaptureScreen: Running. Current Frame size=227443 bytes
+[20/02/2026 21:56:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:56:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:56:58] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:03] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:03] CaptureScreen: Running. Current Frame size=227967 bytes
+[20/02/2026 21:57:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:08] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:13] CaptureScreen: Running. Current Frame size=228429 bytes
+[20/02/2026 21:57:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:18] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:23] CaptureScreen: Running. Current Frame size=228567 bytes
+[20/02/2026 21:57:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:57:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:57:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:57:58] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:03] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:03] CaptureScreen: Running. Current Frame size=217137 bytes
+[20/02/2026 21:58:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:08] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:13] CaptureScreen: Running. Current Frame size=225054 bytes
+[20/02/2026 21:58:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:18] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:33] CaptureScreen: Running. Current Frame size=223892 bytes
+[20/02/2026 21:58:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:43] CaptureScreen: Running. Current Frame size=225383 bytes
+[20/02/2026 21:58:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:58:53] CaptureScreen: Running. Current Frame size=225383 bytes
+[20/02/2026 21:58:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:58:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:58:58] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:03] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:03] CaptureScreen: Running. Current Frame size=225397 bytes
+[20/02/2026 21:59:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:08] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:13] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:18] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:23] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:28] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:33] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:38] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:43] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:48] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:53] Mire-Desk executable not found at any path.
+[20/02/2026 21:59:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 21:59:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 21:59:58] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:03] CaptureScreen: Running. Current Frame size=225485 bytes
+[20/02/2026 22:00:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:08] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:13] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:13] CaptureScreen: Running. Current Frame size=195064 bytes
+[20/02/2026 22:00:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:18] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:23] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:23] CaptureScreen: Running. Current Frame size=205163 bytes
+[20/02/2026 22:00:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:28] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:33] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:33] CaptureScreen: Running. Current Frame size=209790 bytes
+[20/02/2026 22:00:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:38] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:43] CaptureScreen: Running. Current Frame size=225546 bytes
+[20/02/2026 22:00:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:48] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:00:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:00:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:00:58] Mire-Desk executable not found at any path.
+[20/02/2026 22:01:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:01:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:01:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:01:03] CaptureScreen: Running. Current Frame size=47223 bytes
+[20/02/2026 22:35:41] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:35:41] Successfully launched Agent.
+[20/02/2026 22:35:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:41] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:41] ServiceWorker Created
+[20/02/2026 22:35:41] Worker Thread STARTING
+[20/02/2026 22:35:41] Agent started on desktop: winsta0\Default
+[20/02/2026 22:35:41] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:35:41] MJPEG Server active on port 9876
+[20/02/2026 22:35:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:43] CaptureScreen: Running. Current Frame size=227389 bytes
+[20/02/2026 22:35:45] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:45] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:45] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:47] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:48] Desktop change detected! (Old: winsta0\Default, New: winsta0\Winlogon). Halting for relaunch...
+[20/02/2026 22:35:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:49] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:51] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:55] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:55] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:55] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:57] Mire-Desk executable not found at any path.
+[20/02/2026 22:35:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:35:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:35:59] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:01] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:05] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:05] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:05] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:07] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:09] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:11] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:13] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:15] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:15] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:15] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:17] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:19] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:21] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:23] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:25] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:25] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:25] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:27] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:29] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:31] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:33] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:35] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:35] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:35] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:37] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:39] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:41] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:45] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:45] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:45] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:47] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:49] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:51] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:55] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:55] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:55] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:57] Mire-Desk executable not found at any path.
+[20/02/2026 22:36:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:36:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:36:59] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:01] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:05] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:05] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:05] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:07] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:09] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:11] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:13] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:15] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:15] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:15] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:17] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:19] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:21] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:23] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:25] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:25] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:25] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:27] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:37:27] Successfully launched Agent.
+[20/02/2026 22:37:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:27] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:27] ServiceWorker Created
+[20/02/2026 22:37:27] Worker Thread STARTING
+[20/02/2026 22:37:27] Agent started on desktop: winsta0\Default
+[20/02/2026 22:37:27] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:37:27] MJPEG Server active on port 9876
+[20/02/2026 22:37:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:29] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:31] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:33] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:33] CaptureScreen: Running. Current Frame size=222093 bytes
+[20/02/2026 22:37:35] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:35] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:35] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:37] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:39] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:41] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:43] CaptureScreen: Running. Current Frame size=221085 bytes
+[20/02/2026 22:37:45] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:45] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:45] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:47] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:49] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:51] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:53] CaptureScreen: Running. Current Frame size=219738 bytes
+[20/02/2026 22:37:55] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:55] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:55] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:57] Mire-Desk executable not found at any path.
+[20/02/2026 22:37:58] Desktop change detected! (Old: winsta0\Default, New: winsta0\Winlogon). Halting for relaunch...
+[20/02/2026 22:37:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:37:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:37:59] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:01] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:25] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:38:25] Successfully launched Agent.
+[20/02/2026 22:38:25] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:25] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:25] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:25] ServiceWorker Created
+[20/02/2026 22:38:25] Worker Thread STARTING
+[20/02/2026 22:38:25] Agent started on desktop: winsta0\Default
+[20/02/2026 22:38:25] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:38:25] MJPEG Server active on port 9876
+[20/02/2026 22:38:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:27] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:29] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:31] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:31] Desktop change detected! (Old: winsta0\Default, New: winsta0\Winlogon). Halting for relaunch...
+[20/02/2026 22:38:33] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:38:33] Successfully launched Agent.
+[20/02/2026 22:38:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:33] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:33] ServiceWorker Created
+[20/02/2026 22:38:33] Worker Thread STARTING
+[20/02/2026 22:38:33] Agent started on desktop: winsta0\Default
+[20/02/2026 22:38:33] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:38:33] MJPEG Server active on port 9876
+[20/02/2026 22:38:33] CaptureScreen: Running. Current Frame size=152196 bytes
+[20/02/2026 22:38:35] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:35] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:35] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:37] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:39] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:41] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:45] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:45] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:45] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:47] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:49] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:51] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:53] CaptureScreen: Running. Current Frame size=222530 bytes
+[20/02/2026 22:38:55] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:55] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:55] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:57] Mire-Desk executable not found at any path.
+[20/02/2026 22:38:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:38:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:38:59] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:01] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:03] CaptureScreen: Running. Current Frame size=222503 bytes
+[20/02/2026 22:39:05] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:05] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:05] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:07] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:09] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:11] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:13] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:13] CaptureScreen: Running. Current Frame size=221048 bytes
+[20/02/2026 22:39:15] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:15] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:15] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:17] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:19] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:21] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:23] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:23] CaptureScreen: Running. Current Frame size=224066 bytes
+[20/02/2026 22:39:25] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:25] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:25] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:27] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:29] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:29] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:29] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:31] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:31] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:31] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:33] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:33] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:33] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:33] CaptureScreen: Running. Current Frame size=221011 bytes
+[20/02/2026 22:39:35] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:35] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:35] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:37] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:37] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:37] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:39] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:41] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:43] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:43] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:43] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:43] CaptureScreen: Running. Current Frame size=223811 bytes
+[20/02/2026 22:39:45] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:45] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:45] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:47] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:47] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:47] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:49] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:49] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:49] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:51] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:51] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:51] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:53] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:53] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:53] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:55] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:55] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:55] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:57] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:57] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:57] Mire-Desk executable not found at any path.
+[20/02/2026 22:39:59] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:39:59] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:39:59] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:01] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:01] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:01] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:03] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:03] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:03] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:03] CaptureScreen: Running. Current Frame size=184870 bytes
+[20/02/2026 22:40:05] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:05] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:05] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:07] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:07] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:07] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:09] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:09] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:09] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:11] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:11] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:11] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:13] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:13] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:13] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:15] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:15] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:15] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:17] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:17] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:17] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:19] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:19] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:19] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:21] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:21] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:21] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:23] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:23] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:23] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:25] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:25] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:25] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:27] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:27] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:28] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:30] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:30] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:30] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:32] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:33] CaptureScreen: Running. Current Frame size=185452 bytes
+[20/02/2026 22:40:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:34] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:36] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:36] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:36] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:38] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:40] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:40] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:40] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:42] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:44] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:46] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:48] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:50] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:50] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:50] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:52] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:54] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:56] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:56] Mire-Desk executable not found at any path.
+[20/02/2026 22:40:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:40:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:40:58] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:00] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:00] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:00] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:02] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:04] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:06] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:06] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:06] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:08] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:10] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:10] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:10] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:12] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:14] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:16] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:16] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:16] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:18] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:20] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:20] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:20] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:22] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:23] CaptureScreen: Running. Current Frame size=188225 bytes
+[20/02/2026 22:41:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:24] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:26] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:26] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:26] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:28] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:30] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:30] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:30] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:32] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:33] CaptureScreen: Running. Current Frame size=185527 bytes
+[20/02/2026 22:41:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:34] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:36] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:36] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:36] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:38] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:40] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:40] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:40] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:42] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:43] CaptureScreen: Running. Current Frame size=185557 bytes
+[20/02/2026 22:41:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:44] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:46] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:48] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:48] Desktop change detected! (Old: winsta0\Default, New: winsta0\Winlogon). Halting for relaunch...
+[20/02/2026 22:41:50] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:41:50] Successfully launched Agent.
+[20/02/2026 22:41:50] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:50] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:50] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:50] ServiceWorker Created
+[20/02/2026 22:41:50] Worker Thread STARTING
+[20/02/2026 22:41:50] Agent started on desktop: winsta0\Winlogon
+[20/02/2026 22:41:50] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:41:50] MJPEG Server active on port 9876
+[20/02/2026 22:41:52] Desktop change detected! (Old: winsta0\Winlogon, New: winsta0\Default). Halting for relaunch...
+[20/02/2026 22:41:52] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 22:41:52] Successfully launched Agent.
+[20/02/2026 22:41:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 22:41:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 22:41:52] Mire-Desk executable not found at any path.
+[20/02/2026 22:41:52] Worker Thread STARTING
+[20/02/2026 22:41:52] Agent started on desktop: winsta0\Default
+[20/02/2026 22:41:52] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 22:41:52] MJPEG Server active on port 9876
+[20/02/2026 23:09:37] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 23:09:38] Successfully launched Agent.
+[20/02/2026 23:09:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:38] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:38] ServiceWorker Created
+[20/02/2026 23:09:38] Worker Thread STARTING
+[20/02/2026 23:09:38] Agent started on desktop: winsta0\Default
+[20/02/2026 23:09:38] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 23:09:38] MJPEG Server active on port 9876
+[20/02/2026 23:09:39] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:39] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:40] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:41] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:41] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:42] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:44] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:46] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:48] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:50] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:50] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:50] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:52] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:52] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:52] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:53] CaptureScreen: Running. Current Frame size=196783 bytes
+[20/02/2026 23:09:54] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:54] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:54] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:56] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:56] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:56] Mire-Desk executable not found at any path.
+[20/02/2026 23:09:58] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:09:58] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:09:58] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:00] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:00] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:00] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:02] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:02] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:02] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:03] CaptureScreen: Running. Current Frame size=196516 bytes
+[20/02/2026 23:10:04] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:04] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:04] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:06] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:06] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:06] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:08] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:08] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:08] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:10] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:10] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:10] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:12] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:12] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:12] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:14] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:14] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:14] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:16] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:16] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:16] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:18] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:18] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:18] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:20] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:20] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:20] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:22] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:22] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:22] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:23] CaptureScreen: Running. Current Frame size=209299 bytes
+[20/02/2026 23:10:24] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:24] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:24] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:26] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:26] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:26] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:28] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:28] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:28] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:30] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:30] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:30] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:32] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:32] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:32] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:33] CaptureScreen: Running. Current Frame size=210107 bytes
+[20/02/2026 23:10:34] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:34] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:34] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:36] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:36] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:36] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:38] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:38] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:38] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:40] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:40] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:40] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:42] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:42] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:42] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:44] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:44] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:44] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:46] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:46] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:46] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:47] Desktop change detected! (Old: winsta0\Default, New: winsta0\Winlogon). Halting for relaunch...
+[20/02/2026 23:10:48] Agent not running. Attempting to start from: D:\projetos\miredek\native_service\MireDeskAgent.exe
+[20/02/2026 23:10:48] Successfully launched Agent.
+[20/02/2026 23:10:48] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:48] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:48] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:48] ServiceWorker Created
+[20/02/2026 23:10:48] Worker Thread STARTING
+[20/02/2026 23:10:48] Agent started on desktop: winsta0\Winlogon
+[20/02/2026 23:10:48] Resources Initialized in Thread. Initial Frame Created.
+[20/02/2026 23:10:48] MJPEG Server active on port 9876
+[20/02/2026 23:10:50] Mire-Desk not running. Trying Primary Path: D:\projetos\Mire-Desk.exe
+[20/02/2026 23:10:50] Primary path not found. Trying Fallback Path: D:\Mire-Desk.exe
+[20/02/2026 23:10:50] Mire-Desk executable not found at any path.
+[20/02/2026 23:10:50] Desktop change detected! (Old: winsta0\Winlogon, New: winsta0\Default). Halting for relaunch...

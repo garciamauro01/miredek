@@ -36,37 +36,44 @@ export function useDeviceSources(
     // [FIX] Auto-select first source on mount
     useEffect(() => {
         const init = async () => {
-            if (window.electronAPI) {
-                const available = await window.electronAPI.getSources();
+            // Unificado: Sempre buscar do Agente Nativo, independente de ser Electron ou Browser
+            try {
+                const resp = await fetch('http://localhost:9876/monitors.json');
+                const agentMonitors = await resp.json();
+                console.log('[Host] Monitores reais encontrados via Agente:', agentMonitors);
 
-                // Add Native Options from Agent
-                try {
-                    const resp = await fetch('http://localhost:9876/monitors.json');
-                    const agentMonitors = await resp.json();
-                    console.log('[Host] Monitores nativos encontrados:', agentMonitors);
+                const nativeSources = agentMonitors.map((m: any) => ({
+                    id: `native-${m.id}`,
+                    name: `Monitor ${m.id + 1} (${m.width}x${m.height})`,
+                    thumbnail: null
+                }));
 
-                    const nativeSources = agentMonitors.map((m: any) => ({
-                        id: `native-${m.id}`,
-                        name: `Nativo: ${m.name} (${m.width}x${m.height})`,
-                        thumbnail: null
-                    }));
+                setSources(nativeSources);
 
-                    const allSources = [...nativeSources, ...available];
-                    setSources(allSources);
-
-                    if (allSources.length > 0) {
-                        selectSource(allSources[0].id);
-                    }
-                } catch (e) {
-                    console.warn('[Host] Agente Delphi não disponível para listar monitores.');
-                    const nativeSource = { id: 'native-service', name: 'MireDesk Native (Login Screen)', thumbnail: null };
-                    const allSources = [nativeSource, ...available];
-                    setSources(allSources);
-                    selectSource(available[0]?.id || 'native-service');
+                if (nativeSources.length > 0) {
+                    selectSource(nativeSources[0].id);
+                } else {
+                    console.warn('[Host] Nenhum monitor físico detectado pelo Agente.');
                 }
-            } else {
-                // Browser dev mode
-                selectSource('browser');
+            } catch (e) {
+                console.warn('[Host] Agente Delphi não disponível localmente para listar monitores. Usando fallback do Electron.');
+                if (window.electronAPI) {
+                    try {
+                        const electronSources = await window.electronAPI.getSources();
+                        console.log('[Host] Monitores encontrados via Electron:', electronSources);
+                        setSources(electronSources);
+                        if (electronSources.length > 0) {
+                            selectSource(electronSources[0].id);
+                        } else {
+                            console.warn('[Host] Nenhum monitor detectado pelo Electron.');
+                        }
+                    } catch (err) {
+                        console.error('[Host] Falha ao obter fontes do Electron:', err);
+                    }
+                } else {
+                    // Browser mode sem agente local (ex: acessando remoto)
+                    selectSource('browser');
+                }
             }
         };
         init();
@@ -82,7 +89,7 @@ export function useDeviceSources(
 
             if (sourceId.startsWith('native-')) {
                 const midStr = sourceId.replace('native-', '');
-                const monitorId = midStr === 'service' ? -1 : parseInt(midStr);
+                const monitorId = parseInt(midStr);
 
                 console.log('[Host] Iniciando captura NATIVA para monitor:', monitorId);
                 startNativeCapture(monitorId);

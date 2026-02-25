@@ -11,7 +11,8 @@ export function usePeerConnection(
     onShowRequest: () => void,
     onHandoverCheck?: (metadata: any) => boolean,
     customPeerId?: string,
-    onAutoAnswer?: (call: any) => void
+    onAutoAnswer?: (sessionId: string, call: any) => void,
+    sessionsRef?: React.MutableRefObject<Session[]>
 ) {
     const [myId, setMyId] = useState('');
     const [peerStatus, setPeerStatus] = useState<'online' | 'offline' | 'connecting'>('connecting');
@@ -94,13 +95,14 @@ export function usePeerConnection(
                     const existing = prev.find(s => s.remoteId === conn.peer);
                     const sessionId = existing ? existing.id : `session-${Date.now()}`;
                     if (existing) {
-                        return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated } : s);
+                        return prev.map(s => s.id === sessionId ? { ...s, dataConnection: conn, isIncoming: true, isAuthenticated: isHandover || s.isAuthenticated, metadata: conn.metadata } : s);
                     } else {
                         if (conn.metadata?.type === 'status-check') return prev;
 
                         console.log('[Peer] ✨ Criando nova sessão para:', conn.peer);
                         const newSession = createSession(sessionId, conn.peer, true);
                         newSession.dataConnection = conn;
+                        newSession.metadata = conn.metadata;
 
                         // [FIX] Handover Check for Data Connection
                         if (isHandover) {
@@ -121,37 +123,42 @@ export function usePeerConnection(
             peer.on('call', (call) => {
                 console.log('[Peer] Call Recebido de:', call.peer);
                 const isHandover = onHandoverCheck ? onHandoverCheck(call.metadata) : false;
+
+                // [FIX] Use sessionsRef for fresh state to avoid stale closure
+                const currentSessions = sessionsRef ? sessionsRef.current : [];
+                const existingFresh = currentSessions.find(s => s.remoteId === call.peer);
+                const shouldBeAuthFresh = isHandover || (existingFresh?.isAuthenticated ?? false);
+
+                console.log(`[Peer] Call de ${call.peer}. Fresh isAuthenticated: ${existingFresh?.isAuthenticated}, shouldBeAuth: ${shouldBeAuthFresh}, Handover: ${isHandover}`);
+
+                // Auto-answer BEFORE setState to avoid race
+                if (shouldBeAuthFresh && onAutoAnswer && existingFresh) {
+                    console.log(`[Peer] ⚡ Auto-atendendo call autenticado de ${call.peer} (sessionId: ${existingFresh.id})`);
+                    onAutoAnswer(existingFresh.id, call);
+                }
+
                 setSessions(prev => {
                     const existing = prev.find(s => s.remoteId === call.peer);
 
                     if (existing) {
-                        console.log(`[Peer] Atualizando sessão existente para call de ${call.peer}. Auth atual: ${existing.isAuthenticated}, Handover: ${isHandover}`);
-                        // Se já estava autenticado ou é handover, preserva ou seta isAuthenticated
-                        // E IMPORTANTE: Se é handover, NÃO reseta para "precisa de aceite"
                         const shouldBeAuth = isHandover || existing.isAuthenticated;
-
-                        // [FIX] Immediate Auto-Answer if authenticated
-                        if (shouldBeAuth && onAutoAnswer) {
-                            onAutoAnswer(call);
-                        }
-
                         return prev.map(s => s.id === existing.id ? {
                             ...s,
                             incomingCall: call,
                             isIncoming: true,
-                            isAuthenticated: shouldBeAuth
+                            isAuthenticated: shouldBeAuth,
+                            metadata: call.metadata
                         } : s);
                     }
 
                     console.log(`[Peer] Nova sessão via Call de ${call.peer}. Handover: ${isHandover}`);
-                    // Use ID based on remoteId to avoid duplicates if race condition
                     const sessionId = `session-${call.peer}`;
                     const newSession = createSession(sessionId, call.peer, true);
                     newSession.incomingCall = call;
+                    newSession.metadata = call.metadata;
                     if (isHandover) {
                         newSession.isAuthenticated = true;
-                        // [FIX] Immediate Auto-Answer
-                        if (onAutoAnswer) onAutoAnswer(call);
+                        if (onAutoAnswer) onAutoAnswer(sessionId, call);
                     }
 
                     if (!videoRefsMap.current.has(sessionId)) {

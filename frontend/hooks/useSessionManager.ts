@@ -41,55 +41,39 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         };
     }, [serverIp]);
 
-    const connectDataOnly = useCallback(async (sessionId: string, remoteId: string) => {
-        onLog(sessionId, `Iniciando handshake com: ${remoteId}`);
-        onSessionUpdate(sessionId, { isAuthenticating: true });
-
-        const uniquePeerId = `auth-${sessionId}-${Date.now()}`;
-        const peer = new Peer(uniquePeerId, getPeerConfig());
-        peersMap.current.set(sessionId, peer);
-
-        peer.on('open', () => {
-            onLog(sessionId, `Canal de dados aberto para autenticação`);
-            const conn = peer.connect(remoteId, { reliable: false });
-            conn.on('open', () => {
-                onSessionUpdate(sessionId, { dataConnection: conn });
-            });
-
-            conn.on('error', (err) => {
-                onLog(sessionId, `Erro no canal de dados: ${err}`);
-                onSessionUpdate(sessionId, { isAuthenticating: false });
-            });
-
-            conn.on('close', () => {
-                onLog(sessionId, 'Canal de dados fechado.');
-                onSessionClose?.(sessionId, 'Conexão de dados encerrada pelo peer remoto.');
-            });
-        });
-
-        peer.on('error', (err) => {
-            onLog(sessionId, `Erro no Peer de Auth: ${err.message}`);
-            onSessionUpdate(sessionId, { isAuthenticating: false });
-        });
-    }, [getPeerConfig, onLog, onSessionUpdate]);
-
-    const startVideoCall = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream) => {
+    const startVideoCall = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream, metadata?: any) => {
         const peer = peersMap.current.get(sessionId);
-        if (!peer) return;
+        if (!peer) {
+            onLog(sessionId, `Erro: Peer não encontrado para iniciar vídeo.`);
+            return;
+        }
 
         onLog(sessionId, `Iniciando transmissão de vídeo...`);
-        const call = peer.call(remoteId, localStream);
+        const call = peer.call(remoteId, localStream, { metadata });
         callsMap.current.set(sessionId, call);
 
         call.on('stream', (remoteStream: MediaStream) => {
-            onLog(sessionId, `Stream remoto recebido após AUTH!`);
+            onLog(sessionId, `Stream remoto recebido!`);
             streamsMap.current.set(sessionId, remoteStream);
             onSessionUpdate(sessionId, {
                 connected: true,
                 isConnecting: false,
                 isAuthenticating: false,
-                remoteStream
+                remoteStream,
+                status: 'connected'
             });
+
+            if (call.peerConnection) {
+                call.peerConnection.oniceconnectionstatechange = () => {
+                    const state = call.peerConnection.iceConnectionState;
+                    console.log(`[ICE-State] Session ${sessionId}: ${state}`);
+                    if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                        onSessionUpdate(sessionId, { status: 'disconnected' });
+                    } else if (state === 'connected' || state === 'completed') {
+                        onSessionUpdate(sessionId, { status: 'connected' });
+                    }
+                };
+            }
         });
 
         call.on('close', () => {
@@ -101,11 +85,10 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
             onLog(sessionId, `Erro na chamada: ${err}`);
             onSessionUpdate(sessionId, { connected: false, isConnecting: false });
         });
-    }, [onLog, onSessionUpdate]);
+    }, [onLog, onSessionUpdate, onSessionClose]);
 
-    const connectToRemote = useCallback(async (sessionId: string, remoteId: string, localStream: MediaStream, metadata?: any) => {
-        onLog(sessionId, `Conectando ao ID: ${remoteId}${metadata ? ' (Handover)' : ''}`);
-        if (metadata) console.log('[SessionManager] 🚀 METADATA Recebido em connectToRemote:', metadata);
+    const connectToRemote = useCallback(async (sessionId: string, remoteId: string, metadata?: any) => {
+        onLog(sessionId, `Iniciando conexão de dados com: ${remoteId}${metadata ? ' (Handover)' : ''}`);
         onSessionUpdate(sessionId, { isConnecting: true });
 
         const uniquePeerId = `${sessionId}-${Date.now()}`;
@@ -116,7 +99,6 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         const timeout = setTimeout(() => {
             if (!connectedFlag) {
                 onLog(sessionId, 'Tempo de conexão esgotado (30s). Cancelando tentativa.');
-                console.warn(`[SessionManager] Timeout de conexão para ${sessionId}. Destruindo peer.`);
                 onSessionUpdate(sessionId, { connected: false, isConnecting: false });
                 onSessionClose?.(sessionId, 'Não foi possível conectar: Tempo de conexão esgotado.');
                 peer.destroy();
@@ -124,65 +106,23 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         }, 30000);
 
         peer.on('open', () => {
-            onLog(sessionId, `Peer criado: ${uniquePeerId}`);
-            const call = peer.call(remoteId, localStream, { metadata });
+            onLog(sessionId, `Peer local pronto. Conectando canal de dados...`);
 
-            if (!call) {
-                console.error('[SessionManager] Falha ao criar chamada');
-                clearTimeout(timeout);
-                onSessionClose?.(sessionId, 'Erro ao iniciar chamada de vídeo.');
-                return;
-            }
+            const connectOptions: any = { reliable: false };
+            if (metadata) connectOptions.metadata = metadata;
 
-            callsMap.current.set(sessionId, call);
-
-            call.on('stream', (remoteStream: MediaStream) => {
-                connectedFlag = true;
-                clearTimeout(timeout);
-                streamsMap.current.set(sessionId, remoteStream);
-                console.log('[SessionManager] Stream de vídeo estabelecido. Autenticado?', metadata ? 'Sim (Handover)' : 'Não');
-                onSessionUpdate(sessionId, {
-                    connected: true,
-                    isConnecting: false,
-                    remoteStream,
-                    status: 'connected',
-                    isAuthenticated: !!metadata // [FIX] Assume autenticado se for handover e o stream abriu
-                });
-
-                if (call.peerConnection) {
-                    call.peerConnection.oniceconnectionstatechange = () => {
-                        const state = call.peerConnection.iceConnectionState;
-                        console.log(`[ICE-State] Session ${sessionId}: ${state}`);
-                        if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-                            onSessionUpdate(sessionId, { status: 'disconnected' });
-                        } else if (state === 'connected' || state === 'completed') {
-                            onSessionUpdate(sessionId, { status: 'connected' });
-                        }
-                    };
-                }
-            });
-
-            call.on('close', () => {
-                clearTimeout(timeout);
-                onLog(sessionId, 'Chamada de vídeo finalizada.');
-                onSessionClose?.(sessionId, 'Conexão de vídeo encerrada pelo peer remoto.');
-            });
-
-            call.on('error', (err) => {
-                clearTimeout(timeout);
-                onLog(sessionId, `Erro na chamada: ${err}`);
-                onSessionUpdate(sessionId, { connected: false, isConnecting: false });
-            });
-
-            const conn = peer.connect(remoteId, { reliable: false, metadata });
+            const conn = peer.connect(remoteId, connectOptions);
             conn.on('open', () => {
                 connectedFlag = true;
                 clearTimeout(timeout);
-                onSessionUpdate(sessionId, { dataConnection: conn });
+                onLog(sessionId, 'Canal de dados estabelecido.');
+                onSessionUpdate(sessionId, {
+                    dataConnection: conn,
+                    isConnecting: false,
+                    // isAuthenticating stays false until user submits password
+                });
 
-                // [FIX] Send HANDOVER_VALIDATION immediately if token is present
                 if (metadata?.handoverToken) {
-                    console.log(`[SessionManager] 🚀 Enviando validação de HANDOVER para ${sessionId}`);
                     conn.send({ type: 'HANDOVER_VALIDATION', token: metadata.handoverToken });
                 }
             });
@@ -191,6 +131,12 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
                 clearTimeout(timeout);
                 onLog(sessionId, 'Canal de dados fechado.');
                 onSessionClose?.(sessionId, 'Conexão de dados encerrada pelo peer remoto.');
+            });
+
+            conn.on('error', (err) => {
+                clearTimeout(timeout);
+                onLog(sessionId, `Erro no canal de dados: ${err}`);
+                onSessionUpdate(sessionId, { connected: false, isConnecting: false });
             });
         });
 
@@ -204,7 +150,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
             }
         });
 
-    }, [getPeerConfig, onLog, onSessionUpdate]);
+    }, [getPeerConfig, onLog, onSessionUpdate, onSessionClose]);
 
     const answerCall = useCallback(async (sessionId: string, call: any, localStream: MediaStream) => {
         onLog(sessionId, 'Respondendo chamada...');
@@ -243,7 +189,7 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         call.on('error', (err: any) => {
             onLog(sessionId, `Erro ao responder: ${err}`);
         });
-    }, [onLog, onSessionUpdate]);
+    }, [onLog, onSessionUpdate, onSessionClose]);
 
     const closeSession = useCallback((sessionId: string) => {
         const call = callsMap.current.get(sessionId);
@@ -273,13 +219,13 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
         const newVideoTrack = newStream.getVideoTracks()[0];
         if (!newVideoTrack) return;
 
-        callsMap.current.forEach((call, sessionId) => {
+        callsMap.current.forEach((call) => {
             if (call && call.peerConnection) {
                 const senders = call.peerConnection.getSenders();
                 const videoSender = senders.find((s: any) => s.track && s.track.kind === 'video');
                 if (videoSender) {
                     videoSender.replaceTrack(newVideoTrack).catch((err: any) => {
-                        console.error(`Erro ao trocar monitor para sessão ${sessionId}:`, err);
+                        console.error(`Erro ao trocar monitor:`, err);
                     });
                 }
             }
@@ -288,7 +234,6 @@ export function useSessionManager({ serverIp, onSessionUpdate, onSessionClose, o
 
     return {
         connectToRemote,
-        connectDataOnly,
         startVideoCall,
         answerCall,
         closeSession,

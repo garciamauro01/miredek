@@ -19,6 +19,11 @@ echo 1. Compilando Componentes Nativos (Delphi)...
 set "DCC_PATH=C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\dcc64.exe"
 
 if exist "!DCC_PATH!" (
+    echo [Build] Solicitando Administrador para parar servicos em execucao...
+    powershell -Command "Start-Process powershell -ArgumentList '-Command \"Stop-Service MireDeskService -Force -ErrorAction SilentlyContinue; Stop-Process -Name MireDeskService -Force -ErrorAction SilentlyContinue; Stop-Process -Name MireDeskAgent -Force -ErrorAction SilentlyContinue; Stop-Process -Name ''Mire-Desk'' -Force -ErrorAction SilentlyContinue\"' -Verb RunAs -Wait -WindowStyle Hidden"
+    :: Aguarda 2 segundos para o SO liberar os arquivos
+    timeout /t 2 /nobreak >nul
+
     echo [Build] Compilando MireDeskService...
     "!DCC_PATH!" -Q -B -E"native_service" "native_service\MireDeskService.dpr"
     if errorlevel 1 (

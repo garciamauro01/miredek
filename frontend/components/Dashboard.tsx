@@ -278,6 +278,7 @@ export function Dashboard({
                                 placeholder="Insira o ID da mesa remota..."
                                 className="remote-id-input"
                             />
+                            <Monitor size={20} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                         </div>
                         <button onClick={onConnect} className="connect-btn">
                             Conectar

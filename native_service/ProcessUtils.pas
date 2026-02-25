@@ -8,6 +8,7 @@ uses
 function LaunchProcessAsUser(const ExecutablePath: string; SessionID: DWORD): Boolean;
 function LaunchProcessAsSystemInSession(const ExecutablePath: string; SessionID: DWORD): Boolean;
 function GetActiveSessionID: DWORD;
+function GetActiveDesktopName: string;
 function IsProcessRunning(const ExecutableName: string): Boolean;
 function SwitchToActiveDesktop: Boolean;
 
@@ -22,6 +23,12 @@ function WTSQueryUserToken(SessionId: ULONG; var phToken: THandle): BOOL; stdcal
 
 function WTSGetActiveConsoleSessionId: DWORD; stdcall;
   external 'kernel32.dll' name 'WTSGetActiveConsoleSessionId';
+
+const
+  UOI_NAME = 2;
+
+function GetUserObjectInformation(hObj: THandle; nIndex: Integer; pvInfo: Pointer; nLength: DWORD; lpnLengthNeeded: PDWORD): BOOL; stdcall;
+  external 'user32.dll' name 'GetUserObjectInformationW';
 
 function GetActiveSessionID: DWORD;
 begin
@@ -84,11 +91,37 @@ begin
   end;
 end;
 
+function GetActiveDesktopName: string;
+var
+  hDesk: THandle;
+  NameLen: DWORD;
+  PName: PChar;
+begin
+  Result := 'winsta0\default'; // fallback
+  hDesk := OpenInputDesktop(0, False, MAXIMUM_ALLOWED);
+  if hDesk <> 0 then
+  begin
+    GetUserObjectInformation(hDesk, UOI_NAME, nil, 0, @NameLen);
+    if NameLen > 0 then
+    begin
+      GetMem(PName, NameLen);
+      try
+        if GetUserObjectInformation(hDesk, UOI_NAME, PName, NameLen, @NameLen) then
+          Result := 'winsta0\' + string(PName);
+      finally
+        FreeMem(PName);
+      end;
+    end;
+    CloseDesktop(hDesk);
+  end;
+end;
+
 function LaunchProcessAsSystemInSession(const ExecutablePath: string; SessionID: DWORD): Boolean;
 var
   hToken, hPrimary: THandle;
   si: TStartupInfo;
   pi: TProcessInformation;
+  ActiveDesk: string;
 begin
   Result := False;
   // This is called from a Service (Session 0). 
@@ -106,9 +139,11 @@ begin
       if not SetTokenInformation(hPrimary, TokenSessionId, @SessionID, SizeOf(DWORD)) then
         Exit;
 
+      ActiveDesk := GetActiveDesktopName;
+
       FillChar(si, SizeOf(si), 0);
       si.cb := SizeOf(si);
-      si.lpDesktop := PChar('winsta0\default');
+      si.lpDesktop := PChar(ActiveDesk);
 
       if CreateProcessAsUser(hPrimary,
                              nil,

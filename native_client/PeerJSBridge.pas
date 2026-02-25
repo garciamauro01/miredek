@@ -9,11 +9,11 @@ uses
 type
   { Event types for communication back to the UI }
   TPeerOpenEvent = procedure(Sender: TObject; const PeerID: string) of object;
-  TPeerConnectionEvent = procedure(Sender: TObject; const RemoteID: string) of object;
+  TPeerConnectionEvent = procedure(Sender: TObject; const RemoteID: string; Metadata: TJSONObject) of object;
   TPeerConnOpenEvent = procedure(Sender: TObject; const RemoteID: string) of object;
   TPeerConnCloseEvent = procedure(Sender: TObject; const RemoteID: string) of object;
   TPeerDataEvent = procedure(Sender: TObject; const RemoteID: string; Data: TJSONValue) of object;
-  TPeerVideoEvent = procedure(Sender: TObject; const RemoteID: string) of object;
+  TPeerVideoEvent = procedure(Sender: TObject; const RemoteID: string; Metadata: TJSONObject) of object;
   TPeerErrorEvent = procedure(Sender: TObject; const ErrorMsg: string) of object;
   TPeerLogEvent = procedure(Sender: TObject; const Msg: string) of object;
   TPeerOnlineStatusEvent = procedure(Sender: TObject; const RemoteID: string; IsOnline: Boolean) of object;
@@ -101,7 +101,8 @@ begin
       end
       else if MsgType = 'PEER_CONNECTION' then
       begin
-        if Assigned(FOnPeerConnection) then FOnPeerConnection(Self, DataObj.GetValue<string>('remoteId'));
+        if Assigned(FOnPeerConnection) then 
+          FOnPeerConnection(Self, DataObj.GetValue<string>('remoteId'), DataObj.GetValue<TJSONObject>('metadata'));
       end
       else if MsgType = 'CONN_OPEN' then
       begin
@@ -116,9 +117,10 @@ begin
         if Assigned(FOnDataReceived) then
           FOnDataReceived(Self, DataObj.GetValue<string>('remoteId'), DataObj.GetValue('payload'));
       end
-      else if MsgType = 'VIDEO_STREAM_STARTED' then
+      else if MsgType = 'VIDEO_CALL_RECEIVED' then
       begin
-        if Assigned(FOnVideoStarted) then FOnVideoStarted(Self, DataObj.GetValue<string>('remoteId'));
+        if Assigned(FOnVideoStarted) then 
+          FOnVideoStarted(Self, DataObj.GetValue<string>('remoteId'), DataObj.GetValue<TJSONObject>('metadata'));
       end
       else if MsgType = 'PEER_ERROR' then
       begin

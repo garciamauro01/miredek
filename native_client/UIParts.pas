@@ -30,9 +30,10 @@ type
     class procedure DrawToolbarButton(const ACanvas: ISkCanvas; const ARect: TRectF; const ASVGIcon: string; AIsHovered, AIsActive: Boolean);
     class procedure DrawSettingsModal(const ACanvas: ISkCanvas; const ARect: TRectF; const ACurrentIP: string; AIsBtnHovered: Boolean);
     // Multi-Tab UI Helpers
-    class procedure DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF);
+    class procedure DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF; ATheme: TAppTheme);
+    class procedure DrawThemeToggle(const ACanvas: ISkCanvas; const ARect: TRectF; ATheme: TAppTheme; AIsHovered: Boolean);
     class procedure DrawTab(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string; AIsActive, AHasClose: Boolean);
-    class procedure DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor);
+    class procedure DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor; AStrokeWidth: Single = 0);
   end;
 
 
@@ -153,7 +154,7 @@ begin
     DrawSVGIcon(ACanvas, iconStar, IconRect, $30FFFFFF);
 
   // Status with Dynamic Pulse
-  if AIsOnline then StatusColor := skSuccess else StatusColor := skDanger;
+  if AIsOnline then StatusColor := skSuccess else StatusColor := skTextSecondary; // Grey if offline
   
   var FooterCenterY: Single := ARect.Top + (ARect.Height * 0.6) + (ARect.Height * 0.2); // Center of bottom 40%
   
@@ -163,7 +164,7 @@ begin
   DrawLabel(ACanvas, RectF(ARect.Left + 42, FooterCenterY - 10, ARect.Right - 10, FooterCenterY + 10), DisplayTitle, 13, skTextMain, True);
 end;
 
-class procedure TSkUIDrawer.DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor);
+class procedure TSkUIDrawer.DrawSVGIcon(const ACanvas: ISkCanvas; const ASVGPath: string; const ARect: TRectF; AColor: TAlphaColor; AStrokeWidth: Single = 0);
 var
   LPath: ISkPath;
   LPaint: ISkPaint;
@@ -177,21 +178,24 @@ begin
   LBounds := LPath.GetBounds;
   if (LBounds.Width = 0) or (LBounds.Height = 0) then Exit;
 
-  // Calculate scaling to fit ARect
   ScaleX := ARect.Width / LBounds.Width;
   ScaleY := ARect.Height / LBounds.Height;
   
-  // Maintain Aspect Ratio? Usually icons are square 24x24 so simple scaling is fine.
-  
-  LMatrix := TMatrix.CreateTranslation(-LBounds.Left, -LBounds.Top); // Move to 0,0
-  LMatrix := LMatrix * TMatrix.CreateScaling(ScaleX, ScaleY); // Scale
-  LMatrix := LMatrix * TMatrix.CreateTranslation(ARect.Left, ARect.Top); // Move to Dest
+  LMatrix := TMatrix.CreateTranslation(-LBounds.Left, -LBounds.Top); 
+  LMatrix := LMatrix * TMatrix.CreateScaling(ScaleX, ScaleY); 
+  LMatrix := LMatrix * TMatrix.CreateTranslation(ARect.Left, ARect.Top); 
   
   LPath.Transform(LMatrix);
   
   LPaint := TSkPaint.Create;
   LPaint.Color := AColor;
   LPaint.AntiAlias := True;
+  
+  if AStrokeWidth > 0 then
+  begin
+    LPaint.Style := TSkPaintStyle.Stroke;
+    LPaint.StrokeWidth := AStrokeWidth;
+  end;
   
   ACanvas.DrawPath(LPath, LPaint);
 end;
@@ -349,13 +353,38 @@ begin
   ACanvas.DrawCircle(ACenter.X, ACenter.Y, 3.5, LPaint);
 end;
 
-class procedure TSkUIDrawer.DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF);
+class procedure TSkUIDrawer.DrawTopTabBar(const ACanvas: ISkCanvas; const ARect: TRectF; ATheme: TAppTheme);
 var
   LPaint: ISkPaint;
 begin
   LPaint := TSkPaint.Create;
-  LPaint.Color := TAlphaColor(skSecondary); 
+  if ATheme = ttDark then
+    LPaint.Color := skBackground
+  else
+    LPaint.Color := skSidebarBG; 
+    
   ACanvas.DrawRect(ARect, LPaint);
+  
+  // Bottom border
+  LPaint.Color := skBorder;
+  ACanvas.DrawLine(ARect.Left, ARect.Bottom, ARect.Right, ARect.Bottom, LPaint);
+end;
+
+class procedure TSkUIDrawer.DrawThemeToggle(const ACanvas: ISkCanvas; const ARect: TRectF; ATheme: TAppTheme; AIsHovered: Boolean);
+var
+  LPaint: ISkPaint;
+begin
+  if AIsHovered then
+  begin
+    LPaint := TSkPaint.Create;
+    LPaint.Color := skCardSecondaryBG;
+    ACanvas.DrawRoundRect(ARect, 6, 6, LPaint);
+  end;
+
+  if ATheme = ttLight then
+    DrawSVGIcon(ACanvas, iconMoon, RectF(ARect.Left + 6, ARect.Top + 6, ARect.Right - 6, ARect.Bottom - 6), skTextMain, 2)
+  else
+    DrawSVGIcon(ACanvas, iconSun, RectF(ARect.Left + 6, ARect.Top + 6, ARect.Right - 6, ARect.Bottom - 6), skTextMain, 2);
 end;
 
 class procedure TSkUIDrawer.DrawTab(const ACanvas: ISkCanvas; const ARect: TRectF; const ATitle: string; AIsActive, AHasClose: Boolean);

@@ -18,13 +18,12 @@ interface UseRemoteSessionProps {
     currentSourceId: string;
     selectSource: (sourceId: string) => Promise<void>;
     onFileMessage: (data: any) => void;
-    disableAutoReconnect?: boolean;
 }
 
 export function useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword, localStream, sources, currentSourceId,
-    selectSource, onFileMessage, disableAutoReconnect
+    selectSource, onFileMessage
 }: UseRemoteSessionProps) {
 
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -39,7 +38,6 @@ export function useRemoteSession({
     const unattendedPasswordRef = useRef(unattendedPassword);
     const activeSessionIdRef = useRef(activeSessionId);
     const pendingSessionIdRef = useRef(pendingSessionId);
-    const hasAttemptedStartupReconnect = useRef(false);
 
     const videoRefsMap = useRef<Map<string, { remote: React.RefObject<HTMLVideoElement | null> }>>(new Map());
     const answeredCallsRef = useRef<Set<string>>(new Set());
@@ -164,15 +162,6 @@ export function useRemoteSession({
             }
         };
 
-        const autoAuthenticateIfNoPassword = () => {
-            // [FIX] Auto-authenticate incoming sessions when no password is configured
-            if (isIncoming && !sessionPasswordRef.current && !unattendedPasswordRef.current) {
-                setSessions(prev => prev.map(s =>
-                    s.id === sessionId ? { ...s, isAuthenticated: true } : s
-                ));
-                console.log(`[useRemoteSession] Auto-autenticando sessão ${sessionId} (sem senha configurada)`);
-            }
-        };
 
 
         const triggerAutoAuth = () => {
@@ -186,8 +175,8 @@ export function useRemoteSession({
             });
         };
 
-        if (conn.open) { sendSourcesList(); autoAuthenticateIfNoPassword(); triggerAutoAuth(); }
-        else conn.on('open', () => { sendSourcesList(); autoAuthenticateIfNoPassword(); triggerAutoAuth(); });
+        if (conn.open) { sendSourcesList(); triggerAutoAuth(); }
+        else conn.on('open', () => { sendSourcesList(); triggerAutoAuth(); });
 
         conn.on('data', async (data: any) => {
             if (!data) return;
@@ -227,7 +216,7 @@ export function useRemoteSession({
 
             if (data.type === 'CHAT_MESSAGE') {
                 const sRef = sessionsRef.current.find(x => x.id === sessionId);
-                if (sRef?.isIncoming) {
+                if (sRef?.isIncoming && window.electronAPI) {
                     window.electronAPI.openChatWindow(sessionId, sRef.remoteId);
                     window.electronAPI.notifyChatMessageReceived(sessionId, { sender: 'remote', text: data.text, timestamp: data.timestamp });
                 }
@@ -261,12 +250,11 @@ export function useRemoteSession({
             // [FIX] Fallback validation for detached windows
             if (data.type === 'HANDOVER_VALIDATION' && data.token) {
                 console.log(`[Handover] 📩 Validação recebida de ${sessionId}:`, data.token);
-                // Check logic similar to App.tsx onHandoverCheck
                 const isValid = handoverTokensRef.current.has(data.token);
+
                 if (isValid) {
-                    console.log(`[Handover] ✅ Token validado com sucesso via mensagem.`);
-                } else {
-                    console.warn(`[Handover] ⚠️ Token não encontrado em handoverTokensRef, mas aceitando (fallback permissivo).`);
+                    console.log(`[Handover] ✅ Token validado com sucesso. Enviando AUTH_STATUS OK.`);
+                    conn.send({ type: 'AUTH_STATUS', status: 'OK' });
                 }
 
                 setSessions(prev => prev.map(s => s.id === sessionId ? {
@@ -287,7 +275,9 @@ export function useRemoteSession({
             if (currentSession?.isIncoming) {
                 // HOST LOGIC (Apenas processamento de estado aqui)
                 if (data.type === 'AUTH') {
-                    const isCorrect = data.password === sessionPasswordRef.current ||
+                    const noPasswordConfigured = !sessionPasswordRef.current && !unattendedPasswordRef.current;
+                    const isCorrect = noPasswordConfigured ||
+                        data.password === sessionPasswordRef.current ||
                         (unattendedPasswordRef.current && data.password === unattendedPasswordRef.current);
                     conn.send({ type: 'AUTH_STATUS', status: isCorrect ? 'OK' : 'FAIL' });
 
@@ -308,6 +298,7 @@ export function useRemoteSession({
                 // CLIENT LOGIC
                 if (data.type === 'AUTH_STATUS') {
                     if (data.status === 'OK') {
+                        console.log(`[Client] Autenticação confirmada para ${sessionId}. Iniciando Vídeo...`);
                         const savedPw = currentSession?.pendingPassword;
                         const shouldRemember = currentSession?.shouldRememberPassword;
 
@@ -318,7 +309,13 @@ export function useRemoteSession({
                                 return upd;
                             });
                         }
+
                         setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isAuthenticated: true, isAuthenticating: false, status: 'connected' } : s));
+
+                        // INICIA VÍDEO AGORA
+                        if (localStream && sessionManager) {
+                            sessionManager.startVideoCall(sessionId, currentSession!.remoteId, localStream, currentSession?.metadata);
+                        }
                     } else {
                         // SET ERROR INSTEAD OF BLOCKING ALERT
                         setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, isAuthenticating: false, status: 'disconnected', authError: 'Senha incorreta. Verifique e tente novamente.' } : s));
@@ -392,6 +389,7 @@ export function useRemoteSession({
         const savedPw = contacts.find(c => c.id === remoteId)?.savedPassword;
 
         const newSession = createSession(sessionId, remoteId, false);
+        newSession.metadata = metadata;
         newSession.pendingPassword = savedPw;
         newSession.shouldRememberPassword = !!savedPw;
         newSession.isConnecting = true;
@@ -403,22 +401,9 @@ export function useRemoteSession({
 
         setSessions(prev => [...prev, newSession]);
 
-        if (localStream) {
-            console.log('[Client] Iniciando chamada de vídeo para:', remoteId, 'Metadata:', metadata);
-            sessionManager.connectToRemote(sessionId, remoteId, localStream, metadata);
-        } else {
-            console.warn('[Client] AVISO: localStream é NULL. Criando stream vazio para permitir conexão de dados/handover.');
-            // [FIX] Create a dummy stream (black video, silent audio) to satisfy peer.call requirements
-            const canvas = document.createElement('canvas');
-            canvas.width = 1; canvas.height = 1;
-            const stream = canvas.captureStream(1);
-            const audioCtx = new AudioContext();
-            const dest = audioCtx.createMediaStreamDestination();
-            const track = dest.stream.getAudioTracks()[0];
-            stream.addTrack(track);
+        console.log('[Client] Iniciando conexão de DADOS para:', remoteId);
+        sessionManager.connectToRemote(sessionId, remoteId, metadata);
 
-            sessionManager.connectToRemote(sessionId, remoteId, stream, metadata);
-        }
         setPendingSessionId(sessionId);
 
         // Update recents
@@ -440,6 +425,8 @@ export function useRemoteSession({
     }, [contacts, localStream, sessionManager, setContacts, setRecentSessions]);
 
     useEffect(() => {
+        if (!window.electronAPI) return;
+
         const removeListener = window.electronAPI.onChatMessageOutgoing((sessionId: string, message: any) => {
             const session = sessionsRef.current.find(s => s.id === sessionId);
             if (session?.dataConnection?.open) {
@@ -518,7 +505,8 @@ export function useRemoteSession({
         return () => clearInterval(reconnectInterval);
     }, [localStream]);
 
-    // 3. Auto-Reconnect on Startup
+    // 3. Auto-Reconnect on Startup (DISABLED to avoid unexpected connections)
+    /*
     useEffect(() => {
         if (hasAttemptedStartupReconnect.current || disableAutoReconnect) return;
 
@@ -532,6 +520,7 @@ export function useRemoteSession({
             }, 2000);
         }
     }, [connectTo, sessions.length]);
+    */
 
     return {
         sessions, setSessions,
@@ -544,6 +533,7 @@ export function useRemoteSession({
         setupDataListeners,
         sendMessage,
         toggleChat,
-        handoverTokensRef
+        handoverTokensRef,
+        sessionsRef
     };
 }

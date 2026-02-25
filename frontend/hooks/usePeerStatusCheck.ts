@@ -75,6 +75,13 @@ export function usePeerStatusCheck(
                 return;
             }
 
+            // [FIX] Disable WebRTC probing for 'cloud' server to avoid "firing connections to other hosts"
+            if (!serverIp || serverIp === 'cloud' || serverIp === '167.234.241.147') {
+                console.log('[StatusCheck] WebRTC probing disabled for cloud server to avoid unexpected outgoing connections.');
+                checkingRef.current = false;
+                return;
+            }
+
             console.warn('[StatusCheck] Falling back to WebRTC probing loop!');
             for (const peerId of peerIds) {
                 try {

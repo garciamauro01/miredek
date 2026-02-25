@@ -58,5 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // --- SERVICE MANAGEMENT ---
     installService: () => ipcRenderer.invoke('install-service'),
     uninstallService: () => ipcRenderer.invoke('uninstall-service'),
-    getServiceStatus: () => ipcRenderer.invoke('get-service-status')
+    getServiceStatus: () => ipcRenderer.invoke('get-service-status'),
+    // --- SHARED STORAGE ---
+    loadSharedStorage: () => ipcRenderer.invoke('load-shared-storage'),
+    saveSharedStorage: (data: any) => ipcRenderer.invoke('save-shared-storage', data)
 });

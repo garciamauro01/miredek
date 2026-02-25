@@ -1,0 +1,100 @@
+﻿[20/02/2026, 19:54:06] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 19:54:06] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 19:54:06] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 19:54:07] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 19:54:08] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 19:54:08] [Main] Janela mostrada
+[20/02/2026, 19:54:11] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 19:54:11] [Main] Janela mostrada
+[20/02/2026, 19:54:11] Nova senha de sessÃ£o gerada.
+[20/02/2026, 19:54:12] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 19:55:07] [Main] Janela mostrada
+[20/02/2026, 19:55:08] Auto-atendendo chamada de session-1771628103159-1771628103220
+[20/02/2026, 19:55:08] [App] Auto-atendendo sessÃ£o autenticada (Handover): session-1771628103159-1771628103220
+[20/02/2026, 20:35:37] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 20:35:37] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 20:35:37] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 20:35:37] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 20:35:39] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 20:35:40] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 20:35:40] [Main] Janela mostrada
+[20/02/2026, 20:35:43] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 20:35:43] [Main] Janela mostrada
+[20/02/2026, 20:35:44] Nova senha de sessÃ£o gerada.
+[20/02/2026, 20:35:44] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 21:10:49] [Main] Janela ocultada
+[20/02/2026, 21:11:59] [Main] Janela mostrada
+[20/02/2026, 21:13:41] [Main] Janela mostrada
+[20/02/2026, 22:09:33] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 22:09:33] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 22:09:33] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 22:09:33] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:09:34] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 22:09:34] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:09:34] [Main] Janela mostrada
+[20/02/2026, 22:09:36] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:09:36] [Main] Janela mostrada
+[20/02/2026, 22:09:36] Nova senha de sessÃ£o gerada.
+[20/02/2026, 22:09:36] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:19:19] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 22:19:19] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 22:19:19] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 22:19:19] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:19:19] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 22:19:20] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:19:20] [Main] Janela mostrada
+[20/02/2026, 22:19:22] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:19:22] [Main] Janela mostrada
+[20/02/2026, 22:19:22] Nova senha de sessÃ£o gerada.
+[20/02/2026, 22:19:22] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:23:42] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 22:23:42] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 22:23:42] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 22:23:42] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:23:42] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 22:23:43] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:23:43] [Main] Janela mostrada
+[20/02/2026, 22:23:44] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:23:44] [Main] Janela mostrada
+[20/02/2026, 22:23:44] Nova senha de sessÃ£o gerada.
+[20/02/2026, 22:23:44] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:50:52] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 22:50:52] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 22:50:52] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 22:50:52] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:50:53] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 22:50:53] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:50:53] [Main] Janela mostrada
+[20/02/2026, 22:50:55] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 22:50:55] [Main] Janela mostrada
+[20/02/2026, 22:50:55] Nova senha de sessÃ£o gerada.
+[20/02/2026, 22:50:55] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 22:51:14] [Main] Janela maximizada
+[20/02/2026, 23:00:51] Nova senha de sessÃ£o gerada.
+[20/02/2026, 23:00:52] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 23:03:06] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 23:03:06] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 23:03:06] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 23:03:06] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 23:03:06] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 23:03:07] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 23:03:07] [Main] Janela mostrada
+[20/02/2026, 23:03:08] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 23:03:08] [Main] Janela mostrada
+[20/02/2026, 23:03:09] Nova senha de sessÃ£o gerada.
+[20/02/2026, 23:03:09] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 23:04:47] [Main] Janela maximizada
+[20/02/2026, 23:05:22] [Main] Janela ocultada
+[20/02/2026, 23:20:34] [Input] RobotJS carregado com sucesso (2560x1080).
+[20/02/2026, 23:20:34] [Main] === INICIANDO APP (Packaged: false) ===
+[20/02/2026, 23:20:34] [Main] ExecutÃ¡vel: D:\projetos\miredek\node_modules\electron\dist\electron.exe
+[20/02/2026, 23:20:34] [Main] Argumentos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 23:20:34] [Main] RobotJS (@jitsi/robotjs) disponÃ­vel: true
+[20/02/2026, 23:20:35] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 23:20:35] [Main] Janela mostrada
+[20/02/2026, 23:20:36] [Main] Janela pronta. Modos: --hidden=false, --service=false
+[20/02/2026, 23:20:36] [Main] Janela mostrada
+[20/02/2026, 23:20:36] Nova senha de sessÃ£o gerada.
+[20/02/2026, 23:20:37] Argumentos recebidos: D:\projetos\miredek\node_modules\electron\dist\electron.exe . --no-sandbox
+[20/02/2026, 23:21:08] [Main] Janela maximizada
+[21/02/2026, 10:56:01] [Main] Janela ocultada

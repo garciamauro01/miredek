@@ -18,14 +18,58 @@ try {
 }
 
 export function setupInputHandlers() {
-    ipcMain.on('execute-input', (event, data) => {
-        if (!robot) return;
+    ipcMain.on('execute-input', async (event, data) => {
+        if (!robot && !process.argv.includes('--service')) return;
 
         try {
             const { type } = data;
             const primaryDisplay = screen.getPrimaryDisplay();
             const bounds = data.activeSourceBounds || primaryDisplay.bounds;
 
+            const isService = process.argv.includes('--service');
+
+            const forwardToNativeAgent = async () => {
+                const params = new URLSearchParams();
+                params.append('type', type);
+
+                if (type === 'mousemove' || type === 'mousedown' || type === 'mouseup') {
+                    const x = Math.round(bounds.x + (data.x * bounds.width));
+                    const y = Math.round(bounds.y + (data.y * bounds.height));
+                    params.append('x', x.toString());
+                    params.append('y', y.toString());
+                    if (data.button !== undefined) {
+                        const btnMap: any = { 'left': 0, 'middle': 1, 'right': 2 };
+                        params.append('button', btnMap[data.button]?.toString() || '0');
+                    }
+                } else if (type === 'mousewheel') {
+                    params.append('deltaY', data.deltaY.toString());
+                } else if (type === 'keydown' || type === 'keyup') {
+                    const vk = data.keyCode || 0;
+                    if (vk > 0) params.append('key', vk.toString());
+                    else return false; // Don't try if no VK
+                }
+
+                try {
+                    const res = await fetch(`http://localhost:9876/input?${params.toString()}`, { signal: AbortSignal.timeout(500) });
+                    return res.ok;
+                } catch (err) {
+                    return false;
+                }
+            };
+
+            if (isService) {
+                await forwardToNativeAgent();
+                return;
+            }
+
+            // Performance: For mousemove in non-service mode, we prefer robotjs for low latency
+            // but for clicks and keys, we try the Agent first to support UAC prompts.
+            if (type !== 'mousemove') {
+                const handled = await forwardToNativeAgent();
+                if (handled) return;
+            }
+
+            // --- Standard RobotJS logic (User mode) ---
             switch (type) {
                 case 'mousemove':
                     const x = Math.round(bounds.x + (data.x * bounds.width));
@@ -83,28 +127,17 @@ export function setupInputHandlers() {
                     break;
 
                 case 'mousewheel': {
-                    // Scroll do mouse (roda)
-                    // deltaY > 0 = scroll para baixo, deltaY < 0 = scroll para cima
-                    // deltaX > 0 = scroll para direita, deltaX < 0 = scroll para esquerda
                     try {
                         const rawDeltaY = data.deltaY;
-                        const scrollAmount = Math.round(data.deltaY / 2); // Ajustar sensibilidade (Menor divisor = Mais rápido)
-                        const direction = scrollAmount > 0 ? 'down' : 'up';
+                        const scrollAmount = Math.round(data.deltaY / 2);
                         const magnitude = Math.abs(scrollAmount);
 
-                        if (magnitude === 0) {
-                            // [FIX] Força scroll mínimo de 1 se houver movimento (para touchpads precisos)
-                            if (Math.abs(rawDeltaY) > 0) {
-                                const minScroll = rawDeltaY > 0 ? 1 : -1;
-                                robot.scrollMouse(0, minScroll > 0 ? 1 : -1);
-                                break;
-                            }
+                        if (magnitude === 0 && Math.abs(rawDeltaY) > 0) {
+                            robot.scrollMouse(0, rawDeltaY > 0 ? 1 : -1);
+                            break;
                         }
 
-                        // robotjs.scrollMouse(x, y) onde y é a quantidade de scroll vertical
                         robot.scrollMouse(0, scrollAmount > 0 ? magnitude : -magnitude);
-
-                        logToFile(`[Input] Scroll ${direction} magnitude: ${magnitude}`);
                     } catch (err) {
                         console.error('Erro ao executar scroll:', err);
                     }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus, Maximize, Shrink, StretchHorizontal, ExternalLink } from 'lucide-react';
+import { Minus, Square, X, ShieldCheck, Zap, Monitor, MessageSquare, Lock, Home, Plus, Maximize, Shrink, StretchHorizontal, ExternalLink, Sun, Moon } from 'lucide-react';
 
 interface Tab {
     id: string;
@@ -36,6 +36,9 @@ interface CustomTitleBarProps {
     currentViewMode?: 'fit' | 'original' | 'stretch';
     onViewModeSelect?: (mode: 'fit' | 'original' | 'stretch') => void;
     onTabDetach?: (id: string, remoteId: string) => void;
+    // Theme
+    theme?: 'light' | 'dark';
+    onThemeToggle?: () => void;
 }
 
 export function CustomTitleBar({
@@ -58,7 +61,9 @@ export function CustomTitleBar({
     onNewTab,
     currentViewMode = 'fit',
     onViewModeSelect,
-    onTabDetach
+    onTabDetach,
+    theme = 'dark',
+    onThemeToggle
 }: CustomTitleBarProps) {
     const [showDisplayMenu, setShowDisplayMenu] = useState(false);
 
@@ -76,15 +81,16 @@ export function CustomTitleBar({
 
     return (
         <div style={{
-            height: '40px',
-            background: '#ececec',
+            height: 'var(--header-height)',
+            background: 'var(--bg-header)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0',
-            borderBottom: '1px solid #ddd',
+            borderBottom: '1px solid var(--border-color)',
             userSelect: 'none',
-            WebkitAppRegion: 'drag'
+            WebkitAppRegion: 'drag',
+            transition: 'background-color var(--transition-normal), border-color var(--transition-normal)'
         } as any}>
 
             {/* Esquerda: Logo e Abas */}
@@ -115,20 +121,21 @@ export function CustomTitleBar({
                                 alignItems: 'center',
                                 gap: '8px',
                                 padding: '0 15px',
-                                height: '34px',
+                                height: '38px',
                                 minWidth: tab.isDashboard ? 'auto' : '120px',
                                 maxWidth: '200px',
-                                background: activeTabId === tab.id ? '#ffffff' : 'transparent',
-                                borderBottom: activeTabId === tab.id ? '2px solid #e03226' : 'none',
+                                background: activeTabId === tab.id ? 'var(--bg-surface)' : 'transparent',
+                                borderBottom: activeTabId === tab.id ? '2px solid var(--brand-primary)' : 'none',
                                 cursor: 'pointer',
-                                color: activeTabId === tab.id ? '#333' : '#666',
-                                borderRadius: '6px 6px 0 0',
-                                borderRight: activeTabId === tab.id ? 'none' : '1px solid #dcdcdc',
+                                color: activeTabId === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                borderRadius: 'var(--border-radius-md) var(--border-radius-md) 0 0',
+                                borderRight: activeTabId === tab.id ? 'none' : '1px solid var(--border-color)',
                                 marginLeft: tab.isDashboard ? '0' : '0',
                                 marginBottom: '-1px',
-                                fontSize: '12px',
+                                fontSize: '13px',
                                 fontWeight: activeTabId === tab.id ? 600 : 400,
-                                position: 'relative'
+                                position: 'relative',
+                                transition: 'all var(--transition-fast)'
                             } as any}
                         >
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -188,146 +195,154 @@ export function CustomTitleBar({
             </div>
 
             {/* Centro / Direita: Info Sessão e Ações (Mostra apenas se tiver sessão ativa e não for dashboard) */}
-            {isSessionActive && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#ffffff', height: '100%', padding: '0 10px', boxShadow: '-5px 0 10px rgba(0,0,0,0.05)', WebkitAppRegion: 'no-drag' } as any}>
-                    {/* Monitor Info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '10px', padding: '4px 8px', background: '#f5f5f5', borderRadius: '4px' }}>
-                        <ShieldCheck size={14} color={isSecure ? '#4CAF50' : '#FF9800'} />
-                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{sessionRemoteId}</span>
-                        {/* Monitor switchers simplificados aqui se necessário */}
-                    </div>
+            <div style={{ display: 'flex', alignItems: 'center', height: '100%', WebkitAppRegion: 'no-drag' } as any}>
+                <ToolbarButton
+                    icon={theme === 'light' ? <Moon size={20} strokeWidth={2.5} /> : <Sun size={20} strokeWidth={2.5} />}
+                    onClick={onThemeToggle}
+                    title={theme === 'light' ? 'Tema Escuro' : 'Tema Claro'}
+                />
 
-                    <div style={{ position: 'relative' }}>
-                        <ToolbarButton
-                            icon={<MessageSquare size={16} />}
-                            onClick={onChatToggle}
-                            title="Chat"
-                        />
-                        {hasNewMessage && (
-                            <div style={{
-                                position: 'absolute', top: 4, right: 4, width: 8, height: 8,
-                                background: '#e03226', borderRadius: '50%', border: '2px solid #fff',
-                                pointerEvents: 'none'
-                            }}></div>
+                {isSessionActive && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-active)', height: '70%', padding: '0 12px', borderRadius: 'var(--border-radius-md)', margin: '0 12px', boxShadow: 'var(--shadow-sm)', WebkitAppRegion: 'no-drag' } as any}>
+                        {/* Monitor Info */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', background: 'var(--bg-surface)', borderRadius: 'var(--border-radius-sm)', border: '1px solid var(--border-color)' }}>
+                            <ShieldCheck size={14} color={isSecure ? '#10b981' : '#f59e0b'} />
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{sessionRemoteId}</span>
+                        </div>
+
+                        <div style={{ position: 'relative' }}>
+                            <ToolbarButton
+                                icon={<MessageSquare size={16} />}
+                                onClick={onChatToggle}
+                                title="Chat"
+                            />
+                            {hasNewMessage && (
+                                <div style={{
+                                    position: 'absolute', top: 4, right: 4, width: 8, height: 8,
+                                    background: '#e03226', borderRadius: '50%', border: '2px solid #fff',
+                                    pointerEvents: 'none'
+                                }}></div>
+                            )}
+                        </div>
+                        <ToolbarButton icon={<Zap size={16} />} onClick={onActionsClick} title="Ações" />
+
+                        {/* Display Menu Container */}
+                        <div style={{ position: 'relative' }}>
+                            <ToolbarButton
+                                icon={<Monitor size={16} />}
+                                onClick={() => setShowDisplayMenu(!showDisplayMenu)}
+                                title="Visualização"
+                                active={showDisplayMenu}
+                            />
+                            {showDisplayMenu && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '35px',
+                                    right: '0',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 'var(--border-radius-md)',
+                                    boxShadow: 'var(--shadow-lg)',
+                                    zIndex: 1000,
+                                    width: '200px',
+                                    padding: '8px 0',
+                                    overflow: 'hidden'
+                                }}>
+                                    <DisplayMenuItem
+                                        label="Ajustar à Tela"
+                                        icon={<Shrink size={14} />}
+                                        active={currentViewMode === 'fit'}
+                                        onClick={() => { onViewModeSelect?.('fit'); setShowDisplayMenu(false); }}
+                                    />
+                                    <DisplayMenuItem
+                                        label="Tamanho Original"
+                                        icon={<Maximize size={14} />}
+                                        active={currentViewMode === 'original'}
+                                        onClick={() => { onViewModeSelect?.('original'); setShowDisplayMenu(false); }}
+                                    />
+                                    <DisplayMenuItem
+                                        label="Esticar"
+                                        icon={<StretchHorizontal size={14} />}
+                                        active={currentViewMode === 'stretch'}
+                                        onClick={() => { onViewModeSelect?.('stretch'); setShowDisplayMenu(false); }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <ToolbarButton icon={<Lock size={16} />} onClick={onPermissionsClick} title="Permissões" />
+
+                        {/* Monitor Switchers */}
+                        {remoteSources.length > 1 && (
+                            <>
+                                <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
+                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0 5px' }}>
+                                    {remoteSources.map((source, index) => (
+                                        <div key={source.id} style={{ WebkitAppRegion: 'no-drag' } as any}>
+                                            <button
+                                                onClick={() => {
+                                                    console.log(`[CustomTitleBar] Click (onClick) Monitor ${index + 1} (id: ${source.id})`);
+                                                    onSourceSelect?.(source.id);
+                                                }}
+                                                onMouseDown={() => {
+                                                    console.log(`[CustomTitleBar] Click (onMouseDown) Monitor ${index + 1} (id: ${source.id})`);
+                                                    // onSourceSelect?.(source.id); // Evitar duplo disparo se onClick funcionar
+                                                }}
+                                                title={`Monitor ${index + 1}`}
+                                                style={{
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: activeSourceId === source.id ? '#e03226' : '#f0f0f0',
+                                                    color: activeSourceId === source.id ? '#fff' : '#666',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    fontSize: '11px',
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    WebkitAppRegion: 'no-drag',
+                                                    transition: 'all 0.1s ease',
+                                                    position: 'relative',
+                                                    zIndex: 100,
+                                                    pointerEvents: 'auto'
+                                                } as any}
+                                                onMouseEnter={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#e5e5e5')}
+                                                onMouseLeave={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#f0f0f0')}
+                                            >
+                                                {index + 1}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
+
+                        {updateAvailable && (
+                            <button
+                                onClick={onUpdateClick}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    background: '#e03226', color: 'white', border: 'none',
+                                    padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                UPDATE
+                            </button>
                         )}
                     </div>
-                    <ToolbarButton icon={<Zap size={16} />} onClick={onActionsClick} title="Ações" />
+                )}
 
-                    {/* Display Menu Container */}
-                    <div style={{ position: 'relative' }}>
-                        <ToolbarButton
-                            icon={<Monitor size={16} />}
-                            onClick={() => setShowDisplayMenu(!showDisplayMenu)}
-                            title="Visualização"
-                            active={showDisplayMenu}
-                        />
-                        {showDisplayMenu && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '35px',
-                                right: '0',
-                                background: '#fff',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                zIndex: 1000,
-                                width: '180px',
-                                padding: '5px 0'
-                            }}>
-                                <DisplayMenuItem
-                                    label="Ajustar à Tela"
-                                    icon={<Shrink size={14} />}
-                                    active={currentViewMode === 'fit'}
-                                    onClick={() => { onViewModeSelect?.('fit'); setShowDisplayMenu(false); }}
-                                />
-                                <DisplayMenuItem
-                                    label="Tamanho Original"
-                                    icon={<Maximize size={14} />}
-                                    active={currentViewMode === 'original'}
-                                    onClick={() => { onViewModeSelect?.('original'); setShowDisplayMenu(false); }}
-                                />
-                                <DisplayMenuItem
-                                    label="Esticar"
-                                    icon={<StretchHorizontal size={14} />}
-                                    active={currentViewMode === 'stretch'}
-                                    onClick={() => { onViewModeSelect?.('stretch'); setShowDisplayMenu(false); }}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <ToolbarButton icon={<Lock size={16} />} onClick={onPermissionsClick} title="Permissões" />
-
-                    {/* Monitor Switchers */}
-                    {remoteSources.length > 1 && (
-                        <>
-                            <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
-                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0 5px' }}>
-                                {remoteSources.map((source, index) => (
-                                    <div key={source.id} style={{ WebkitAppRegion: 'no-drag' } as any}>
-                                        <button
-                                            onClick={() => {
-                                                console.log(`[CustomTitleBar] Click (onClick) Monitor ${index + 1} (id: ${source.id})`);
-                                                onSourceSelect?.(source.id);
-                                            }}
-                                            onMouseDown={() => {
-                                                console.log(`[CustomTitleBar] Click (onMouseDown) Monitor ${index + 1} (id: ${source.id})`);
-                                                // onSourceSelect?.(source.id); // Evitar duplo disparo se onClick funcionar
-                                            }}
-                                            title={`Monitor ${index + 1}`}
-                                            style={{
-                                                width: '24px',
-                                                height: '24px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                background: activeSourceId === source.id ? '#e03226' : '#f0f0f0',
-                                                color: activeSourceId === source.id ? '#fff' : '#666',
-                                                border: '1px solid #ddd',
-                                                borderRadius: '4px',
-                                                fontSize: '11px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer',
-                                                WebkitAppRegion: 'no-drag',
-                                                transition: 'all 0.1s ease',
-                                                position: 'relative',
-                                                zIndex: 100,
-                                                pointerEvents: 'auto'
-                                            } as any}
-                                            onMouseEnter={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#e5e5e5')}
-                                            onMouseLeave={(e) => activeSourceId !== source.id && (e.currentTarget.style.background = '#f0f0f0')}
-                                        >
-                                            {index + 1}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
-                    <div style={{ width: '1px', height: '20px', background: '#ddd', margin: '0 5px' }}></div>
-
-                    {updateAvailable && (
-                        <button
-                            onClick={onUpdateClick}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                                background: '#e03226', color: 'white', border: 'none',
-                                padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            UPDATE
-                        </button>
-                    )}
+                {/* Controles de Janela */}
+                <div style={{ display: 'flex', height: '100%', WebkitAppRegion: 'no-drag' } as any}>
+                    <WindowControlButton icon={<Minus size={20} strokeWidth={2.5} />} onClick={handleMinimize} />
+                    <WindowControlButton icon={<Square size={16} strokeWidth={2.5} />} onClick={handleMaximize} />
+                    <WindowControlButton icon={<X size={20} strokeWidth={2.5} />} onClick={handleClose} isClose />
                 </div>
-            )}
-
-            {/* Controles de Janela */}
-            <div style={{ display: 'flex', height: '100%', WebkitAppRegion: 'no-drag' } as any}>
-                <WindowControlButton icon={<Minus size={42} strokeWidth={1} />} onClick={handleMinimize} />
-                <WindowControlButton icon={<Square size={28} strokeWidth={1.2} />} onClick={handleMaximize} />
-                <WindowControlButton icon={<X size={42} strokeWidth={1} />} onClick={handleClose} isClose />
             </div>
         </div>
     );
@@ -340,12 +355,12 @@ function ToolbarButton({ icon, onClick, title, active = false }: { icon: React.R
             onClick={onClick}
             title={title}
             style={{
-                background: active ? '#ddd' : 'transparent', border: 'none', cursor: 'pointer',
+                background: active ? 'var(--bg-active)' : 'transparent', border: 'none', cursor: 'pointer',
                 padding: '6px', borderRadius: '4px',
-                color: '#555', display: 'flex', alignItems: 'center',
+                color: 'var(--text-secondary)', display: 'flex', alignItems: 'center',
                 WebkitAppRegion: 'no-drag'
             } as any}
-            onMouseEnter={(e) => !active && (e.currentTarget.style.background = '#f0f0f0')}
+            onMouseEnter={(e) => !active && (e.currentTarget.style.background = 'var(--bg-active)')}
             onMouseLeave={(e) => !active && (e.currentTarget.style.background = 'transparent')}
         >
             {icon}
@@ -360,21 +375,22 @@ function DisplayMenuItem({ label, icon, active, onClick }: { label: string, icon
             style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '8px 15px',
+                gap: '12px',
+                padding: '10px 16px',
                 cursor: 'pointer',
-                background: active ? '#f0f7ff' : 'transparent',
-                color: active ? '#e03226' : '#333',
-                fontSize: '12px',
+                background: active ? 'var(--bg-active)' : 'transparent',
+                color: active ? 'var(--brand-primary)' : 'var(--text-primary)',
+                fontSize: '13px',
                 fontWeight: active ? '600' : '400',
-                WebkitAppRegion: 'no-drag'
+                WebkitAppRegion: 'no-drag',
+                transition: 'all var(--transition-fast)'
             } as any}
-            onMouseEnter={(e) => !active && (e.currentTarget.style.background = '#f5f5f5')}
+            onMouseEnter={(e) => !active && (e.currentTarget.style.background = 'var(--bg-active)')}
             onMouseLeave={(e) => !active && (e.currentTarget.style.background = 'transparent')}
         >
             {icon}
             <span style={{ flex: 1 }}>{label}</span>
-            {active && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e03226' }}></div>}
+            {active && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--brand-primary)' }}></div>}
         </div>
     );
 }
@@ -392,16 +408,16 @@ function WindowControlButton({ icon, onClick, isClose = false }: { icon: React.R
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#333',
-                transition: 'background 0.1s'
+                color: 'var(--text-primary)',
+                transition: 'all var(--transition-fast)'
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.background = isClose ? '#e81123' : '#e5e5e5';
+                e.currentTarget.style.background = isClose ? '#e81123' : 'var(--bg-active)';
                 if (isClose) e.currentTarget.style.color = 'white';
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                if (isClose) e.currentTarget.style.color = '#333';
+                e.currentTarget.style.color = 'var(--text-primary)';
             }}
         >
             {icon}

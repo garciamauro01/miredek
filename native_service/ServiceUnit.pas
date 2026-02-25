@@ -15,7 +15,6 @@ type
     procedure ServiceDestroy(Sender: TObject);
     procedure WatchdogTimerTimer(Sender: TObject);
   private
-    FWorker: TServiceWorker;
     procedure CheckAndLaunchAgent;
     procedure CheckAndLaunchMireDesk;
   public
@@ -43,6 +42,7 @@ procedure TMireDeskService.ServiceCreate(Sender: TObject);
 begin
   DisplayName := 'MireDesk Native Service';
   Name := 'MireDeskService';
+  WatchdogTimer.Interval := 2000;
 end;
 
 procedure TMireDeskService.ServiceDestroy(Sender: TObject);
@@ -52,10 +52,6 @@ end;
 
 procedure TMireDeskService.ServiceStart(Sender: TService; var Started: Boolean);
 begin
-  // The service itself provides status info, but capture is done by Agent
-  FWorker := TServiceWorker.Create;
-  FWorker.Start;
-  
   WatchdogTimer.Enabled := True;
   CheckAndLaunchAgent;
   CheckAndLaunchMireDesk;
@@ -66,13 +62,6 @@ end;
 procedure TMireDeskService.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
   WatchdogTimer.Enabled := False;
-  
-  if Assigned(FWorker) then
-  begin
-    FWorker.Stop;
-    FWorker.Free;
-    FWorker := nil;
-  end;
   Stopped := True;
 end;
 
@@ -90,11 +79,17 @@ begin
   if not IsProcessRunning('MireDeskAgent.exe') then
   begin
     AgentPath := ExtractFilePath(ParamStr(0)) + 'MireDeskAgent.exe';
+    LogToFile('Agent not running. Attempting to start from: ' + AgentPath);
     if FileExists(AgentPath) then
     begin
       // Launch as SYSTEM in the active console session
-      LaunchProcessAsSystemInSession(AgentPath, GetActiveSessionID);
-    end;
+      if LaunchProcessAsSystemInSession(AgentPath, GetActiveSessionID) then
+        LogToFile('Successfully launched Agent.')
+      else
+        LogToFile('Failed to launch Agent.');
+    end
+    else
+      LogToFile('Agent path not found: ' + AgentPath);
   end;
 end;
 
@@ -110,10 +105,14 @@ begin
     // Assuming structure: $INSTDIR\resources\bin\MireDeskService.exe
     // App is at: $INSTDIR\Mire-Desk.exe
     MirePath := ExpandFileName(ExtractFilePath(ParamStr(0)) + '..\..\Mire-Desk.exe');
+    LogToFile('Mire-Desk not running. Trying Primary Path: ' + MirePath);
     
     // Fallback for development (same folder or relative)
     if not FileExists(MirePath) then
+    begin
        MirePath := ExpandFileName(ExtractFilePath(ParamStr(0)) + '..\..\..\Mire-Desk.exe');
+       LogToFile('Primary path not found. Trying Fallback Path: ' + MirePath);
+    end;
     
     if FileExists(MirePath) then
     begin
@@ -122,10 +121,15 @@ begin
       // Launch as SYSTEM (Session 0) with --service flag
       if CreateProcess(nil, PChar('"' + MirePath + '" --service'), nil, nil, False, 0, nil, nil, si, pi) then
       begin
+        LogToFile('Successfully launched headless Mire-Desk.');
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-      end;
-    end;
+      end
+      else
+        LogToFile('Failed to launch headless Mire-Desk. Error Code: ' + IntToStr(GetLastError()));
+    end
+    else
+      LogToFile('Mire-Desk executable not found at any path.');
   end;
 end;
 

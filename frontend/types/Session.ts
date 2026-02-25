@@ -24,6 +24,7 @@ export interface Session {
     status?: 'connected' | 'disconnected' | 'reconnecting';
     lastHeartbeat?: number;
     authError?: string;
+    metadata?: any;
 }
 
 export function createSession(id: string, remoteId: string = '', isIncoming: boolean = false): Session {
@@ -44,6 +45,7 @@ export function createSession(id: string, remoteId: string = '', isIncoming: boo
         messages: [],
         isChatOpen: false,
         hasNewMessage: false,
-        status: isIncoming ? 'connected' : 'disconnected'
+        status: isIncoming ? 'connected' : 'disconnected',
+        metadata: null
     };
 }

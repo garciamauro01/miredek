@@ -20,6 +20,7 @@ type
     TempStream: TMemoryStream;
     FCaptureRect: TRect;
     FMonitorIndex: Integer;
+    FStartedDesktop: string;
 
     procedure OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
     procedure CaptureScreen;
@@ -115,14 +116,25 @@ var
   GLogLock: TCriticalSection;
 
 procedure LogToFile(const Msg: string);
+var
+  F: TextFile;
+  LogPath: string;
 begin
   if GLogLock = nil then Exit;
   GLogLock.Enter;
   try
+    // Use a fixed path in the user profile to avoid permission/location issues
+    LogPath := 'C:\Users\garci\MireDeskAgent_InputDebug.txt';
     try
-      TFile.AppendAllText(TPath.Combine(TPath.GetTempPath, 'MireDeskAgent.log'), Format('[%s] %s%s', [DateTimeToStr(Now), Msg, sLineBreak]));
+      AssignFile(F, LogPath);
+      if FileExists(LogPath) then
+        Append(F)
+      else
+        Rewrite(F);
+      Writeln(F, '[' + DateTimeToStr(Now) + '] ' + Msg);
+      CloseFile(F);
     except
-      // Swallow logging errors to prevent crash
+      // ignore logging errors to prevent crash
     end;
   finally
     GLogLock.Leave;
@@ -141,6 +153,8 @@ end;
 procedure TServiceWorker.Execute;
 begin
   LogToFile('Worker Thread STARTING');
+  FStartedDesktop := GetActiveDesktopName;
+  LogToFile('Agent started on desktop: ' + FStartedDesktop);
   
   // Initialize resources in Thread Context
   try
@@ -180,7 +194,12 @@ begin
   begin
     try
       // Check Desktop Switch
-      // if SwitchToActiveDesktop then ...
+      if not SameText(FStartedDesktop, GetActiveDesktopName) then
+      begin
+        LogToFile('Desktop change detected! (Old: ' + FStartedDesktop + ', New: ' + GetActiveDesktopName + '). Halting for relaunch...');
+        Sleep(100); // Give time for log flush
+        ExitProcess(0); 
+      end;
       
       // Capture
       CaptureScreen;
@@ -246,6 +265,10 @@ begin
     // Only attempt capture if Bitmap is valid
     if (not UseFallback) then
     begin
+        // Before capturing, ensure our thread is attached to the active input desktop
+        // This allows us to capture the Winlogon (pre-login) or UAC secure desktop
+        SwitchToActiveDesktop;
+
         DC := GetDC(0);
         try
           if (DC <> 0) then
@@ -478,21 +501,30 @@ begin
     LocalMonitorList := TList.Create;
     try
       EnumDisplayMonitors(0, nil, @MonitorEnumProc, LPARAM(Pointer(LocalMonitorList)));
-      
+
+      // Sort: move primary monitor (Left=0, Top=0) to index 0
+      for I := 1 to LocalMonitorList.Count - 1 do
+      begin
+        R := PRect(LocalMonitorList[I]);
+        if (R.Left = 0) and (R.Top = 0) then
+        begin
+          // Swap with index 0
+          LocalMonitorList.Exchange(0, I);
+          Break;
+        end;
+      end;
+
       JSON := '[';
-      // Add Virtual Screen
-      JSON := JSON + Format('{"id": -1, "name": "Virtual Screen", "width": %d, "height": %d}', 
-        [GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN)]);
-      
       // Add Individual Monitors
       for I := 0 to LocalMonitorList.Count - 1 do
       begin
+        if I > 0 then JSON := JSON + ', ';
         R := PRect(LocalMonitorList[I]);
-        JSON := JSON + Format(', {"id": %d, "name": "Monitor %d", "width": %d, "height": %d}', 
+        JSON := JSON + Format('{"id": %d, "name": "Monitor %d", "width": %d, "height": %d}',
           [I, I + 1, R.Right - R.Left, R.Bottom - R.Top]);
       end;
       JSON := JSON + ']';
-      
+
       AResponseInfo.ContentText := JSON;
     finally
       for I := 0 to LocalMonitorList.Count - 1 do Dispose(PRect(LocalMonitorList[I]));
@@ -519,14 +551,79 @@ begin
       System.TMonitor.Exit(FLock);
     end;
   end
-  else
+  else if ARequestInfo.Document = '/input' then
   begin
-    System.TMonitor.Enter(FLock);
+    AResponseInfo.CustomHeaders.AddValue('Access-Control-Allow-Origin', '*');
+    AResponseInfo.ContentType := 'text/plain';
+
     try
-       AResponseInfo.ContentText := Format('MireDesk Agent Active. Last Frame: %d bytes. Time: %s', 
-         [FLastCapture.Size, DateTimeToStr(Now)]);
-    finally
-      System.TMonitor.Exit(FLock);
+      // Ensure we are on the correct desktop before injecting input
+      SwitchToActiveDesktop;
+
+      JSON := ARequestInfo.Params.Values['type'];
+      LogToFile('Input request received: ' + JSON);
+      
+      if JSON = 'mousemove' then
+      begin
+        I := StrToIntDef(ARequestInfo.Params.Values['x'], 0);
+        Header := ARequestInfo.Params.Values['y'];
+        LogToFile(Format('Mouse Move to: %d, %s', [I, Header]));
+        
+        // Use Virtual Screen metrics for multi-monitor support
+        // Normalize coordinates to 0..65535 across the entire virtual desktop
+        I := Round((I - GetSystemMetrics(SM_XVIRTUALSCREEN)) * 65535 / GetSystemMetrics(SM_CXVIRTUALSCREEN));
+        Header := IntToStr(Round((StrToIntDef(Header, 0) - GetSystemMetrics(SM_YVIRTUALSCREEN)) * 65535 / GetSystemMetrics(SM_CYVIRTUALSCREEN)));
+        mouse_event(MOUSEEVENTF_ABSOLUTE or MOUSEEVENTF_MOVE, I, StrToInt(Header), 0, 0);
+      end
+      else if JSON = 'mousedown' then
+      begin
+        I := StrToIntDef(ARequestInfo.Params.Values['button'], 0); // 0=left, 1=middle, 2=right
+        LogToFile('Mouse Down button: ' + IntToStr(I));
+        case I of
+          0: mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+          1: mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0);
+          2: mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+        end;
+      end
+      else if JSON = 'mouseup' then
+      begin
+        I := StrToIntDef(ARequestInfo.Params.Values['button'], 0);
+        LogToFile('Mouse Up button: ' + IntToStr(I));
+        case I of
+          0: mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+          1: mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0);
+          2: mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+        end;
+      end
+      else if JSON = 'mousewheel' then
+      begin
+        I := StrToIntDef(ARequestInfo.Params.Values['deltaY'], 0);
+        LogToFile('Mouse Wheel deltaY: ' + IntToStr(I));
+        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, I, 0);
+      end
+      else if (JSON = 'keydown') or (JSON = 'keyup') then
+      begin
+        // Simple virtual key code support
+        // We expect the 'key' param to be a byte (VK code)
+        I := StrToIntDef(ARequestInfo.Params.Values['key'], 0);
+        LogToFile('Keyboard event: ' + JSON + ' key: ' + IntToStr(I));
+        if I > 0 then
+        begin
+           if JSON = 'keydown' then
+             keybd_event(I, 0, 0, 0)
+           else
+             keybd_event(I, 0, KEYEVENTF_KEYUP, 0);
+        end;
+      end;
+
+      AResponseInfo.ContentText := 'OK';
+    except
+      on E: Exception do
+      begin
+        LogToFile('Error in /input: ' + E.Message);
+        AResponseInfo.ResponseNo := 500;
+        AResponseInfo.ContentText := 'Error: ' + E.Message;
+      end;
     end;
   end;
 end;

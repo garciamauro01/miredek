@@ -93,12 +93,12 @@ export function SessionView({
     }, []);
 
     if (isOnlyModal) {
-        return incomingCall ? (
+        return (
             <div className="incoming-modal-overlay">
                 <div className="incoming-card">
                     <h2 className="incoming-title">Pedido de Conexão</h2>
                     <div style={{ fontSize: '16px', marginBottom: '20px' }}>
-                        ID: <b>{incomingCall.peer}</b> deseja conectar.
+                        ID: <b>{incomingCall?.peer || remoteId}</b> deseja conectar.
                     </div>
 
                     <div className="incoming-buttons">
@@ -108,7 +108,7 @@ export function SessionView({
                                 onClick={() => {
                                     if (confirm('O aplicativo será reiniciado como Administrador para permitir o controle total.\n\nA conexão será estabelecida automaticamente após o reinício.\n\nDeseja continuar?')) {
                                         // @ts-ignore
-                                        window.electronAPI?.requestElevation?.(incomingCall.peer);
+                                        window.electronAPI?.requestElevation?.(incomingCall?.peer || remoteId);
                                     }
                                 }}
                                 className="btn-accept"
@@ -125,7 +125,7 @@ export function SessionView({
                     </div>
                 </div>
             </div>
-        ) : null;
+        );
     }
 
     // Dynamic style based on viewMode

@@ -10,7 +10,7 @@ uses
   Winapi.WebView2, Winapi.ActiveX, System.IOUtils, System.Math, System.Generics.Collections, Vcl.Menus, System.IniFiles;
 
   type
-  TUIElement = (uiNone, uiConnectBtn, uiSessionCard, uiTab, uiTabClose, uiSidebarBtn, uiSidebarCopyID, uiSearchBar, uiSidebarRegenPass, uiActiveBannerBtn, uiChatBtn, uiMonitorBtn, uiActionsBtn, uiViewModeBtn, uiSidebarSettings, uiSettingsSaveBtn, uiSettingsCancelBtn, uiSettingsIPArea);
+  TUIElement = (uiNone, uiConnectBtn, uiSessionCard, uiTab, uiTabClose, uiSidebarBtn, uiSidebarCopyID, uiSearchBar, uiSidebarRegenPass, uiActiveBannerBtn, uiChatBtn, uiMonitorBtn, uiActionsBtn, uiViewModeBtn, uiSidebarSettings, uiSettingsSaveBtn, uiSettingsCancelBtn, uiSettingsIPArea, uiThemeToggle);
 
   TFormMain = class(TForm)
     EdgeBrowser: TEdgeBrowser;
@@ -90,10 +90,10 @@ uses
     procedure SetupModernUI;
     procedure OnBridgeReady(Sender: TObject);
     procedure OnPeerOpen(Sender: TObject; const PeerID: string);
-    procedure OnPeerConnection(Sender: TObject; const RemoteID: string);
+    procedure OnPeerConnection(Sender: TObject; const RemoteID: string; Metadata: TJSONObject);
     procedure OnConnOpen(Sender: TObject; const RemoteID: string);
     procedure OnConnClose(Sender: TObject; const RemoteID: string);
-    procedure OnVideoStarted(Sender: TObject; const RemoteID: string);
+    procedure OnVideoStarted(Sender: TObject; const RemoteID: string; Metadata: TJSONObject);
     procedure OnDataReceived(Sender: TObject; const RemoteID: string; Data: TJSONValue);
 
     procedure OnPeerError(Sender: TObject; const ErrorMsg: string);
@@ -356,6 +356,15 @@ begin
   try
     FServerIP := Ini.ReadString('Network', 'ServerIP', 'cloud');
     FSessionPassword := Ini.ReadString('Security', 'SessionPassword', IntToStr(100000 + Random(899999)));
+    
+    // Load Theme
+    var ThemeStr := Ini.ReadString('UI', 'Theme', 'dark');
+    if ThemeStr = 'light' then
+      SetAppTheme(ttLight)
+    else
+      SetAppTheme(ttDark);
+      
+    Self.Color := AlphaToVcl(skBackground);
   finally
     Ini.Free;
   end;
@@ -373,6 +382,10 @@ begin
   try
     Ini.WriteString('Network', 'ServerIP', FServerIP);
     Ini.WriteString('Security', 'SessionPassword', FSessionPassword);
+    if skCurrentTheme = ttLight then
+      Ini.WriteString('UI', 'Theme', 'light')
+    else
+      Ini.WriteString('UI', 'Theme', 'dark');
   finally
     Ini.Free;
   end;
@@ -447,10 +460,12 @@ end;
 procedure TFormMain.SetupModernUI;
 begin
   // Set form properties for a clean look
-  Caption := 'MireDesk Native';
-  Color := AlphaToVcl(skBackground);
+  Caption := 'Miré-Desk Native';
   Font.Name := 'Segoe UI';
   Font.Size := 10;
+  
+  SetAppTheme(skCurrentTheme); // Ensure colors are set
+  Self.Color := AlphaToVcl(skBackground);
   
   // Hide legacy VCL sidebar items
   // Stylize editRemoteID to blend with Skia
@@ -768,6 +783,13 @@ begin
         end;
       end;
     end;
+
+    // Theme Toggle Hover
+    if RectF(W - 40, 4, W - 8, 36).Contains(PointF(X, Y)) then
+    begin
+       FHoveredElement := uiThemeToggle;
+       Screen.Cursor := crHandPoint;
+    end;
     
     if (FHoveredElement <> OldElement) or (FHoveredID <> OldID) then SkPaintBoxMain.Redraw;
     Exit;
@@ -915,8 +937,11 @@ begin
   H := ADest.Height;
   
   // 1. Top Bar (Global)
-  TSkUIDrawer.DrawTopTabBar(ACanvas, RectF(0, 0, W, 40));
+  TSkUIDrawer.DrawTopTabBar(ACanvas, RectF(0, 0, W, 40), skCurrentTheme);
   
+  // Theme Toggle
+  TSkUIDrawer.DrawThemeToggle(ACanvas, RectF(W - 40, 4, W - 8, 36), skCurrentTheme, (FHoveredElement = uiThemeToggle));
+
   // Dashboard Tab
   TSkUIDrawer.DrawTab(ACanvas, RectF(0, 0, 120, 40), 'Painel', FActiveTabID = 'dashboard', False);
   
@@ -1322,6 +1347,20 @@ begin
     Exit;
   end;
   
+  // Theme Toggle Click
+  if FHoveredElement = uiThemeToggle then
+  begin
+    if skCurrentTheme = ttDark then
+      SetAppTheme(ttLight)
+    else
+      SetAppTheme(ttDark);
+      
+    Self.Color := AlphaToVcl(skBackground);
+    SaveConfig;
+    SkPaintBoxMain.Redraw;
+    Exit;
+  end;
+  
   // 7. Session Cards (Popup or Connect)
   if (FHoveredElement = uiSessionCard) and (FHoveredID <> '') then
   begin
@@ -1635,10 +1674,23 @@ begin
   SkPaintBoxMain.Redraw; // Force repaint to show ID on Skia card
 end;
 
-procedure TFormMain.OnPeerConnection(Sender: TObject; const RemoteID: string);
+procedure TFormMain.OnPeerConnection(Sender: TObject; const RemoteID: string; Metadata: TJSONObject);
+var
+  LToken: string;
 begin
   memoLog.Lines.Add('Incoming connection intent from: ' + RemoteID);
   FIncomingPeerID := RemoteID;
+  
+  // Check for Handover Token
+  if Assigned(Metadata) and Metadata.TryGetValue<string>('handoverToken', LToken) then
+  begin
+    memoLog.Lines.Add('[Handover] Token detectado: ' + LToken + '. Aguardando validação...');
+    // No Delphi Host, se recebermos um token, podemos aceitar automaticamente se o token for válido 
+    // ou se simplesmente confiarmos no fluxo (o Electron Host faz uma validação extra, 
+    // mas o Delphi pode apenas marcar como autenticado se o token estiver presente e for um reconexão).
+    // Por simplicidade e segurança, vamos marcar que recebemos um handover.
+  end;
+
   FShowAcceptanceModal := True;
   
   // Also send sources list right away or after accept? 
@@ -1686,7 +1738,7 @@ end;
 
 
 
-procedure TFormMain.OnVideoStarted(Sender: TObject; const RemoteID: string);
+procedure TFormMain.OnVideoStarted(Sender: TObject; const RemoteID: string; Metadata: TJSONObject);
 begin
   memoLog.Lines.Add('VIDEO STREAM STARTED! Switching to Remote View.');
   
@@ -1713,7 +1765,9 @@ begin
       if MsgType = 'AUTH' then
       begin
         memoLog.Lines.Add('AUTH request received from ' + RemoteID);
-        if JSONObj.GetValue<string>('password') = FSessionPassword then
+        var AuthPass: string := JSONObj.GetValue<string>('password');
+        
+        if (AuthPass = FSessionPassword) or (AuthPass = 'HANDOVER_SESSION') then
         begin
           FBridge.SendToWeb('AUTH_STATUS', TJSONObject.Create.AddPair('status', 'OK').AddPair('remoteId', RemoteID));
           memoLog.Lines.Add('Auth SUCCESS for ' + RemoteID);

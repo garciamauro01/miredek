@@ -2,7 +2,7 @@ import { app, ipcMain, BrowserWindow, clipboard, desktopCapturer } from 'electro
 import { logToFile } from '../utils/logger';
 import { join } from 'path';
 import { exec } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 
 const chatWindows = new Map<string, BrowserWindow>();
 const sessionWindows = new Map<string, BrowserWindow>();
@@ -448,6 +448,39 @@ export function setupIpcHandlers(getMainWindow: () => BrowserWindow | null, prel
                 }
             });
         });
+    });
+
+    // --- SHARED STORAGE (Delphi Compatibility) ---
+    ipcMain.handle('load-shared-storage', () => {
+        const storagePath = join(app.getPath('appData'), 'MireDesk', 'storage.json');
+        logToFile(`[Storage] Tentando carregar storage compartilhado de: ${storagePath}`);
+
+        try {
+            if (existsSync(storagePath)) {
+                const content = readFileSync(storagePath, 'utf8');
+                return JSON.parse(content);
+            }
+        } catch (e) {
+            logToFile(`[Storage] Erro ao carregar storage compartilhado: ${e}`);
+        }
+        return null;
+    });
+
+    ipcMain.handle('save-shared-storage', (event, data: any) => {
+        const dirPath = join(app.getPath('appData'), 'MireDesk');
+        const storagePath = join(dirPath, 'storage.json');
+
+        try {
+            if (!existsSync(dirPath)) {
+                mkdirSync(dirPath, { recursive: true });
+            }
+            writeFileSync(storagePath, JSON.stringify(data, null, 2), 'utf8');
+            logToFile(`[Storage] Storage compartilhado salvo com sucesso em: ${storagePath}`);
+            return true;
+        } catch (e) {
+            logToFile(`[Storage] Erro ao salvar storage compartilhado: ${e}`);
+            return false;
+        }
     });
 }
 

@@ -278,7 +278,7 @@
                     });
 
                     log("Call answered with local stream");
-                    sendToDelphi('VIDEO_CALL_RECEIVED', { remoteId: call.peer });
+                    sendToDelphi('VIDEO_CALL_RECEIVED', { remoteId: call.peer, metadata: call.metadata });
                 } catch (e) {
                     log(`ERROR answering call: ${e.message}`);
                 }
@@ -292,7 +292,7 @@
                     return;
                 }
                 setupConnection(conn);
-                sendToDelphi('PEER_CONNECTION', { remoteId: conn.peer });
+                sendToDelphi('PEER_CONNECTION', { remoteId: conn.peer, metadata: conn.metadata });
             });
 
             peer.on('error', (err) => {

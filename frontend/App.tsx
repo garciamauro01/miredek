@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import './App.css'
 import { Dashboard } from './components/Dashboard'
 import { SessionView } from './components/SessionView'
@@ -68,8 +68,7 @@ function SessionIsolatedView() {
     sources: [], currentSourceId: '',
     selectSource: async () => { },
     myId: '',
-    onFileMessage: handleFileMessage,
-    disableAutoReconnect: true
+    onFileMessage: handleFileMessage
   });
 
   usePeerConnection(
@@ -78,7 +77,7 @@ function SessionIsolatedView() {
     () => { },
     () => false, // Client doesn't need handover check usually
     `client-${remoteId}-${Date.now()}`, // Unique ID for the detached window!
-    (_call) => {
+    (_sessionId, _call) => {
       // [FIX] Auto-answer immediately for client (if needed, though usually client initiates)
       // Client doesn't usually receive calls in this flow, but good for completeness
     }
@@ -133,7 +132,7 @@ function SessionIsolatedView() {
 
   if (!activeSession) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="reconnecting-spinner"></div>
           <p>Iniciando sessão isolada para {remoteId}...</p>
@@ -241,7 +240,7 @@ function ViewManager() {
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    if (view === 'chat') {
+    if (view === 'chat' && window.electronAPI) {
       return window.electronAPI.onChatMessageReceived((msg) => {
         setMessages(prev => [...prev, msg]);
       });
@@ -259,18 +258,18 @@ function ViewManager() {
   const handleSend = (text: string) => {
     const msg = { sender: 'me' as const, text, timestamp: Date.now() };
     setMessages(prev => [...prev, msg]);
-    window.electronAPI.sendChatMessageFromWindow(sessionId, msg);
+    window.electronAPI?.sendChatMessageFromWindow?.(sessionId, msg);
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       <CustomTitleBar title={`Chat: ${remoteId}`} />
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <Chat
           isOpen={true}
           messages={messages}
           onSendMessage={handleSend}
-          onClose={() => window.electronAPI.closeWindow()}
+          onClose={() => window.electronAPI?.closeWindow?.()}
         />
       </div>
     </div>
@@ -278,6 +277,17 @@ function ViewManager() {
 }
 
 function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    (localStorage.getItem('miré_desk_theme') as 'light' | 'dark') || 'dark'
+  );
+
+  useLayoutEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('miré_desk_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   const [serverIp, setServerIp] = useState<string>(() =>
     localStorage.getItem('miré_desk_server_ip') || import.meta.env.VITE_SERVER_IP || window.location.hostname || '167.234.241.147'
   );
@@ -331,6 +341,40 @@ function App() {
     addLog(`Nova senha de sessão gerada.`);
   }, [addLog]);
 
+  // --- SHARED STORAGE SYNC ---
+  useEffect(() => {
+    if (!window.electronAPI?.loadSharedStorage) return;
+
+    window.electronAPI.loadSharedStorage().then((data: any) => {
+      if (data) {
+        if (data.contacts) {
+          console.log('[Storage] Sincronizando contatos do Delphi:', data.contacts.length);
+          setContacts(data.contacts);
+        }
+        if (data.recent_sessions) {
+          console.log('[Storage] Sincronizando sessões recentes do Delphi:', data.recent_sessions.length);
+          setRecentSessions(data.recent_sessions);
+        }
+      }
+    });
+  }, []);
+
+  // Sync back to shared storage when contacts or recentSessions change
+  const initialLoadRef = useRef(true);
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    if (!window.electronAPI?.saveSharedStorage) return;
+
+    const data = {
+      contacts: contacts,
+      recent_sessions: recentSessions
+    };
+    window.electronAPI.saveSharedStorage(data);
+  }, [contacts, recentSessions]);
+
   // Ref para sessionManager para quebrar ciclo de dependência no useDeviceSources
   const sessionManagerRef = useRef<any>(null);
 
@@ -365,7 +409,8 @@ function App() {
     setupDataListeners,
     sendMessage,
     toggleChat,
-    handoverTokensRef
+    handoverTokensRef,
+    sessionsRef
   } = useRemoteSession({
     serverIp, contacts, setContacts, setRecentSessions,
     sessionPassword, unattendedPassword,
@@ -373,8 +418,7 @@ function App() {
     sources, currentSourceId,
     selectSource,
     myId: '',
-    onFileMessage: handleFileMessage,
-    disableAutoReconnect: false
+    onFileMessage: handleFileMessage
   });
 
   // Atualiza ref do sessionManager
@@ -406,7 +450,6 @@ function App() {
     if (metadata) console.log('[App] 🔍 onHandoverCheck metadata:', metadata);
 
     if (!metadata?.handoverToken) {
-      console.warn('[App] ❌ Handover check: Token ausente no metadata.');
       return false;
     }
 
@@ -431,19 +474,20 @@ function App() {
     setupDataListeners,
     handleShowWindow,
     onHandoverCheck,
-    undefined, // customPeerId
-    (call) => {
+    undefined,
+    (sessionId, call) => {
       // [FIX] Immediate Auto-Answer Callback
       // This is called synchronously when a call arrives and is authenticated
       if (localStreamRef.current) {
-        console.log(`[App] ⚡ Auto-atendendo chamada de ${call.peer} IMEDIATAMENTE! Stream ID: ${localStreamRef.current.id}`);
+        console.log(`[App] ⚡ Auto-atendendo chamada de ${call.peer} IMEDIATAMENTE! Session: ${sessionId}`);
         addLog(`Auto-atendendo chamada de ${call.peer}`);
-        sessionManager.answerCall(call.peer, call, localStreamRef.current);
+        sessionManager.answerCall(sessionId, call, localStreamRef.current);
       } else {
         console.warn(`[App] ⚠️ Não foi possível auto-atender ${call.peer}: sem stream local disponível.`);
         addLog(`AVISO: Falha ao auto-atender ${call.peer} (sem stream)`);
       }
-    }
+    },
+    sessionsRef
   );
 
   // 5. Peer Status Check (verifica se peers estão online)
@@ -578,7 +622,10 @@ function App() {
       if (pos) {
         const data: any = { type, x: pos.x, y: pos.y };
         if ('button' in e) data.button = e.button === 0 ? 'left' : e.button === 2 ? 'right' : 'middle';
-        if ('key' in e) data.key = e.key;
+        if ('key' in e) {
+          data.key = e.key;
+          data.keyCode = e.keyCode || e.which;
+        }
 
         // Log apenas para cliques e teclas (evita poluir console com mousemove)
         if (type !== 'mousemove') {
@@ -598,10 +645,12 @@ function App() {
 
   // Render
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#000' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
       {/* TITLE BAR */}
       <CustomTitleBar
         title="Miré-Desk"
+        theme={theme}
+        onThemeToggle={toggleTheme}
         tabs={[
           { id: 'dashboard', remoteId: 'Painel', connected: true, isDashboard: true },
           ...sessions.filter(s => !s.isIncoming).map(s => ({
@@ -693,7 +742,7 @@ function App() {
         </div>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', background: 'var(--bg-main)' }}>
         {activeSessionId === 'dashboard' ? (
           <Dashboard
             myId={myId} serverIp={serverIp} setServerIp={(ip) => { setServerIp(ip); localStorage.setItem('miré_desk_server_ip', ip); }}
@@ -747,11 +796,19 @@ function App() {
         )}
 
         {/* INCOMING MODAL */}
-        {sessions.filter(s => s.incomingCall && !s.isAuthenticated && s.remoteId !== autoAcceptFrom).map(s => (
+        {sessions.filter(s => s.isIncoming && !s.isAuthenticated && s.remoteId !== autoAcceptFrom).map(s => (
           <SessionView
             key={`incoming-${s.id}`} connected={false} remoteVideoRef={incomingModalVideoRef} remoteStream={null} isOnlyModal={true}
             incomingCall={s.incomingCall}
-            onAnswer={() => sessionManager.answerCall(s.id, s.incomingCall, localStreamRef.current!)}
+            onAnswer={() => {
+              if (s.incomingCall) {
+                sessionManager.answerCall(s.id, s.incomingCall, localStreamRef.current!);
+              } else if (s.dataConnection) {
+                console.log(`[App] Aceite manual via dados para ${s.id}. Enviando AUTH_STATUS OK.`);
+                s.dataConnection.send({ type: 'AUTH_STATUS', status: 'OK' });
+                setSessions(prev => prev.map(xs => xs.id === s.id ? { ...xs, isAuthenticated: true } : xs));
+              }
+            }}
             onReject={() => handleSessionClose(s.id, 'Rejected')}
             remoteId={s.remoteId}
             onHookMethods={{
